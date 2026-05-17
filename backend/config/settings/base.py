@@ -81,6 +81,8 @@ INSTALLED_APPS = [
     "apps.emergency_response",
     "apps.national_analytics",
     "apps.mobile",
+    # Phase 6 — realtime operations (additive SSE)
+    "apps.realtime",
 ]
 
 MIDDLEWARE = [

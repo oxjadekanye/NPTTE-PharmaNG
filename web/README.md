@@ -1,5 +1,5 @@
-# NPTTE Web Platform (Future)
+# NPTTE Web Platform
 
-Next.js, TypeScript, and Tailwind CSS citizen and operator interfaces will live here.
+The Phase 6 frontend lives in **`/frontend`** (Next.js 15, TypeScript, Tailwind).
 
-**Phase 1:** Not implemented. See `docs/roadmap/mvp_phase_1.md`.
+See `frontend/README.md` and `docs/frontend/architecture.md`.

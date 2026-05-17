@@ -33,4 +33,6 @@ urlpatterns = [
     path("onboarding/", include("apps.onboarding.api.urls")),
     path("emergency-response/", include("apps.emergency_response.api.urls")),
     path("mobile/", include("apps.mobile.api.urls")),
+    # Phase 6 — realtime SSE (additive)
+    path("realtime/", include("apps.realtime.api.urls")),
 ]
