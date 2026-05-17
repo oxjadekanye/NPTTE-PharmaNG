@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from apps.patients.models import MedicationSearchRequest, PatientProfile
+from apps.patients.models import (
+    MedicationReminder,
+    MedicationSearchRequest,
+    PatientProfile,
+    SavedMedication,
+)
 
 
 @admin.register(PatientProfile)
@@ -14,3 +19,13 @@ class MedicationSearchRequestAdmin(admin.ModelAdmin):
     list_display = ("product", "radius_miles", "search_status", "result_count", "created_at")
     list_filter = ("search_status",)
     search_fields = ("search_term", "product__name")
+
+
+@admin.register(SavedMedication)
+class SavedMedicationAdmin(admin.ModelAdmin):
+    list_display = ("patient", "product", "created_at")
+
+
+@admin.register(MedicationReminder)
+class MedicationReminderAdmin(admin.ModelAdmin):
+    list_display = ("patient", "product", "remind_at", "is_sent")

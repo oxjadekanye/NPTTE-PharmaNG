@@ -56,6 +56,20 @@ INSTALLED_APPS = [
     "apps.regulatory",
     "apps.audit",
     "apps.notifications",
+    # Phase 3 — national scale modules
+    "apps.traceability",
+    "apps.manufacturers",
+    "apps.distributors",
+    "apps.logistics",
+    "apps.prescriptions",
+    "apps.alerts",
+    "apps.fraud_detection",
+    "apps.compliance",
+    "apps.geolocation",
+    "apps.ai_engine",
+    "apps.blockchain_bridge",
+    "apps.analytics",
+    "apps.national_dashboard",
 ]
 
 MIDDLEWARE = [
@@ -172,11 +186,30 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_FILTER_BACKENDS": [
         "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.OrderingFilter",
+        "rest_framework.filters.SearchFilter",
     ],
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 25,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_THROTTLE_CLASSES": [
+        "apps.core.throttling.NPTTEAnonThrottle",
+        "apps.core.throttling.NPTTEUserThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env("THROTTLE_ANON", default="200/hour"),
+        "user": env("THROTTLE_USER", default="2000/hour"),
+        "auth": env("THROTTLE_AUTH", default="30/minute"),
+        "verify": env("THROTTLE_VERIFY", default="60/minute"),
+    },
 }
+
+# Async / cache hooks (Redis + Celery) — configure in production without code changes
+REDIS_URL = env.str("REDIS_URL", default="")
+CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default=REDIS_URL)
+CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default=REDIS_URL)
+
+NPTTE_VERIFY_BASE_URL = env.str("NPTTE_VERIFY_BASE_URL", default="https://verify.nptte.gov.ng/v1")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -193,7 +226,7 @@ SPECTACULAR_SETTINGS = {
         "National Pharmaceutical Transparency & Traceability Ecosystem — "
         "Nigeria pharmaceutical supply chain and patient medication discovery APIs."
     ),
-    "VERSION": "1.0.0",
+    "VERSION": "2.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": r"/api/v1",

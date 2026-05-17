@@ -20,6 +20,15 @@ class RoleCode:
     LOGISTICS = "LOGISTICS"
     PATIENT = "PATIENT"
     AUDITOR = "AUDITOR"
+    # Phase 3 — expanded national RBAC (legacy codes retained for compatibility)
+    NATIONAL_REGULATOR = "NATIONAL_REGULATOR"
+    STATE_REGULATOR = "STATE_REGULATOR"
+    WAREHOUSE_MANAGER = "WAREHOUSE_MANAGER"
+    PHARMACY_OWNER = "PHARMACY_OWNER"
+    PHARMACY_STAFF = "PHARMACY_STAFF"
+    PCN_ADMIN = "PCN_ADMIN"
+    NHIA_ADMIN = "NHIA_ADMIN"
+    FMOH_ADMIN = "FMOH_ADMIN"
 
     CHOICES = [
         (SUPER_ADMIN, "Super administrator"),
@@ -34,11 +43,34 @@ class RoleCode:
         (LOGISTICS, "Logistics provider"),
         (PATIENT, "Patient"),
         (AUDITOR, "Auditor"),
+        (NATIONAL_REGULATOR, "National regulator"),
+        (STATE_REGULATOR, "State regulator"),
+        (WAREHOUSE_MANAGER, "Warehouse manager"),
+        (PHARMACY_OWNER, "Pharmacy owner"),
+        (PHARMACY_STAFF, "Pharmacy staff"),
+        (PCN_ADMIN, "PCN regulator admin"),
+        (NHIA_ADMIN, "NHIA regulator admin"),
+        (FMOH_ADMIN, "Federal Ministry of Health admin"),
     ]
 
-    REGULATOR_CODES = frozenset({SUPER_ADMIN, NAFDAC_ADMIN, NDLEA_ADMIN, AUDITOR})
+    REGULATOR_CODES = frozenset({
+        SUPER_ADMIN,
+        NAFDAC_ADMIN,
+        NDLEA_ADMIN,
+        AUDITOR,
+        NATIONAL_REGULATOR,
+        STATE_REGULATOR,
+        PCN_ADMIN,
+        NHIA_ADMIN,
+        FMOH_ADMIN,
+    })
 
-    PHARMACY_CODES = frozenset({PHARMACY_ADMIN, PHARMACIST})
+    PHARMACY_CODES = frozenset({
+        PHARMACY_ADMIN,
+        PHARMACIST,
+        PHARMACY_OWNER,
+        PHARMACY_STAFF,
+    })
 
     SUPPLY_CHAIN_CODES = frozenset({DISTRIBUTOR, MANUFACTURER, LOGISTICS})
 
@@ -47,6 +79,79 @@ class RoleCode:
     SELF_REGISTER_CODES = frozenset({PATIENT, PHARMACIST})
 
     ALL_CODES = frozenset(code for code, _ in CHOICES)
+
+
+class SupplyChainTransactionType:
+    """National pharmaceutical movement and lifecycle events."""
+
+    MEDICATION_CREATED = "medication_created"
+    BATCH_CREATED = "batch_created"
+    MANUFACTURER_DISPATCH = "manufacturer_dispatch"
+    WAREHOUSE_RECEIPT = "warehouse_receipt"
+    WAREHOUSE_TRANSFER = "warehouse_transfer"
+    DISTRIBUTOR_RECEIPT = "distributor_receipt"
+    DISTRIBUTOR_DISPATCH = "distributor_dispatch"
+    PHARMACY_STOCKING = "pharmacy_stocking"
+    PHARMACY_SALE = "pharmacy_sale"
+    PRESCRIPTION_ISSUED = "prescription_issued"
+    PATIENT_PURCHASE = "patient_purchase"
+    STOCK_DEPLETION = "stock_depletion"
+    STOCK_ADJUSTMENT = "stock_adjustment"
+    RETURN = "return"
+    RECALL = "recall"
+    DESTROYED = "destroyed"
+    EXPIRED = "expired"
+
+    CHOICES = [
+        (MEDICATION_CREATED, "Medication created"),
+        (BATCH_CREATED, "Batch created"),
+        (MANUFACTURER_DISPATCH, "Manufacturer dispatch"),
+        (WAREHOUSE_RECEIPT, "Warehouse receipt"),
+        (WAREHOUSE_TRANSFER, "Warehouse transfer"),
+        (DISTRIBUTOR_RECEIPT, "Distributor receipt"),
+        (DISTRIBUTOR_DISPATCH, "Distributor dispatch"),
+        (PHARMACY_STOCKING, "Pharmacy stocking"),
+        (PHARMACY_SALE, "Pharmacy sale"),
+        (PRESCRIPTION_ISSUED, "Prescription issued"),
+        (PATIENT_PURCHASE, "Patient purchase"),
+        (STOCK_DEPLETION, "Stock depletion"),
+        (STOCK_ADJUSTMENT, "Stock adjustment"),
+        (RETURN, "Return"),
+        (RECALL, "Recall"),
+        (DESTROYED, "Destroyed stock"),
+        (EXPIRED, "Expired medication"),
+    ]
+
+
+class VerificationStatus:
+    PENDING = "pending"
+    VERIFIED = "verified"
+    SUSPICIOUS = "suspicious"
+    FAILED = "failed"
+    RECALLED = "recalled"
+
+    CHOICES = [
+        (PENDING, "Pending"),
+        (VERIFIED, "Verified"),
+        (SUSPICIOUS, "Suspicious"),
+        (FAILED, "Failed"),
+        (RECALLED, "Recalled"),
+    ]
+
+
+class RiskLevel:
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+    CHOICES = [
+        (LOW, "Low"),
+        (MEDIUM, "Medium"),
+        (HIGH, "High"),
+        (CRITICAL, "Critical"),
+    ]
+
 
 # Generic record lifecycle
 class RecordStatus:

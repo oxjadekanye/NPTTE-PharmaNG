@@ -28,6 +28,18 @@ class PharmacyProfile(NPTTEBaseModel):
     )
     supports_delivery = models.BooleanField(default=False)
     supports_emergency_supply = models.BooleanField(default=False)
+    is_national_registry_verified = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Verified on NPTTE national pharmacy registry.",
+    )
+    parent_branch = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="branches",
+    )
 
     class Meta:
         ordering = ["organisation__legal_name"]

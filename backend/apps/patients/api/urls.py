@@ -1,12 +1,16 @@
 from django.urls import path
 
 from apps.patients.api.views import (
+    MedicationCompareView,
+    MedicationReminderListCreateView,
     MedicationSearchDetailView,
     MedicationSearchHistoryView,
     MedicationSearchView,
     NearbyPharmaciesView,
     PatientProfileView,
     ProductCatalogSearchView,
+    SavedMedicationDetailView,
+    SavedMedicationListCreateView,
 )
 
 urlpatterns = [
@@ -20,4 +24,12 @@ urlpatterns = [
         MedicationSearchDetailView.as_view(),
         name="search-history-detail",
     ),
+    path("saved-medications/", SavedMedicationListCreateView.as_view(), name="saved-medications"),
+    path(
+        "saved-medications/<uuid:pk>/",
+        SavedMedicationDetailView.as_view(),
+        name="saved-medication-detail",
+    ),
+    path("refill-reminders/", MedicationReminderListCreateView.as_view(), name="refill-reminders"),
+    path("medication-compare/", MedicationCompareView.as_view(), name="medication-compare"),
 ]

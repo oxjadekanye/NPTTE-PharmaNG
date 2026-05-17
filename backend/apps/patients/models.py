@@ -95,3 +95,46 @@ class MedicationSearchRequest(NPTTEBaseModel):
 
     def __str__(self):
         return f"Search {self.id} — {self.product}"
+
+
+class SavedMedication(NPTTEBaseModel):
+    """Patient saved medication for history and refill tracking."""
+
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="saved_medications",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="saved_by_patients",
+    )
+    notes = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = [("patient", "product")]
+        verbose_name = "Saved medication"
+        verbose_name_plural = "Saved medications"
+
+
+class MedicationReminder(NPTTEBaseModel):
+    """Refill reminder for patient medication adherence."""
+
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.CASCADE,
+        related_name="medication_reminders",
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name="refill_reminders",
+    )
+    remind_at = models.DateTimeField(db_index=True)
+    is_sent = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        ordering = ["remind_at"]
+        verbose_name = "Medication reminder"
+        verbose_name_plural = "Medication reminders"

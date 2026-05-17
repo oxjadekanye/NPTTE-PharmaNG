@@ -10,13 +10,21 @@ from apps.core.permissions import IsPatientUser, IsRegulatorUser
 from apps.core.roles import get_user_role_code, is_regulator_user
 from apps.core.constants import RoleCode
 from apps.patients.api.serializers import (
+    MedicationReminderSerializer,
     MedicationSearchRequestSerializer,
     MedicationSearchSerializer,
     PatientProfileSerializer,
     ProductCatalogSearchSerializer,
     ProductSearchResultSerializer,
+    SavedMedicationSerializer,
 )
-from apps.patients.models import MedicationSearchRequest, PatientProfile
+from apps.patients.models import (
+    MedicationReminder,
+    MedicationSearchRequest,
+    PatientProfile,
+    SavedMedication,
+)
+from apps.products.models import Product
 from apps.patients.services import find_pharmacies_with_stock, run_medication_search
 
 
@@ -187,3 +195,54 @@ class MedicationSearchDetailView(generics.RetrieveAPIView):
         from rest_framework.exceptions import PermissionDenied
 
         raise PermissionDenied("You may not access this search record.")
+
+
+class SavedMedicationListCreateView(generics.ListCreateAPIView):
+    serializer_class = SavedMedicationSerializer
+    permission_classes = [IsAuthenticated, IsPatientUser]
+
+    def get_queryset(self):
+        profile, _ = PatientProfile.objects.get_or_create(user=self.request.user)
+        return SavedMedication.objects.filter(patient=profile).select_related("product")
+
+    def perform_create(self, serializer):
+        profile, _ = PatientProfile.objects.get_or_create(user=self.request.user)
+        serializer.save(patient=profile, created_by=self.request.user)
+
+
+class SavedMedicationDetailView(generics.RetrieveDestroyAPIView):
+    serializer_class = SavedMedicationSerializer
+    permission_classes = [IsAuthenticated, IsPatientUser]
+
+    def get_queryset(self):
+        profile = PatientProfile.objects.filter(user=self.request.user).first()
+        if not profile:
+            return SavedMedication.objects.none()
+        return SavedMedication.objects.filter(patient=profile)
+
+
+class MedicationReminderListCreateView(generics.ListCreateAPIView):
+    serializer_class = MedicationReminderSerializer
+    permission_classes = [IsAuthenticated, IsPatientUser]
+
+    def get_queryset(self):
+        profile, _ = PatientProfile.objects.get_or_create(user=self.request.user)
+        return MedicationReminder.objects.filter(patient=profile).select_related("product")
+
+    def perform_create(self, serializer):
+        profile, _ = PatientProfile.objects.get_or_create(user=self.request.user)
+        serializer.save(patient=profile, created_by=self.request.user)
+
+
+class MedicationCompareView(APIView):
+    """Compare medication reference pricing and availability metadata."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        ids = request.query_params.get("product_ids", "")
+        if not ids:
+            return Response({"detail": "product_ids required (comma-separated)."}, status=400)
+        product_ids = [p.strip() for p in ids.split(",") if p.strip()]
+        products = Product.objects.filter(id__in=product_ids, is_active=True)
+        return Response(ProductSearchResultSerializer(products, many=True).data)

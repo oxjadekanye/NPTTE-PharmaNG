@@ -145,6 +145,31 @@ class InventoryUpdateSerializer(serializers.ModelSerializer):
                 reference="inventory_api_update",
                 created_by=self.context["request"].user,
             )
+            from apps.core.constants import SupplyChainTransactionType
+            from apps.fraud_detection.services import create_fraud_flag, score_inventory_anomaly
+            from apps.traceability.services import record_supply_chain_transaction
+
+            txn = record_supply_chain_transaction(
+                transaction_type=SupplyChainTransactionType.STOCK_ADJUSTMENT,
+                request=self.context["request"],
+                actor=self.context["request"].user,
+                destination_organisation=instance.organisation,
+                product=instance.product,
+                batch=instance.batch,
+                quantity_delta=delta,
+            )
+            risk = score_inventory_anomaly(
+                organisation=instance.organisation,
+                quantity_delta=delta,
+            )
+            if risk >= 55:
+                create_fraud_flag(
+                    flag_type="abnormal_inventory_movement",
+                    organisation=instance.organisation,
+                    supply_chain_transaction=txn,
+                    risk_score=risk,
+                    description="Large inventory adjustment detected",
+                )
         if instance.quantity_on_hand == 0:
             instance.availability_status = AvailabilityStatus.OUT_OF_STOCK
         elif instance.quantity_on_hand <= 10:

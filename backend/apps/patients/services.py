@@ -126,6 +126,12 @@ def build_pharmacy_match(item: InventoryItem, distance: float) -> dict[str, Any]
         "brand_name": item.product.brand_name,
         "strength": item.product.strength,
         "dosage_form": item.product.dosage_form,
+        "reference_price": str(item.product.reference_price)
+        if item.product.reference_price is not None
+        else None,
+        "is_verified_pharmacy": bool(
+            profile and getattr(profile, "is_national_registry_verified", False)
+        ),
     }
 
 

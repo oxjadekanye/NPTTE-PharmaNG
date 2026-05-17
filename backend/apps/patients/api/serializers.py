@@ -3,7 +3,12 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from apps.patients.models import MedicationSearchRequest, PatientProfile
+from apps.patients.models import (
+    MedicationReminder,
+    MedicationSearchRequest,
+    PatientProfile,
+    SavedMedication,
+)
 from apps.patients.services import search_products
 from apps.products.models import Product
 
@@ -34,7 +39,29 @@ class ProductSearchResultSerializer(serializers.ModelSerializer):
             "strength",
             "dosage_form",
             "pack_size",
+            "reference_price",
+            "dosage_guidance",
         )
+
+
+class SavedMedicationSerializer(serializers.ModelSerializer):
+    product = ProductSearchResultSerializer(read_only=True)
+    product_id = serializers.UUIDField(write_only=True)
+
+    class Meta:
+        model = SavedMedication
+        fields = ("id", "product", "product_id", "notes", "created_at")
+        read_only_fields = ("id", "created_at", "product")
+
+
+class MedicationReminderSerializer(serializers.ModelSerializer):
+    product = ProductSearchResultSerializer(read_only=True)
+    product_id = serializers.UUIDField(write_only=True)
+
+    class Meta:
+        model = MedicationReminder
+        fields = ("id", "product", "product_id", "remind_at", "is_sent", "created_at")
+        read_only_fields = ("id", "is_sent", "created_at", "product")
 
 
 class MedicationSearchSerializer(serializers.Serializer):

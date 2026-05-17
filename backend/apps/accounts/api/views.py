@@ -80,6 +80,12 @@ class RegisterView(AuditLogViewMixin, generics.CreateAPIView):
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
     permission_classes = [AllowAny]
+    throttle_classes = []  # set in __init_subclass via get_throttles
+
+    def get_throttles(self):
+        from apps.core.throttling import AuthEndpointThrottle
+
+        return [AuthEndpointThrottle()]
 
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)

@@ -26,6 +26,17 @@ class Product(NPTTEBaseModel):
         db_index=True,
         help_text="National or internal product identifier.",
     )
+    reference_price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="National reference retail price (NGN) for patient comparison.",
+    )
+    dosage_guidance = models.TextField(
+        blank=True,
+        help_text="Patient-facing dosage guidance summary.",
+    )
     manufacturer = models.ForeignKey(
         Organisation,
         on_delete=models.PROTECT,

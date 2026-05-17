@@ -29,6 +29,11 @@ def is_regulator_user(user) -> bool:
         RoleCode.NAFDAC_ADMIN,
         RoleCode.NDLEA_ADMIN,
         RoleCode.AUDITOR,
+        RoleCode.NATIONAL_REGULATOR,
+        RoleCode.STATE_REGULATOR,
+        RoleCode.PCN_ADMIN,
+        RoleCode.NHIA_ADMIN,
+        RoleCode.FMOH_ADMIN,
     )
 
 
