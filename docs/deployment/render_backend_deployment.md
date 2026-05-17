@@ -116,6 +116,13 @@ After deploying Phase 2, verify:
 - `GET /api/v1/health/` returns `healthy`
 - `GET /api/docs/` loads Swagger UI
 - Run `python manage.py seed_roles` once via Shell (optional: `seed_demo_data` for staging only)
+- Regulator command-center login (Render Shell):
+
+```bash
+NPTTE_REGULATOR_PASSWORD='your-secure-password' python manage.py seed_regulator_admin
+```
+
+Default local/staging user when `DEBUG=True` and password env is unset: `nptte_admin` / `NptteAdmin2026!` (role `NAFDAC_ADMIN`, superuser).
 - Ensure `token_blacklist` migrations are applied (included in `migrate`)
 
 No changes to build/start commands are required for Phase 2.
