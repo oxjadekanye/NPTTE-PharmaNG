@@ -39,3 +39,13 @@ X_FRAME_OPTIONS = "DENY"
 
 # Trust Render / reverse proxy host headers
 USE_X_FORWARDED_HOST = True
+
+# CORS — allow Vercel production and preview deployments (additive to CORS_ALLOWED_ORIGINS)
+_vercel_origin_regexes = [
+    r"^https://[\w.-]+\.vercel\.app$",
+]
+CORS_ALLOWED_ORIGIN_REGEXES = list(  # noqa: F405
+    dict.fromkeys(
+        env.list("CORS_ALLOWED_ORIGIN_REGEXES", default=[]) + _vercel_origin_regexes  # noqa: F405
+    )
+)

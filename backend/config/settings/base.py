@@ -175,8 +175,9 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# CORS — origins from environment; credentials for future authenticated web clients
+# CORS — origins from environment; credentials for authenticated web clients
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGIN_REGEXES = env.list("CORS_ALLOWED_ORIGIN_REGEXES", default=[])
 CORS_ALLOW_HEADERS = [
     "accept",
     "accept-encoding",

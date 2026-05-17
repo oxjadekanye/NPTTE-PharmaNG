@@ -55,7 +55,8 @@ Set these on the **Web Service** → **Environment**:
 | `DATABASE_URL` | Paste **Internal Database URL** from Render PostgreSQL |
 | `ALLOWED_HOSTS` | `nptte-backend.onrender.com` (your exact Render hostname, comma-separated if multiple) |
 | `CSRF_TRUSTED_ORIGINS` | `https://nptte-backend.onrender.com` |
-| `CORS_ALLOWED_ORIGINS` | `https://your-frontend.onrender.com` (when web exists; optional for admin-only phase) |
+| `CORS_ALLOWED_ORIGINS` | Your canonical Vercel URL, e.g. `https://nptte-pharma-ng.vercel.app` (comma-separated if multiple) |
+| *(automatic)* | Production settings also allow all `https://*.vercel.app` preview deploy URLs via regex |
 
 Optional hardening:
 
@@ -149,6 +150,7 @@ WSGI path is `config.wsgi:application` because `manage.py` and `config/` live in
 |-------|-----|
 | `DisallowedHost` | Add Render hostname to `ALLOWED_HOSTS` |
 | CSRF failure on admin login | Add `https://your-app.onrender.com` to `CSRF_TRUSTED_ORIGINS` |
+| CORS blocked from Vercel | Set `CORS_ALLOWED_ORIGINS` to your Vercel URL; redeploy after pull (includes `*.vercel.app` regex) |
 | Static files 404 | Ensure build runs `collectstatic`; WhiteNoise is enabled in settings |
 | Database connection error | Verify `DATABASE_URL`, `USE_SQLITE=False`, PostgreSQL is running |
 | `USE_SQLITE must be False in production` | Set `USE_SQLITE=False` and provide `DATABASE_URL` |

@@ -5,24 +5,23 @@ import json
 import time
 
 from django.http import StreamingHttpResponse
-from rest_framework.permissions import AllowAny
-from rest_framework.views import APIView
+from django.views import View
 
 from apps.events.services import EventStreamService
 
 
-class RealtimeStreamView(APIView):
+class RealtimeStreamView(View):
     """
     Server-Sent Events endpoint for regulator dashboards.
-    Polls event stream; Redis pub/sub ready when configured.
+    Uses Django View (not DRF APIView) to avoid 406 on text/event-stream Accept headers.
     """
 
-    permission_classes = [AllowAny]
-    authentication_classes = []
-
     def get(self, request):
-        category = request.query_params.get("category")
-        since = int(request.query_params.get("since_sequence", 0))
+        category = request.GET.get("category")
+        try:
+            since = int(request.GET.get("since_sequence", 0))
+        except (TypeError, ValueError):
+            since = 0
 
         def event_generator():
             yield "event: connected\ndata: {}\n\n"
