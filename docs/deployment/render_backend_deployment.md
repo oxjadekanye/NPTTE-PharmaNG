@@ -31,7 +31,7 @@ postgres://nptte_user:xxxxxxxx@dpg-xxxxx-a/nptte_dbname
 | **Environment** | Python |
 | **Root directory** | `backend` |
 | **Branch** | `main` (or your default branch) |
-| **Build command** | `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate` |
+| **Build command** | `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_roles && python manage.py seed_regulator_admin` |
 | **Start command** | `gunicorn config.wsgi:application` |
 
 ### Python version
@@ -56,6 +56,8 @@ Set these on the **Web Service** → **Environment**:
 | `ALLOWED_HOSTS` | `nptte-backend.onrender.com` (your exact Render hostname, comma-separated if multiple) |
 | `CSRF_TRUSTED_ORIGINS` | `https://nptte-backend.onrender.com` |
 | `CORS_ALLOWED_ORIGINS` | Your canonical Vercel URL, e.g. `https://nptte-pharma-ng.vercel.app` (comma-separated if multiple) |
+| `NPTTE_REGULATOR_PASSWORD` | **Required for frontend login** — creates/updates `nptte_admin` on each deploy (use a strong secret) |
+| `NPTTE_REGULATOR_USERNAME` | Optional (default `nptte_admin`) |
 | *(automatic)* | Production settings also allow all `https://*.vercel.app` preview deploy URLs via regex |
 
 Optional hardening:
@@ -133,7 +135,7 @@ No changes to build/start commands are required for Phase 2.
 **Build command:**
 
 ```bash
-pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate && python manage.py seed_roles && python manage.py seed_regulator_admin
 ```
 
 **Start command:**

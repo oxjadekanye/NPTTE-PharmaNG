@@ -19,7 +19,23 @@ async function authFetch<T>(path: string, init?: RequestInit): Promise<T> {
   if (token) headers.set("Authorization", `Bearer ${token}`);
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((json as { detail?: string }).detail ?? res.statusText);
+  if (!res.ok) {
+    const body = json as {
+      detail?: string;
+      non_field_errors?: string[];
+      username?: string[];
+      password?: string[];
+    };
+    const msg =
+      body.detail ??
+      body.non_field_errors?.[0] ??
+      body.username?.[0] ??
+      body.password?.[0] ??
+      (res.status === 401
+        ? "Invalid username or password. If this is a new deployment, ask ops to run seed_regulator_admin on Render."
+        : res.statusText);
+    throw new Error(msg);
+  }
   return json as T;
 }
 

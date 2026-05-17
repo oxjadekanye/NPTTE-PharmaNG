@@ -58,9 +58,13 @@ class Command(BaseCommand):
                     )
                 )
             else:
-                raise CommandError(
-                    "Set NPTTE_REGULATOR_PASSWORD before running this command in production."
+                self.stdout.write(
+                    self.style.WARNING(
+                        "Skipping regulator seed: set NPTTE_REGULATOR_PASSWORD on Render to "
+                        "create nptte_admin, then redeploy or run seed_regulator_admin in Shell."
+                    )
                 )
+                return
 
         role_code = options["role"]
         try:
