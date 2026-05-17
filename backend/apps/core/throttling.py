@@ -18,3 +18,15 @@ class AuthEndpointThrottle(AnonRateThrottle):
 
 class VerificationPublicThrottle(AnonRateThrottle):
     scope = "verify"
+
+
+class CitizenPublicThrottle(AnonRateThrottle):
+    """Aggressive limits for public citizen verification and reporting."""
+
+    scope = "citizen"
+
+
+class CommandCenterThrottle(UserRateThrottle):
+    """Regulator command center burst protection."""
+
+    scope = "command"

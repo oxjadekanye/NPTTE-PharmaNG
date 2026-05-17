@@ -7,6 +7,11 @@ from apps.logistics.models import (
     LogisticsShipment,
     ShipmentCheckpoint,
     ShipmentItem,
+    SmartWarehouse,
+    TemperatureExcursion,
+    WarehouseInventorySnapshot,
+    WarehouseRiskAssessment,
+    WarehouseZone,
 )
 
 
@@ -47,3 +52,10 @@ class DeliveryConfirmationAdmin(admin.ModelAdmin):
 class ColdChainLogAdmin(admin.ModelAdmin):
     list_display = ("shipment", "temperature_celsius", "is_breach", "recorded_at")
     list_filter = ("is_breach",)
+
+
+admin.site.register(SmartWarehouse)
+admin.site.register(WarehouseZone)
+admin.site.register(WarehouseInventorySnapshot)
+admin.site.register(TemperatureExcursion)
+admin.site.register(WarehouseRiskAssessment)

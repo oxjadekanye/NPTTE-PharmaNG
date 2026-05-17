@@ -306,3 +306,76 @@ class AlertSeverity:
         (WARNING, "Warning"),
         (CRITICAL, "Critical"),
     ]
+
+
+# Phase 5 — national command platform
+class IncidentSeverity:
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+    CHOICES = [
+        (LOW, "Low"),
+        (MEDIUM, "Medium"),
+        (HIGH, "High"),
+        (CRITICAL, "Critical"),
+    ]
+
+
+class IncidentStatus:
+    OPEN = "open"
+    INVESTIGATING = "investigating"
+    CONTAINED = "contained"
+    RESOLVED = "resolved"
+
+    CHOICES = [
+        (OPEN, "Open"),
+        (INVESTIGATING, "Investigating"),
+        (CONTAINED, "Contained"),
+        (RESOLVED, "Resolved"),
+    ]
+
+
+class EventCategory:
+    SYSTEM = "system"
+    VERIFICATION = "verification"
+    INVENTORY = "inventory"
+    EMERGENCY = "emergency"
+    FRAUD = "fraud"
+
+    CHOICES = [
+        (SYSTEM, "System"),
+        (VERIFICATION, "Verification"),
+        (INVENTORY, "Inventory"),
+        (EMERGENCY, "Emergency"),
+        (FRAUD, "Fraud"),
+    ]
+
+
+class OnboardingStatus:
+    DRAFT = "draft"
+    SUBMITTED = "submitted"
+    UNDER_REVIEW = "under_review"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+    CHOICES = [
+        (DRAFT, "Draft"),
+        (SUBMITTED, "Submitted"),
+        (UNDER_REVIEW, "Under review"),
+        (APPROVED, "Approved"),
+        (REJECTED, "Rejected"),
+    ]
+
+
+class EmergencyMode:
+    NORMAL = "normal"
+    ELEVATED = "elevated"
+    CRISIS = "crisis"
+
+    CHOICES = [
+        (NORMAL, "Normal"),
+        (ELEVATED, "Elevated"),
+        (CRISIS, "Crisis"),
+    ]

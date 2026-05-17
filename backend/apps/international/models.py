@@ -49,3 +49,53 @@ class BorderVerificationLog(NPTTEBaseModel):
         ordering = ["-verified_at"]
         verbose_name = "Border verification log"
         verbose_name_plural = "Border verification logs"
+
+
+class BorderInspectionCheckpoint(NPTTEBaseModel):
+    checkpoint_code = models.CharField(max_length=64, unique=True, db_index=True)
+    name = models.CharField(max_length=255)
+    state = models.CharField(max_length=128, blank=True, db_index=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    supports_ecowas = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        verbose_name = "Border inspection checkpoint"
+        verbose_name_plural = "Border inspection checkpoints"
+
+
+class InternationalVerificationRequest(NPTTEBaseModel):
+    manifest = models.ForeignKey(
+        ImportManifest, on_delete=models.CASCADE, related_name="verification_requests"
+    )
+    checkpoint = models.ForeignKey(
+        BorderInspectionCheckpoint, on_delete=models.PROTECT, related_name="verification_requests"
+    )
+    request_status = models.CharField(max_length=32, db_index=True, default="pending")
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    requested_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-requested_at"]
+
+
+class ImportRiskAssessment(NPTTEBaseModel):
+    manifest = models.OneToOneField(
+        ImportManifest, on_delete=models.CASCADE, related_name="risk_assessment"
+    )
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    suspicious_indicators = models.JSONField(default=list, blank=True)
+    assessed_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-assessed_at"]
+
+
+class CustomsHoldNotice(NPTTEBaseModel):
+    manifest = models.ForeignKey(ImportManifest, on_delete=models.CASCADE, related_name="hold_notices")
+    hold_reason = models.TextField()
+    issued_at = models.DateTimeField(db_index=True)
+    released_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-issued_at"]

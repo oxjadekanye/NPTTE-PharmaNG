@@ -66,3 +66,40 @@ def record_shipment_checkpoint(
         notes=f"Checkpoint {shipment.tracking_number}",
     )
     return checkpoint
+
+
+def calculate_warehouse_risk(*, warehouse) -> "WarehouseRiskAssessment":
+    """Heuristic warehouse fraud, shortage, and cold-chain risk scoring."""
+    from decimal import Decimal
+
+    from apps.logistics.models import TemperatureExcursion, WarehouseInventorySnapshot, WarehouseRiskAssessment
+
+    snapshots = WarehouseInventorySnapshot.objects.filter(warehouse=warehouse).order_by("-snapshot_at")[:5]
+    excursions = TemperatureExcursion.objects.filter(warehouse=warehouse).count()
+    score = Decimal("10")
+    fraud_score = Decimal("0")
+    shortage_prob = Decimal("0")
+
+    if snapshots:
+        latest = snapshots[0]
+        if warehouse.utilization_percent > 95:
+            shortage_prob += Decimal("30")
+        if latest.stock_velocity < 1:
+            fraud_score += Decimal("20")
+        if latest.ageing_days_avg > 180:
+            score += Decimal("15")
+
+    if excursions > 0:
+        score += Decimal(min(excursions * 10, 40))
+
+    if warehouse.utilization_percent > 90:
+        shortage_prob += Decimal("25")
+
+    total = min(score + fraud_score + shortage_prob, Decimal("100"))
+    return WarehouseRiskAssessment.objects.create(
+        warehouse=warehouse,
+        risk_score=total,
+        fraud_score=min(fraud_score, Decimal("100")),
+        shortage_probability=min(shortage_prob, Decimal("100")),
+        assessed_at=timezone.now(),
+    )

@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from apps.international.models import BorderVerificationLog, ExportManifest, ImportManifest
+from apps.international.models import (
+    BorderInspectionCheckpoint,
+    BorderVerificationLog,
+    CustomsHoldNotice,
+    ExportManifest,
+    ImportManifest,
+    ImportRiskAssessment,
+    InternationalVerificationRequest,
+)
 
 
 @admin.register(ImportManifest)
@@ -17,3 +25,9 @@ class ExportManifestAdmin(admin.ModelAdmin):
 @admin.register(BorderVerificationLog)
 class BorderVerificationLogAdmin(admin.ModelAdmin):
     list_display = ("border_point", "verification_outcome", "verified_at")
+
+
+admin.site.register(BorderInspectionCheckpoint)
+admin.site.register(InternationalVerificationRequest)
+admin.site.register(ImportRiskAssessment)
+admin.site.register(CustomsHoldNotice)

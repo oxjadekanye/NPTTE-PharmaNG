@@ -134,3 +134,66 @@ class ColdChainLog(NPTTEBaseModel):
         ordering = ["recorded_at"]
         verbose_name = "Cold chain log"
         verbose_name_plural = "Cold chain logs"
+
+
+class SmartWarehouse(NPTTEBaseModel):
+    """National warehouse intelligence node."""
+
+    organisation = models.ForeignKey(
+        Organisation, on_delete=models.CASCADE, related_name="smart_warehouses"
+    )
+    name = models.CharField(max_length=255)
+    warehouse_code = models.CharField(max_length=64, db_index=True)
+    state = models.CharField(max_length=128, blank=True, db_index=True)
+    capacity_units = models.PositiveIntegerField(default=0)
+    utilization_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    cold_chain_enabled = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        unique_together = [("organisation", "warehouse_code")]
+        verbose_name = "Smart warehouse"
+        verbose_name_plural = "Smart warehouses"
+
+
+class WarehouseZone(NPTTEBaseModel):
+    warehouse = models.ForeignKey(SmartWarehouse, on_delete=models.CASCADE, related_name="zones")
+    zone_code = models.CharField(max_length=32, db_index=True)
+    temperature_min = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    temperature_max = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        unique_together = [("warehouse", "zone_code")]
+
+
+class WarehouseInventorySnapshot(NPTTEBaseModel):
+    warehouse = models.ForeignKey(SmartWarehouse, on_delete=models.CASCADE, related_name="snapshots")
+    snapshot_at = models.DateTimeField(db_index=True)
+    total_units = models.PositiveIntegerField(default=0)
+    sku_count = models.PositiveIntegerField(default=0)
+    stock_velocity = models.DecimalField(max_digits=8, decimal_places=2, default=0)
+    ageing_days_avg = models.DecimalField(max_digits=6, decimal_places=2, default=0)
+
+    class Meta:
+        ordering = ["-snapshot_at"]
+
+
+class TemperatureExcursion(NPTTEBaseModel):
+    warehouse = models.ForeignKey(SmartWarehouse, on_delete=models.CASCADE, related_name="excursions")
+    zone = models.ForeignKey(WarehouseZone, on_delete=models.SET_NULL, null=True, blank=True)
+    temperature_celsius = models.DecimalField(max_digits=5, decimal_places=2)
+    recorded_at = models.DateTimeField(db_index=True)
+    duration_minutes = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-recorded_at"]
+
+
+class WarehouseRiskAssessment(NPTTEBaseModel):
+    warehouse = models.ForeignKey(SmartWarehouse, on_delete=models.CASCADE, related_name="risk_assessments")
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    fraud_score = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    shortage_probability = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    assessed_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-assessed_at"]

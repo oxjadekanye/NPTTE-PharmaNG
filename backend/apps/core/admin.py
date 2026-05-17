@@ -1,3 +1,5 @@
 from django.contrib import admin
 
-# Core provides abstract models only; no models registered here.
+from apps.core.security_models import SecurityThreatLog
+
+admin.site.register(SecurityThreatLog)

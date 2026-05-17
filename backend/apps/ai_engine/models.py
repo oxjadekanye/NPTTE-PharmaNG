@@ -107,3 +107,63 @@ class OrganisationRiskScore(NPTTEBaseModel):
     class Meta:
         verbose_name = "Organisation risk score"
         verbose_name_plural = "Organisation risk scores"
+
+
+class NationalRiskSignal(NPTTEBaseModel):
+    signal_type = models.CharField(max_length=64, db_index=True)
+    national_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    regional_data = models.JSONField(default=dict, blank=True)
+    recorded_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-recorded_at"]
+
+
+class CounterfeitHeatmap(NPTTEBaseModel):
+    state = models.CharField(max_length=128, db_index=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    intensity = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    period_start = models.DateTimeField(db_index=True)
+    period_end = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-intensity"]
+
+
+class DiversionProbability(NPTTEBaseModel):
+    organisation = models.ForeignKey(
+        Organisation, on_delete=models.CASCADE, related_name="diversion_probabilities"
+    )
+    product = models.ForeignKey(
+        Product, on_delete=models.SET_NULL, null=True, blank=True, related_name="diversion_probabilities"
+    )
+    probability = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    factors = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-probability"]
+
+
+class ShortageForecast(NPTTEBaseModel):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="shortage_forecasts")
+    state = models.CharField(max_length=128, db_index=True)
+    forecast_date = models.DateField(db_index=True)
+    shortage_probability = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    model_version = models.CharField(max_length=32, default="rules-v1")
+
+    class Meta:
+        ordering = ["-forecast_date"]
+
+
+class MedicineMovementPattern(NPTTEBaseModel):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="movement_patterns")
+    origin_state = models.CharField(max_length=128, db_index=True)
+    destination_state = models.CharField(max_length=128, db_index=True)
+    movement_volume = models.PositiveIntegerField(default=0)
+    anomaly_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    period_start = models.DateTimeField(db_index=True)
+    period_end = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["-anomaly_score"]

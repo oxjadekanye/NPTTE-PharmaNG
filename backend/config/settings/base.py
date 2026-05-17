@@ -72,6 +72,15 @@ INSTALLED_APPS = [
     "apps.national_dashboard",
     "apps.emergency",
     "apps.international",
+    # Phase 5 — national command platform
+    "apps.command_center",
+    "apps.events",
+    "apps.market_intelligence",
+    "apps.citizen",
+    "apps.onboarding",
+    "apps.emergency_response",
+    "apps.national_analytics",
+    "apps.mobile",
 ]
 
 MIDDLEWARE = [
@@ -203,6 +212,8 @@ REST_FRAMEWORK = {
         "user": env("THROTTLE_USER", default="2000/hour"),
         "auth": env("THROTTLE_AUTH", default="30/minute"),
         "verify": env("THROTTLE_VERIFY", default="60/minute"),
+        "citizen": env("THROTTLE_CITIZEN", default="30/minute"),
+        "command": env("THROTTLE_COMMAND", default="500/hour"),
     },
 }
 
@@ -229,7 +240,7 @@ SPECTACULAR_SETTINGS = {
         "National Pharmaceutical Transparency & Traceability Ecosystem — "
         "Nigeria pharmaceutical supply chain and patient medication discovery APIs."
     ),
-    "VERSION": "3.0.0",
+    "VERSION": "5.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": r"/api/v1",

@@ -3,10 +3,15 @@ from django.contrib import admin
 from apps.ai_engine.models import (
     AIRiskAssessment,
     AIRiskSignal,
+    CounterfeitHeatmap,
     CounterfeitRiskAssessment,
     DemandForecast,
+    DiversionProbability,
     InventoryPrediction,
+    MedicineMovementPattern,
+    NationalRiskSignal,
     OrganisationRiskScore,
+    ShortageForecast,
 )
 
 
@@ -38,3 +43,10 @@ class CounterfeitRiskAssessmentAdmin(admin.ModelAdmin):
 @admin.register(OrganisationRiskScore)
 class OrganisationRiskScoreAdmin(admin.ModelAdmin):
     list_display = ("organisation", "overall_score", "counterfeit_score", "diversion_score")
+
+
+admin.site.register(NationalRiskSignal)
+admin.site.register(CounterfeitHeatmap)
+admin.site.register(DiversionProbability)
+admin.site.register(ShortageForecast)
+admin.site.register(MedicineMovementPattern)
