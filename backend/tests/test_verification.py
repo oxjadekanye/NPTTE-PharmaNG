@@ -21,7 +21,11 @@ class VerificationAPITests(TestCase):
             active_ingredient="Test",
             manufacturer=org,
         )
-        batch = ProductBatch.objects.create(product=product, batch_number="B001")
+        batch = ProductBatch.objects.create(
+            product=product,
+            batch_number="B001",
+            regulator_status="approved",
+        )
         self.serial = ProductSerial.objects.create(
             batch=batch,
             serial_number="NG-TEST-VERIFY-001",

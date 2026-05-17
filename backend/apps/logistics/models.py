@@ -1,7 +1,9 @@
 from django.db import models
 
+from apps.core.constants import ShipmentLifecycle
 from apps.core.models import NPTTEBaseModel
 from apps.organisations.models import Organisation
+from apps.products.models import ProductBatch
 from apps.traceability.models import SupplyChainTransaction
 
 
@@ -20,7 +22,7 @@ class LogisticsProviderProfile(NPTTEBaseModel):
 
 
 class LogisticsShipment(NPTTEBaseModel):
-    """Shipment linking origin, destination, and traceability transaction."""
+    """National pharmaceutical shipment with full chain-of-custody lifecycle."""
 
     tracking_number = models.CharField(max_length=128, unique=True, db_index=True)
     logistics_provider = models.ForeignKey(
@@ -45,11 +47,90 @@ class LogisticsShipment(NPTTEBaseModel):
         blank=True,
         related_name="shipments",
     )
+    lifecycle_status = models.CharField(
+        max_length=32,
+        choices=ShipmentLifecycle.CHOICES,
+        default=ShipmentLifecycle.CREATED,
+        db_index=True,
+    )
     departed_at = models.DateTimeField(null=True, blank=True)
     delivered_at = models.DateTimeField(null=True, blank=True)
     temperature_controlled = models.BooleanField(default=False)
+    chain_integrity_verified = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]
         verbose_name = "Logistics shipment"
         verbose_name_plural = "Logistics shipments"
+
+
+class ShipmentItem(NPTTEBaseModel):
+    shipment = models.ForeignKey(
+        LogisticsShipment,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    batch = models.ForeignKey(
+        ProductBatch,
+        on_delete=models.PROTECT,
+        related_name="shipment_items",
+    )
+    quantity = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        verbose_name = "Shipment item"
+        verbose_name_plural = "Shipment items"
+
+
+class ShipmentCheckpoint(NPTTEBaseModel):
+    """GPS and condition checkpoint during shipment transit."""
+
+    shipment = models.ForeignKey(
+        LogisticsShipment,
+        on_delete=models.CASCADE,
+        related_name="checkpoints",
+    )
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    temperature_celsius = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
+    condition_notes = models.TextField(blank=True)
+    recorded_at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        ordering = ["recorded_at"]
+        verbose_name = "Shipment checkpoint"
+        verbose_name_plural = "Shipment checkpoints"
+
+
+class DeliveryConfirmation(NPTTEBaseModel):
+    shipment = models.OneToOneField(
+        LogisticsShipment,
+        on_delete=models.CASCADE,
+        related_name="delivery_confirmation",
+    )
+    received_by_name = models.CharField(max_length=255, blank=True)
+    confirmed_at = models.DateTimeField(db_index=True)
+    quantity_received = models.PositiveIntegerField(default=0)
+    rejection_reason = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "Delivery confirmation"
+        verbose_name_plural = "Delivery confirmations"
+
+
+class ColdChainLog(NPTTEBaseModel):
+    shipment = models.ForeignKey(
+        LogisticsShipment,
+        on_delete=models.CASCADE,
+        related_name="cold_chain_logs",
+    )
+    temperature_celsius = models.DecimalField(max_digits=5, decimal_places=2)
+    recorded_at = models.DateTimeField(db_index=True)
+    is_breach = models.BooleanField(default=False, db_index=True)
+
+    class Meta:
+        ordering = ["recorded_at"]
+        verbose_name = "Cold chain log"
+        verbose_name_plural = "Cold chain logs"

@@ -139,6 +139,88 @@ class VerificationStatus:
     ]
 
 
+class VerificationOutcome:
+    """Sovereign verification engine outcomes."""
+
+    AUTHENTIC = "authentic"
+    COUNTERFEIT_SUSPECTED = "counterfeit_suspected"
+    RECALLED = "recalled"
+    EXPIRED = "expired"
+    DUPLICATE_SCAN_DETECTED = "duplicate_scan_detected"
+    INVALID_SERIAL = "invalid_serial"
+    UNREGISTERED_PRODUCT = "unregistered_product"
+
+    CHOICES = [
+        (AUTHENTIC, "Authentic"),
+        (COUNTERFEIT_SUSPECTED, "Counterfeit suspected"),
+        (RECALLED, "Recalled"),
+        (EXPIRED, "Expired"),
+        (DUPLICATE_SCAN_DETECTED, "Duplicate scan detected"),
+        (INVALID_SERIAL, "Invalid serial"),
+        (UNREGISTERED_PRODUCT, "Unregistered product"),
+    ]
+
+
+class ShipmentLifecycle:
+    CREATED = "created"
+    IN_TRANSIT = "in_transit"
+    ARRIVED = "arrived"
+    VERIFIED = "verified"
+    REJECTED = "rejected"
+    LOST = "lost"
+    RECALLED = "recalled"
+
+    CHOICES = [
+        (CREATED, "Created"),
+        (IN_TRANSIT, "In transit"),
+        (ARRIVED, "Arrived"),
+        (VERIFIED, "Verified"),
+        (REJECTED, "Rejected"),
+        (LOST, "Lost"),
+        (RECALLED, "Recalled"),
+    ]
+
+
+class AlertCategory:
+    COUNTERFEIT = "counterfeit"
+    RECALL = "recall"
+    DIVERSION = "diversion"
+    THEFT = "theft"
+    EXPIRY_RISK = "expiry_risk"
+    UNUSUAL_SALES_SPIKE = "unusual_sales_spike"
+    SUSPICIOUS_WAREHOUSE = "suspicious_warehouse_activity"
+    COLD_CHAIN_BREACH = "cold_chain_breach"
+    VERIFICATION_ANOMALY = "verification_anomaly"
+    SHORTAGE = "shortage"
+
+    CHOICES = [
+        (COUNTERFEIT, "Counterfeit"),
+        (RECALL, "Recall"),
+        (DIVERSION, "Diversion"),
+        (THEFT, "Theft"),
+        (EXPIRY_RISK, "Expiry risk"),
+        (UNUSUAL_SALES_SPIKE, "Unusual sales spike"),
+        (SUSPICIOUS_WAREHOUSE, "Suspicious warehouse activity"),
+        (COLD_CHAIN_BREACH, "Cold chain breach"),
+        (VERIFICATION_ANOMALY, "Verification anomaly"),
+        (SHORTAGE, "Shortage"),
+    ]
+
+
+class RegulatorBatchStatus:
+    PENDING = "pending"
+    APPROVED = "approved"
+    SUSPENDED = "suspended"
+    REJECTED = "rejected"
+
+    CHOICES = [
+        (PENDING, "Pending"),
+        (APPROVED, "Approved"),
+        (SUSPENDED, "Suspended"),
+        (REJECTED, "Rejected"),
+    ]
+
+
 class RiskLevel:
     LOW = "low"
     MEDIUM = "medium"

@@ -39,6 +39,9 @@ class NationalAlert(NPTTEBaseModel):
         related_name="national_alerts",
     )
     state = models.CharField(max_length=128, blank=True, db_index=True)
+    risk_score = models.DecimalField(max_digits=5, decimal_places=2, default=0, db_index=True)
+    evidence_payload = models.JSONField(default=dict, blank=True)
+    escalation_level = models.PositiveIntegerField(default=0)
     resolved_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -46,4 +49,23 @@ class NationalAlert(NPTTEBaseModel):
         indexes = [
             models.Index(fields=["alert_type", "severity", "created_at"]),
             models.Index(fields=["state", "risk_level"]),
+            models.Index(fields=["risk_score", "created_at"]),
         ]
+
+
+class NationalAlertEscalation(NPTTEBaseModel):
+    """Escalation workflow for national alerts."""
+
+    alert = models.ForeignKey(
+        NationalAlert,
+        on_delete=models.CASCADE,
+        related_name="escalations",
+    )
+    escalated_to = models.CharField(max_length=128, db_index=True)
+    notes = models.TextField(blank=True)
+    escalated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-escalated_at"]
+        verbose_name = "Alert escalation"
+        verbose_name_plural = "Alert escalations"

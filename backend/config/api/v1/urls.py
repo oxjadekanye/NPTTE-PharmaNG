@@ -17,4 +17,12 @@ urlpatterns = [
     path("analytics/", include("apps.analytics.api.urls")),
     path("dashboard/", include("apps.national_dashboard.api.urls")),
     path("alerts/", include("apps.alerts.api.urls")),
+    path("manufacturers/", include("apps.manufacturers.api.urls")),
+    # Phase 5 — supply chain & clinical (additive)
+    path("distributors/", include("apps.distributors.api.urls")),
+    path("logistics/", include("apps.logistics.api.urls")),
+    path("prescriptions/", include("apps.prescriptions.api.urls")),
+    path("regulatory/", include("apps.regulatory.api.urls")),
+    path("emergency/", include("apps.emergency.api.urls")),
+    path("international/", include("apps.international.api.urls")),
 ]

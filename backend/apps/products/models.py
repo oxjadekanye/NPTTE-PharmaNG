@@ -65,6 +65,23 @@ class ProductBatch(NPTTEBaseModel):
     batch_number = models.CharField(max_length=128, db_index=True)
     manufacturing_date = models.DateField(null=True, blank=True)
     expiry_date = models.DateField(null=True, blank=True, db_index=True)
+    manufacturing_site = models.ForeignKey(
+        "manufacturers.ManufacturingSite",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="batches",
+    )
+    serial_range_start = models.CharField(max_length=128, blank=True)
+    serial_range_end = models.CharField(max_length=128, blank=True)
+    quantity_produced = models.PositiveIntegerField(default=0)
+    verification_hash = models.CharField(max_length=128, blank=True, db_index=True)
+    regulator_status = models.CharField(
+        max_length=32,
+        default="pending",
+        db_index=True,
+        help_text="NAFDAC/regulator approval status for batch release.",
+    )
 
     class Meta:
         ordering = ["-created_at"]

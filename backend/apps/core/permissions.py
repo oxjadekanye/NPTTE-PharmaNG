@@ -98,6 +98,51 @@ class IsPharmacyStaffOrRegulator(BasePermission):
         )
 
 
+class IsDistributorStaff(BasePermission):
+    """Distributor or warehouse manager with organisation membership."""
+
+    message = "Distributor access required."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        code = get_user_role_code(user)
+        if code not in {RoleCode.DISTRIBUTOR, RoleCode.WAREHOUSE_MANAGER, RoleCode.SUPER_ADMIN}:
+            return False
+        return bool(user.organisation_id)
+
+
+class IsLogisticsStaff(BasePermission):
+    """Logistics provider staff."""
+
+    message = "Logistics provider access required."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        return get_user_role_code(user) == RoleCode.LOGISTICS and bool(user.organisation_id)
+
+
+class IsHospitalStaff(BasePermission):
+    """Hospital admin or doctor."""
+
+    message = "Hospital staff access required."
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        return get_user_role_code(user) in RoleCode.HOSPITAL_CODES and bool(user.organisation_id)
+
+
 class IsSuperAdmin(BasePermission):
     message = "Super administrator access required."
 

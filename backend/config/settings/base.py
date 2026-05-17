@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "apps.blockchain_bridge",
     "apps.analytics",
     "apps.national_dashboard",
+    "apps.emergency",
+    "apps.international",
 ]
 
 MIDDLEWARE = [
@@ -210,6 +212,7 @@ CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default=REDIS_URL)
 CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default=REDIS_URL)
 
 NPTTE_VERIFY_BASE_URL = env.str("NPTTE_VERIFY_BASE_URL", default="https://verify.nptte.gov.ng/v1")
+NPTTE_VERIFICATION_HMAC_SECRET = env.str("NPTTE_VERIFICATION_HMAC_SECRET", default="")
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
@@ -226,7 +229,7 @@ SPECTACULAR_SETTINGS = {
         "National Pharmaceutical Transparency & Traceability Ecosystem — "
         "Nigeria pharmaceutical supply chain and patient medication discovery APIs."
     ),
-    "VERSION": "2.0.0",
+    "VERSION": "3.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "SCHEMA_PATH_PREFIX": r"/api/v1",

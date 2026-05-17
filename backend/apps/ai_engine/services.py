@@ -1,39 +1,77 @@
-"""AI engine service stubs — async/ML integration points."""
+"""AI pharmaceutical intelligence — heuristic engines (ML-ready)."""
 from __future__ import annotations
 
 from decimal import Decimal
 
-from apps.ai_engine.models import AIRiskAssessment
+from apps.ai_engine.models import (
+    AIRiskSignal,
+    CounterfeitRiskAssessment,
+    DemandForecast,
+    InventoryPrediction,
+    OrganisationRiskScore,
+)
 from apps.core.constants import RiskLevel
+from apps.inventory.models import InventoryItem
+from apps.organisations.models import Organisation
+from apps.products.models import Product
+from apps.verification.models import VerificationScanLog
 
 
-def assess_counterfeit_risk(*, organisation=None, transaction_count: int = 0) -> AIRiskAssessment:
-    """Rule-based counterfeit risk placeholder for future ML."""
-    score = Decimal(min(transaction_count * 2, 95))
+def calculate_counterfeit_probability(*, serial_number: str) -> Decimal:
+    failures = VerificationScanLog.objects.filter(serial_number=serial_number).exclude(
+        outcome="authentic"
+    ).count()
+    prob = Decimal(min(failures * 15, 95))
     level = RiskLevel.LOW
-    if score >= 70:
+    if prob >= 70:
         level = RiskLevel.HIGH
-    elif score >= 40:
+    elif prob >= 40:
         level = RiskLevel.MEDIUM
-    return AIRiskAssessment.objects.create(
-        assessment_type="counterfeit_prediction",
+    CounterfeitRiskAssessment.objects.create(
+        serial_number=serial_number,
+        probability=prob,
+        risk_level=level,
+        factors={"failed_scans": failures},
+    )
+    return prob
+
+
+def calculate_shortage_probability(*, organisation: Organisation, product: Product) -> Decimal:
+    item = InventoryItem.objects.filter(organisation=organisation, product=product, is_active=True).first()
+    if not item:
+        prob = Decimal("90")
+    elif item.quantity_on_hand <= 5:
+        prob = Decimal("75")
+    elif item.quantity_on_hand <= 20:
+        prob = Decimal("45")
+    else:
+        prob = Decimal("10")
+    InventoryPrediction.objects.update_or_create(
         organisation=organisation,
-        risk_score=score,
-        risk_level=level,
-        model_version="rules-v1",
-        input_features={"transaction_count": transaction_count},
-        output_explanation={"method": "heuristic", "note": "ML integration pending"},
+        product=product,
+        defaults={
+            "predicted_stock_days_remaining": max(item.quantity_on_hand // 2, 0) if item else 0,
+            "shortage_probability": prob,
+        },
     )
+    return prob
 
 
-def assess_shortage_risk(*, state: str, stock_ratio: float) -> AIRiskAssessment:
-    score = Decimal(max(0, min(100, (1 - stock_ratio) * 100)))
-    level = RiskLevel.HIGH if score >= 70 else RiskLevel.MEDIUM if score >= 40 else RiskLevel.LOW
-    return AIRiskAssessment.objects.create(
-        assessment_type="shortage_prediction",
-        risk_score=score,
-        risk_level=level,
-        model_version="rules-v1",
-        input_features={"state": state, "stock_ratio": stock_ratio},
-        output_explanation={"method": "heuristic"},
+def calculate_diversion_risk(*, organisation: Organisation) -> Decimal:
+    from apps.traceability.models import SupplyChainTransaction
+
+    velocity = SupplyChainTransaction.objects.filter(
+        source_organisation=organisation
+    ).count()
+    score = Decimal(min(velocity / 10, 100))
+    OrganisationRiskScore.objects.update_or_create(
+        organisation=organisation,
+        defaults={"diversion_score": score, "overall_score": score},
     )
+    AIRiskSignal.objects.create(
+        signal_type="diversion_risk",
+        organisation=organisation,
+        score=score,
+        evidence={"transaction_velocity": velocity},
+    )
+    return score
