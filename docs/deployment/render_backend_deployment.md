@@ -109,6 +109,17 @@ python manage.py createsuperuser --noinput
 2. Log in with the superuser account.
 3. Confirm domain apps appear in admin (Organisations, Products, Patients, etc.).
 
+## Phase 2 API notes
+
+After deploying Phase 2, verify:
+
+- `GET /api/v1/health/` returns `healthy`
+- `GET /api/docs/` loads Swagger UI
+- Run `python manage.py seed_roles` once via Shell (optional: `seed_demo_data` for staging only)
+- Ensure `token_blacklist` migrations are applied (included in `migrate`)
+
+No changes to build/start commands are required for Phase 2.
+
 ## 7. Build and start commands (reference)
 
 **Build command:**

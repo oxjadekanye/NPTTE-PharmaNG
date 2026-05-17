@@ -13,7 +13,7 @@ class RoleAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ("username", "email", "role", "is_regulator", "status", "is_active")
+    list_display = ("username", "email", "role", "organisation", "is_regulator", "status", "is_active")
     list_filter = ("is_regulator", "status", "is_staff", "is_active", "role")
     search_fields = ("username", "email", "phone_number", "national_id_number")
     fieldsets = BaseUserAdmin.fieldsets + (
@@ -24,6 +24,7 @@ class UserAdmin(BaseUserAdmin):
                     "phone_number",
                     "national_id_number",
                     "role",
+                    "organisation",
                     "is_regulator",
                     "status",
                     "metadata",

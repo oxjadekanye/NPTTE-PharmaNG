@@ -4,6 +4,50 @@ Shared constants for NPTTE domain models.
 Centralised status and category values keep cross-app references consistent.
 """
 
+
+class RoleCode:
+    """Platform role codes for RBAC across regulators, supply chain, and patients."""
+
+    SUPER_ADMIN = "SUPER_ADMIN"
+    NAFDAC_ADMIN = "NAFDAC_ADMIN"
+    NDLEA_ADMIN = "NDLEA_ADMIN"
+    PHARMACY_ADMIN = "PHARMACY_ADMIN"
+    PHARMACIST = "PHARMACIST"
+    HOSPITAL_ADMIN = "HOSPITAL_ADMIN"
+    DOCTOR = "DOCTOR"
+    DISTRIBUTOR = "DISTRIBUTOR"
+    MANUFACTURER = "MANUFACTURER"
+    LOGISTICS = "LOGISTICS"
+    PATIENT = "PATIENT"
+    AUDITOR = "AUDITOR"
+
+    CHOICES = [
+        (SUPER_ADMIN, "Super administrator"),
+        (NAFDAC_ADMIN, "NAFDAC regulator admin"),
+        (NDLEA_ADMIN, "NDLEA regulator admin"),
+        (PHARMACY_ADMIN, "Pharmacy administrator"),
+        (PHARMACIST, "Pharmacist"),
+        (HOSPITAL_ADMIN, "Hospital administrator"),
+        (DOCTOR, "Doctor"),
+        (DISTRIBUTOR, "Distributor"),
+        (MANUFACTURER, "Manufacturer"),
+        (LOGISTICS, "Logistics provider"),
+        (PATIENT, "Patient"),
+        (AUDITOR, "Auditor"),
+    ]
+
+    REGULATOR_CODES = frozenset({SUPER_ADMIN, NAFDAC_ADMIN, NDLEA_ADMIN, AUDITOR})
+
+    PHARMACY_CODES = frozenset({PHARMACY_ADMIN, PHARMACIST})
+
+    SUPPLY_CHAIN_CODES = frozenset({DISTRIBUTOR, MANUFACTURER, LOGISTICS})
+
+    HOSPITAL_CODES = frozenset({HOSPITAL_ADMIN, DOCTOR})
+
+    SELF_REGISTER_CODES = frozenset({PATIENT, PHARMACIST})
+
+    ALL_CODES = frozenset(code for code, _ in CHOICES)
+
 # Generic record lifecycle
 class RecordStatus:
     DRAFT = "draft"
