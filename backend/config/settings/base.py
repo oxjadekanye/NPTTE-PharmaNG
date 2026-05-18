@@ -100,6 +100,9 @@ INSTALLED_APPS = [
     "apps.integrations",
     # Phase 17 — realtime event bus (additive)
     "apps.streambus",
+    # Phase 18 — sovereign intelligence & enforcement (additive)
+    "apps.intelligence",
+    "apps.enforcement",
 ]
 
 MIDDLEWARE = [

@@ -10,6 +10,8 @@ export const COMMAND_NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/regulator", label: "Overview" },
       { href: "/command-center", label: "Command Center" },
+      { href: "/regulator/intelligence", label: "Sovereign Intelligence" },
+      { href: "/regulator/enforcement", label: "Enforcement" },
       { href: "/executive", label: "Executive Mode" },
       { href: "/regulator/pilot-readiness", label: "Pilot Readiness" },
       { href: "/pilot", label: "Pilot Presentation" },

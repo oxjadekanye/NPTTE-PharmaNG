@@ -6,7 +6,7 @@ import { CommandShell } from "@/components/shared/CommandShell";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
 import { useIntelligenceBusStore } from "@/store/intelligence-bus-store";
 import { fetchNationalOperationsSummary } from "@/services/national-operations";
-import { fetchNationalIntelligence } from "@/services/sovereign-intelligence";
+import { fetchExecutiveBriefing, fetchNationalIntelligence } from "@/services/sovereign-intelligence";
 import type { NationalOperationsSummary } from "@/services/national-operations";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
 
@@ -27,12 +27,16 @@ export default function ExecutiveModePage() {
   const [summary, setSummary] = useState<NationalOperationsSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [aiIntel, setAiIntel] = useState<Record<string, unknown> | null>(null);
+  const [briefing, setBriefing] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     fetchNationalIntelligence()
       .then((r) => !cancelled && r.success && setAiIntel(r.data))
       .catch(() => setAiIntel(null));
+    fetchExecutiveBriefing()
+      .then((r) => !cancelled && r.success && setBriefing(r.data))
+      .catch(() => setBriefing(null));
     fetchNationalOperationsSummary()
       .then((r) => {
         if (!cancelled && r.success) setSummary(r.data);
@@ -83,6 +87,18 @@ export default function ExecutiveModePage() {
               )}
             </GlassPanel>
           </div>
+          {briefing && (
+            <GlassPanel title="Phase 18 sovereign briefing" subtitle="Deterministic ministerial narrative" accent="rose">
+              <div className="grid gap-3 text-xs text-slate-300 md:grid-cols-3">
+                <p>Medicine stability index: {String(briefing.medicine_stability_index)}</p>
+                <p>Counterfeit risk forecast: {String(briefing.counterfeit_risk_forecast)}</p>
+                <p>Shortage pressure: {String(briefing.shortage_pressure)}</p>
+                <p>Import disruption: {String(briefing.import_disruption_indicator)}</p>
+                <p>Enforcement readiness: {String(briefing.enforcement_readiness_score)}</p>
+              </div>
+              <p className="mt-4 text-sm text-slate-200 whitespace-pre-wrap">{String(briefing.ministerial_briefing)}</p>
+            </GlassPanel>
+          )}
           <MinisterialOverview />
         </div>
       </CommandShell>

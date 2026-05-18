@@ -37,7 +37,8 @@ urlpatterns = [
     path("realtime/", include("apps.realtime.api.urls")),
     # Phase 10 — sovereign serialization & intelligence (additive)
     path("serialization/", include("apps.serialization.api.urls")),
-    path("intelligence/", include("apps.ai_engine.api.urls")),
+    path("intelligence/", include("apps.intelligence.api.urls")),
+    path("enforcement/", include("apps.enforcement.api.urls")),
     path("notifications/", include("apps.notifications.api.urls")),
     path("certificates/", include("apps.certificates.api.urls")),
     path("developer/", include("apps.developer_access.api.urls")),

@@ -55,10 +55,10 @@ export function LiveEventFeed({ useSse = true }: { useSse?: boolean }) {
           </span>
         </div>
         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[10px]">
-          
+          <div className="rounded-lg border border-sovereign-700/60 py-2">
             <p className="text-slate-500">Scans/hr</p>
             <p className="text-lg font-semibold text-white">{telemetry.scan_throughput ?? "—"}</p>
-          
+          </div>
           <div className="rounded-lg border border-sovereign-700/60 py-2">
             <p className="text-slate-500">Events/hr</p>
             <p className="text-lg font-semibold text-white">{telemetry.event_throughput ?? "—"}</p>
