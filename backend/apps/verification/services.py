@@ -398,7 +398,7 @@ def _response(
                 },
                 "manufacturer": _manufacturer_label(batch.product),
                 "batch_number": batch.batch_number,
-                "expiry_date": batch.expiry_date,
+                "expiry_date": batch.expiry_date.isoformat() if batch.expiry_date else None,
                 "regulator_status": batch.regulator_status,
                 "lifecycle_status": batch.lifecycle_status,
                 "verified_at": timezone.now().isoformat(),

@@ -1,3 +1,5 @@
+import logging
+
 from django.utils import timezone
 from rest_framework import generics
 from rest_framework.permissions import AllowAny
@@ -8,11 +10,14 @@ from apps.citizen.models import CitizenFraudReport, PublicRecallNotice
 from apps.citizen.services import get_or_create_session, pharmacy_trust_score, record_citizen_verification
 from apps.core.api.responses import api_response
 from apps.core.constants import EventCategory
+from apps.core.json_utils import make_json_safe
 from apps.core.security import log_security_threat, request_fingerprint
 from apps.core.throttling import CitizenPublicThrottle
 from apps.events.services import EventStreamService
 from apps.pharmacies.models import PharmacyProfile
 from apps.verification.services import sovereign_verify
+
+logger = logging.getLogger("nptte.citizen")
 
 
 class PublicVerifyView(APIView):
@@ -27,30 +32,51 @@ class PublicVerifyView(APIView):
         if not any([d.get("serial_number"), d.get("qr_token"), d.get("barcode")]):
             log_security_threat(request, "citizen_empty_verify", severity="low")
             return api_response(message="Serial or QR token required", status_code=400)
-        session = get_or_create_session(request=request)
-        if session.verification_count > 50:
-            log_security_threat(request, "citizen_abuse_throttle", severity="high", fingerprint=request_fingerprint(request))
-            return api_response(message="Rate limit exceeded", status_code=429)
-        result = sovereign_verify(
-            request=request,
-            serial_number=d.get("serial_number") or d.get("barcode", ""),
-            qr_token=d.get("qr_token", ""),
-            latitude=d.get("latitude"),
-            longitude=d.get("longitude"),
-            device_id=d.get("device_id") or None,
-        )
-        record_citizen_verification(
-            session=session,
-            serial_number=d.get("serial_number") or d.get("barcode", ""),
-            outcome=result["data"].get("outcome", "unknown"),
-        )
-        EventStreamService.publish_event(
-            category=EventCategory.VERIFICATION,
-            event_type="citizen_public_verify",
-            payload=result["data"],
-            extra_fields={"serial_number": d.get("serial_number", "")},
-        )
-        return api_response(data=result["data"], message=result["message"], status_code=result["status_code"])
+        try:
+            session = get_or_create_session(request=request)
+            if session.verification_count > 50:
+                log_security_threat(
+                    request, "citizen_abuse_throttle", severity="high", fingerprint=request_fingerprint(request)
+                )
+                return api_response(message="Rate limit exceeded", status_code=429)
+            result = sovereign_verify(
+                request=request,
+                serial_number=d.get("serial_number") or d.get("barcode", ""),
+                qr_token=d.get("qr_token", ""),
+                latitude=d.get("latitude"),
+                longitude=d.get("longitude"),
+                device_id=d.get("device_id") or None,
+            )
+            outcome = str(result["data"].get("outcome", "unknown"))
+            try:
+                record_citizen_verification(
+                    session=session,
+                    serial_number=d.get("serial_number") or d.get("barcode", ""),
+                    outcome=outcome,
+                )
+            except Exception as exc:
+                logger.warning("Citizen verification history skipped: %s", exc)
+            try:
+                EventStreamService.publish_event(
+                    category=EventCategory.VERIFICATION,
+                    event_type="citizen_public_verify",
+                    payload=make_json_safe(result["data"]),
+                    extra_fields={"serial_number": d.get("serial_number", "") or d.get("barcode", "")},
+                )
+            except Exception as exc:
+                logger.warning("Citizen verification event stream skipped: %s", exc)
+            return api_response(
+                data=result["data"],
+                message=result["message"],
+                status_code=result["status_code"],
+            )
+        except Exception as exc:
+            logger.exception("Public verify failed: %s", exc)
+            return api_response(
+                data={"outcome": "error", "is_authentic": False},
+                message="Verification could not be completed",
+                status_code=200,
+            )
 
 
 class ReportCounterfeitView(APIView):
