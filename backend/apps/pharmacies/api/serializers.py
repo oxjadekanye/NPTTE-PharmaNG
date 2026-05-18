@@ -178,3 +178,18 @@ class InventoryUpdateSerializer(serializers.ModelSerializer):
             instance.availability_status = AvailabilityStatus.IN_STOCK
         instance.save(update_fields=["availability_status", "updated_at"])
         return instance
+
+
+class PharmacyReceiveBatchSerializer(serializers.Serializer):
+    batch_id = serializers.UUIDField()
+    quantity = serializers.IntegerField(min_value=1, max_value=50000, required=False, default=0)
+    serial_ids = serializers.ListField(child=serializers.UUIDField(), required=False, allow_empty=True)
+
+    def validate(self, attrs):
+        if not attrs.get("serial_ids") and attrs.get("quantity", 0) < 1:
+            raise serializers.ValidationError("Provide quantity or serial_ids.")
+        return attrs
+
+
+class PharmacyDispenseSerialSerializer(serializers.Serializer):
+    serial_number = serializers.CharField(max_length=128)

@@ -9,6 +9,7 @@ import { DemoBadge } from "@/components/command/DemoBadge";
 
 const NAV = [
   { href: "/regulator", label: "Overview" },
+  { href: "/regulator/traceability", label: "Traceability" },
   { href: "/command-center", label: "Command" },
   { href: "/command-center/threat-map", label: "Threat Map" },
   { href: "/command-center/incidents", label: "Incidents" },

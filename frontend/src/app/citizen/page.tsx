@@ -17,7 +17,7 @@ export default function CitizenPortalPage() {
     setLoading(true);
     try {
       const res = await publicVerify({ serial_number: serial });
-      setResult(res.data);
+      setResult({ ...(res.data as Record<string, unknown>), message: res.message });
     } catch {
       setResult({ outcome: "error", message: "Verification failed" });
     } finally {
@@ -59,8 +59,36 @@ export default function CitizenPortalPage() {
               result.is_authentic ? "border-emerald-500/40 bg-emerald-500/10" : "border-red-500/40 bg-red-500/10"
             }`}
           >
-            <p className="font-medium capitalize">Outcome: {String(result.outcome ?? "unknown")}</p>
-            <p className="mt-2 text-slate-400">{String(result.message ?? "")}</p>
+            <p className="text-[10px] uppercase tracking-wider text-slate-500">NPTTE national registry (live API)</p>
+            <p className="mt-1 font-medium capitalize">Outcome: {String(result.outcome ?? "unknown")}</p>
+            {result.result != null && result.result !== "" && (
+              <p className="mt-1 text-xs text-slate-400">Status: {String(result.result)}</p>
+            )}
+            {result.duplicate_scan_warning === true && (
+              <p className="mt-2 text-xs text-amber-300">Note: elevated scan activity on this serial.</p>
+            )}
+            <p className="mt-2 text-slate-300">{String((result as { message?: string }).message ?? "")}</p>
+            {Boolean(result.safety_message) && typeof result.safety_message === "string" && (
+              <p className="mt-3 border-t border-sovereign-800 pt-3 text-slate-300">{String(result.safety_message)}</p>
+            )}
+            {Boolean(result.next_action) && typeof result.next_action === "string" && (
+              <p className="mt-2 text-xs text-sovereign-accent">Next: {String(result.next_action)}</p>
+            )}
+            {(Boolean(result.product) || Boolean(result.manufacturer) || Boolean(result.batch_number)) && (
+              <ul className="mt-4 space-y-1 border-t border-sovereign-800 pt-3 text-xs text-slate-400">
+                {Boolean(result.manufacturer) && <li>Manufacturer: {String(result.manufacturer)}</li>}
+                {Boolean(result.batch_number) && <li>Batch: {String(result.batch_number)}</li>}
+                {Boolean(result.expiry_date) && <li>Expiry: {String(result.expiry_date)}</li>}
+                {Boolean(result.lifecycle_status) && <li>Batch lifecycle: {String(result.lifecycle_status)}</li>}
+                {(() => {
+                  const p = result.product;
+                  if (p != null && typeof p === "object" && "name" in p) {
+                    return <li>Product: {String((p as { name?: string }).name ?? "")}</li>;
+                  }
+                  return null;
+                })()}
+              </ul>
+            )}
           </div>
         )}
         <section className="mt-10">

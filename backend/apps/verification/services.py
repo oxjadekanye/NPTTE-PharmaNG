@@ -1,19 +1,37 @@
-"""Sovereign national medicine verification engine."""
+"""Sovereign national medicine verification engine (Phase 8 enhanced)."""
 from __future__ import annotations
 
+import hashlib
 from datetime import timedelta
 from decimal import Decimal
 
 from django.utils import timezone
 
 from apps.alerts.services import create_national_alert
-from apps.core.constants import AlertCategory, AlertSeverity, VerificationOutcome, VerificationStatus
+from apps.core.constants import (
+    AlertCategory,
+    AlertSeverity,
+    BatchLifecycleStatus,
+    RegulatorBatchStatus,
+    VerificationOutcome,
+    VerificationStatus,
+)
 from apps.core.security import request_fingerprint, verify_signed_token
 from apps.fraud_detection.services import create_fraud_flag
+from apps.products.models import ProductBatch
 from apps.serialization.models import ProductSerial
 from apps.serialization.services import ensure_qr_payload
 from apps.traceability.services import check_batch_recall
 from apps.verification.models import VerificationEvent, VerificationScanLog
+
+EXCESSIVE_PUBLIC_SCANS = 75
+
+
+def _device_fingerprint(request, device_id: str | None) -> str:
+    base = request_fingerprint(request)
+    if device_id:
+        return hashlib.sha256(f"{base}:{device_id}".encode()).hexdigest()[:32]
+    return base
 
 
 def detect_counterfeit_cluster(*, serial_number: str, latitude=None, longitude=None) -> bool:
@@ -62,6 +80,53 @@ def detect_counterfeit_cluster(*, serial_number: str, latitude=None, longitude=N
     return False
 
 
+def _manufacturer_label(product) -> str:
+    m = getattr(product, "manufacturer", None)
+    if m is None:
+        return ""
+    return getattr(m, "legal_name", None) or getattr(m, "trading_name", None) or str(m)
+
+
+def _result_and_flags(*, outcome: str, is_authentic: bool, duplicate_soft: bool = False) -> dict:
+    duplicate_scan_warning = duplicate_soft or outcome == VerificationOutcome.DUPLICATE_SCAN_DETECTED
+    if outcome == VerificationOutcome.AUTHENTIC:
+        bucket = "authentic"
+    elif outcome == VerificationOutcome.INVALID_SERIAL:
+        bucket = "invalid"
+    elif outcome == VerificationOutcome.EXPIRED:
+        bucket = "expired"
+    elif outcome == VerificationOutcome.RECALLED:
+        bucket = "recalled"
+    elif outcome == VerificationOutcome.DUPLICATE_SCAN_DETECTED:
+        bucket = "duplicate_scan_warning"
+    else:
+        bucket = "suspicious"
+    safety = {
+        VerificationOutcome.AUTHENTIC: "This pack matches the national NPTTE registry. Follow dosage on the label or as directed by your pharmacist.",
+        VerificationOutcome.INVALID_SERIAL: "Do not use this medicine. Report the outlet to NAFDAC via the NPTTE citizen channel.",
+        VerificationOutcome.EXPIRED: "Do not use expired medicines. Dispose safely at an authorised collection point.",
+        VerificationOutcome.RECALLED: "National recall: do not use. Return to pharmacy or contact NAFDAC.",
+        VerificationOutcome.COUNTERFEIT_SUSPECTED: "Elevated risk signal — do not use until verified by a licensed pharmacist.",
+        VerificationOutcome.DUPLICATE_SCAN_DETECTED: "Unusual scan pattern — verify packaging and purchase source.",
+        VerificationOutcome.UNREGISTERED_PRODUCT: "Batch not cleared for circulation — do not use.",
+    }.get(outcome, "If in doubt, consult a pharmacist before use.")
+    next_action = {
+        VerificationOutcome.AUTHENTIC: "Retain packaging for your records.",
+        VerificationOutcome.INVALID_SERIAL: "Submit a counterfeit report via NPTTE Citizen.",
+        VerificationOutcome.EXPIRED: "Check alternative batches with your pharmacy.",
+        VerificationOutcome.RECALLED: "Follow national recall instructions on NAFDAC channels.",
+        VerificationOutcome.COUNTERFEIT_SUSPECTED: "Request pharmacy verification and supply-chain receipt.",
+        VerificationOutcome.DUPLICATE_SCAN_DETECTED: "Compare serial with packaging; contact regulator if mismatch.",
+        VerificationOutcome.UNREGISTERED_PRODUCT: "Await manufacturer regulatory clearance.",
+    }.get(outcome, "Contact NPTTE support if you need assistance.")
+    return {
+        "result": bucket,
+        "duplicate_scan_warning": duplicate_scan_warning,
+        "safety_message": safety,
+        "next_action": next_action,
+    }
+
+
 def sovereign_verify(
     *,
     request,
@@ -69,14 +134,16 @@ def sovereign_verify(
     qr_token: str = "",
     latitude=None,
     longitude=None,
+    device_id: str | None = None,
+    pharmacy_organisation_id=None,
 ) -> dict:
     """
     Execute sovereign verification and return national response payload.
 
-    Maintains backward-compatible fields for Phase 3 clients.
+    Phase 8: optional device_id for scan analytics; pharmacy_organisation_id enforces custody on dispense checks.
     """
     serial_number = (serial_number or "").strip()
-    fingerprint = request_fingerprint(request)
+    fingerprint = _device_fingerprint(request, device_id)
     ip = request.META.get("REMOTE_ADDR")
     ua = (request.META.get("HTTP_USER_AGENT") or "")[:512]
 
@@ -102,7 +169,7 @@ def sovereign_verify(
 
     try:
         product_serial = ProductSerial.objects.select_related(
-            "batch", "batch__product", "batch__manufacturing_site"
+            "batch", "batch__product", "batch__product__manufacturer", "batch__manufacturing_site"
         ).get(serial_number=serial_number)
     except ProductSerial.DoesNotExist:
         VerificationScanLog.objects.create(
@@ -121,6 +188,32 @@ def sovereign_verify(
             status_code=404,
         )
 
+    batch = product_serial.batch
+    batch.refresh_from_db()
+
+    if batch.lifecycle_status in (BatchLifecycleStatus.SUSPENDED, BatchLifecycleStatus.DESTROYED):
+        outcome = VerificationOutcome.COUNTERFEIT_SUSPECTED
+        _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
+        return _response(
+            outcome=outcome,
+            is_authentic=False,
+            message="Batch is suspended or destroyed in the national registry.",
+            product_serial=product_serial,
+            status_code=403,
+        )
+
+    if pharmacy_organisation_id and product_serial.custody_organisation_id:
+        if str(product_serial.custody_organisation_id) != str(pharmacy_organisation_id):
+            outcome = VerificationOutcome.COUNTERFEIT_SUSPECTED
+            _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
+            return _response(
+                outcome=outcome,
+                is_authentic=False,
+                message="Serial custody does not match this pharmacy.",
+                product_serial=product_serial,
+                status_code=403,
+            )
+
     if qr_token and product_serial.qr_token_signature:
         if qr_token != product_serial.qr_token_signature and not verify_signed_token(
             {"serial": serial_number, "batch_id": str(product_serial.batch_id)}, qr_token
@@ -135,7 +228,7 @@ def sovereign_verify(
                 status_code=403,
             )
 
-  # Duplicate rapid scan detection
+    # Duplicate rapid scan detection
     recent_same = VerificationScanLog.objects.filter(
         serial_number=serial_number,
         device_fingerprint=fingerprint,
@@ -152,14 +245,16 @@ def sovereign_verify(
             product_serial=product_serial,
         )
 
-    recall = check_batch_recall(product_serial.batch)
-    batch = product_serial.batch
     if batch.expiry_date and batch.expiry_date < timezone.now().date():
         outcome = VerificationOutcome.EXPIRED
+        ProductBatch.objects.filter(pk=batch.pk).update(
+            lifecycle_status=BatchLifecycleStatus.EXPIRED, updated_at=timezone.now()
+        )
         _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
         return _response(outcome=outcome, is_authentic=False, message="Medication batch expired.", product_serial=product_serial)
 
-    if recall:
+    recall = check_batch_recall(batch)
+    if recall or batch.lifecycle_status == BatchLifecycleStatus.RECALLED:
         outcome = VerificationOutcome.RECALLED
         _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
         return _response(outcome=outcome, is_authentic=False, message="Batch under national recall.", product_serial=product_serial)
@@ -170,12 +265,30 @@ def sovereign_verify(
         _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
         return _response(outcome=outcome, is_authentic=False, message=msg, product_serial=product_serial)
 
-    from apps.core.constants import RegulatorBatchStatus
-
     if batch.regulator_status != RegulatorBatchStatus.APPROVED:
         outcome = VerificationOutcome.UNREGISTERED_PRODUCT
         _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
         return _response(outcome=outcome, is_authentic=False, message="Batch pending regulator approval.", product_serial=product_serial)
+
+    if batch.lifecycle_status not in (BatchLifecycleStatus.APPROVED, BatchLifecycleStatus.ACTIVE):
+        outcome = VerificationOutcome.UNREGISTERED_PRODUCT
+        _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
+        return _response(
+            outcome=outcome,
+            is_authentic=False,
+            message="Batch lifecycle does not permit public verification.",
+            product_serial=product_serial,
+        )
+
+    if product_serial.scan_count >= EXCESSIVE_PUBLIC_SCANS:
+        outcome = VerificationOutcome.COUNTERFEIT_SUSPECTED
+        _log_scan(product_serial, serial_number, outcome, fingerprint, ip, ua, latitude, longitude, qr_token)
+        return _response(
+            outcome=outcome,
+            is_authentic=False,
+            message="Excessive verification attempts for this serial — possible diversion.",
+            product_serial=product_serial,
+        )
 
     ensure_qr_payload(product_serial)
     product_serial.scan_count += 1
@@ -194,11 +307,13 @@ def sovereign_verify(
         user_agent=ua,
     )
 
+    duplicate_soft = product_serial.scan_count > 1
     return _response(
         outcome=outcome,
         is_authentic=True,
         message="Authentic medicine pack registered with NPTTE.",
         product_serial=product_serial,
+        duplicate_soft=duplicate_soft,
     )
 
 
@@ -216,20 +331,31 @@ def _log_scan(serial, serial_number, outcome, fingerprint, ip, ua, lat, lon, qr_
     )
 
 
-def _response(*, outcome, is_authentic, message, product_serial=None, status_code=200):
+def _response(
+    *,
+    outcome,
+    is_authentic,
+    message,
+    product_serial=None,
+    status_code=200,
+    duplicate_soft: bool = False,
+):
     legacy_status = VerificationStatus.VERIFIED if is_authentic else VerificationStatus.FAILED
     if outcome == VerificationOutcome.RECALLED:
         legacy_status = VerificationStatus.RECALLED
     elif outcome in (VerificationOutcome.COUNTERFEIT_SUSPECTED, VerificationOutcome.DUPLICATE_SCAN_DETECTED):
         legacy_status = VerificationStatus.SUSPICIOUS
 
+    flags = _result_and_flags(outcome=outcome, is_authentic=is_authentic, duplicate_soft=duplicate_soft)
     data = {
         "outcome": outcome,
         "is_authentic": is_authentic,
         "verification_status": legacy_status,
         "serial_number": product_serial.serial_number if product_serial else "",
+        **flags,
     }
     if product_serial:
+        batch = product_serial.batch
         data.update(
             {
                 "serial_number": product_serial.serial_number,
@@ -237,15 +363,17 @@ def _response(*, outcome, is_authentic, message, product_serial=None, status_cod
                 "barcode_payload": product_serial.barcode_payload,
                 "scan_count": product_serial.scan_count,
                 "product": {
-                    "name": product_serial.batch.product.name,
-                    "brand_name": product_serial.batch.product.brand_name,
-                    "strength": product_serial.batch.product.strength,
-                    "dosage_form": product_serial.batch.product.dosage_form,
-                    "dosage_guidance": product_serial.batch.product.dosage_guidance,
+                    "name": batch.product.name,
+                    "brand_name": batch.product.brand_name,
+                    "strength": batch.product.strength,
+                    "dosage_form": batch.product.dosage_form,
+                    "dosage_guidance": batch.product.dosage_guidance,
                 },
-                "batch_number": product_serial.batch.batch_number,
-                "expiry_date": product_serial.batch.expiry_date,
-                "regulator_status": product_serial.batch.regulator_status,
+                "manufacturer": _manufacturer_label(batch.product),
+                "batch_number": batch.batch_number,
+                "expiry_date": batch.expiry_date,
+                "regulator_status": batch.regulator_status,
+                "lifecycle_status": batch.lifecycle_status,
                 "verified_at": timezone.now().isoformat(),
             }
         )

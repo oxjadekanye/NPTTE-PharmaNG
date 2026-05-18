@@ -17,6 +17,15 @@ def _product_slug(product) -> str:
     return slug[:24] or "MED"
 
 
+def _product_code_segment(product) -> str:
+    """Prefer national product code for NG-NPTTE-{PRODUCTCODE}-{YEAR}-{SEQ} (Phase 8)."""
+    code = (getattr(product, "national_product_code", None) or "").strip().upper()
+    code = re.sub(r"[^A-Z0-9]+", "-", code).strip("-")
+    if code:
+        return code[:24]
+    return _product_slug(product)
+
+
 @transaction.atomic
 def generate_medication_serial(*, product, year: int | None = None) -> str:
     """
@@ -33,7 +42,7 @@ def generate_medication_serial(*, product, year: int | None = None) -> str:
     )
     seq_row.last_sequence += 1
     seq_row.save(update_fields=["last_sequence", "updated_at"])
-    return f"NG-NPTTE-{_product_slug(product)}-{year}-{seq_row.last_sequence:09d}"
+    return f"NG-NPTTE-{_product_code_segment(product)}-{year}-{seq_row.last_sequence:09d}"
 
 
 def build_qr_payload(serial: ProductSerial) -> str:

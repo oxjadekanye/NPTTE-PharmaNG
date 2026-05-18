@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from apps.traceability.models import BatchRecall, SupplyChainTransaction
+from apps.traceability.models import BatchRecall, BatchRegulatoryAudit, SupplyChainTransaction
 
 
 @admin.register(SupplyChainTransaction)
@@ -37,6 +37,14 @@ class SupplyChainTransactionAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+@admin.register(BatchRegulatoryAudit)
+class BatchRegulatoryAuditAdmin(admin.ModelAdmin):
+    list_display = ("batch", "action", "actor", "created_at")
+    list_filter = ("action", "created_at")
+    search_fields = ("notes", "batch__batch_number")
+    readonly_fields = ("id", "created_at", "updated_at", "payload")
 
 
 @admin.register(BatchRecall)

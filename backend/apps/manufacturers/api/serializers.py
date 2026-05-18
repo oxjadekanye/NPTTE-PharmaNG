@@ -8,7 +8,33 @@ from apps.manufacturers.models import (
     ProductionLicense,
     RecallNotice,
 )
-from apps.products.models import ProductBatch
+from apps.products.models import Product, ProductBatch
+
+
+class ProductRegisterSerializer(serializers.ModelSerializer):
+    """Register a national product for the manufacturer's organisation (Phase 8)."""
+
+    class Meta:
+        model = Product
+        fields = (
+            "name",
+            "brand_name",
+            "active_ingredient",
+            "strength",
+            "dosage_form",
+            "pack_size",
+            "national_product_code",
+            "dosage_guidance",
+            "reference_price",
+        )
+
+    def create(self, validated_data):
+        org_id = self.context["organisation_id"]
+        return Product.objects.create(
+            **validated_data,
+            manufacturer_id=org_id,
+            created_by=self.context.get("request").user if self.context.get("request") else None,
+        )
 
 
 class ManufacturingSiteSerializer(serializers.ModelSerializer):
@@ -42,6 +68,17 @@ class BatchCreateSerializer(serializers.Serializer):
     manufacturing_date = serializers.DateField(required=False)
     expiry_date = serializers.DateField(required=False)
     issue_serial_count = serializers.IntegerField(min_value=0, max_value=10000, default=0)
+
+    def validate_issue_serial_count(self, value):
+        if value != 0:
+            raise serializers.ValidationError(
+                "Serial issuance is only allowed after regulator approval — use generate-serials endpoint."
+            )
+        return value
+
+
+class GenerateBatchSerialsSerializer(serializers.Serializer):
+    count = serializers.IntegerField(min_value=1, max_value=100000)
 
 
 class RecallNoticeSerializer(serializers.ModelSerializer):

@@ -5,6 +5,8 @@ from apps.pharmacies.api.views import (
     PharmacyInventoryDetailView,
     PharmacyInventoryListCreateView,
     PharmacyProfileView,
+    PharmacyTraceabilityDispenseView,
+    PharmacyTraceabilityReceiveView,
 )
 
 urlpatterns = [
@@ -16,4 +18,6 @@ urlpatterns = [
         name="pharmacy-inventory-detail",
     ),
     path("availability/", PharmacyAvailabilityView.as_view(), name="pharmacy-availability"),
+    path("traceability/receive-batch/", PharmacyTraceabilityReceiveView.as_view(), name="pharmacy-trace-receive"),
+    path("traceability/dispense-serial/", PharmacyTraceabilityDispenseView.as_view(), name="pharmacy-trace-dispense"),
 ]

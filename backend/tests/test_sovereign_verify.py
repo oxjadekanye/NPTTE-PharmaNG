@@ -1,6 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient, APIRequestFactory
 
+from apps.core.constants import BatchLifecycleStatus
 from apps.organisations.models import Organisation, OrganisationType
 from apps.products.models import Product, ProductBatch
 from apps.serialization.services import generate_medication_serial, issue_serials_for_batch
@@ -20,6 +21,7 @@ class SovereignVerificationTests(TestCase):
             product=self.product,
             batch_number="B-2026-001",
             regulator_status="approved",
+            lifecycle_status=BatchLifecycleStatus.ACTIVE,
         )
         self.serial = issue_serials_for_batch(batch=self.batch, count=1)[0]
 

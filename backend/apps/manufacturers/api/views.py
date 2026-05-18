@@ -9,13 +9,19 @@ from apps.core.roles import get_user_role_code
 from apps.manufacturers.api.permissions import IsManufacturerStaff
 from apps.manufacturers.api.serializers import (
     BatchCreateSerializer,
+    GenerateBatchSerialsSerializer,
     ManufacturerProfileSerializer,
     ManufacturingSiteSerializer,
     ProductBatchSerializer,
+    ProductRegisterSerializer,
     RecallNoticeSerializer,
 )
 from apps.manufacturers.models import ManufacturerProfile, ManufacturingSite, RecallNotice
-from apps.manufacturers.services import create_national_batch, issue_batch_serials, publish_recall_notice
+from apps.manufacturers.services import (
+    create_national_batch,
+    issue_batch_serials,
+    submit_batch_for_regulator_review,
+)
 from apps.products.models import Product, ProductBatch
 
 
@@ -27,6 +33,18 @@ class ManufacturerProfileView(generics.RetrieveAPIView):
         return ManufacturerProfile.objects.select_related("organisation").get(
             organisation_id=self.request.user.organisation_id
         )
+
+
+class ProductRegisterView(generics.CreateAPIView):
+    """Register a medicine product against the manufacturer's organisation (Phase 8)."""
+
+    serializer_class = ProductRegisterSerializer
+    permission_classes = [IsAuthenticated, IsManufacturerStaff]
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["organisation_id"] = self.request.user.organisation_id
+        return ctx
 
 
 class ManufacturingSiteListView(generics.ListCreateAPIView):
@@ -78,16 +96,51 @@ class BatchCreateView(APIView):
             actor=request.user,
             request=request,
         )
-        serials = []
-        if d.get("issue_serial_count", 0) > 0:
-            serials = issue_batch_serials(batch=batch, count=d["issue_serial_count"], actor=request.user)
         return api_response(
             data={
                 "batch": ProductBatchSerializer(batch).data,
-                "serials_issued": len(serials),
+                "serials_issued": 0,
                 "serial_range": [batch.serial_range_start, batch.serial_range_end],
             },
-            message="National batch created",
+            message="National batch created — submit for regulator approval before generating serials",
+            status_code=status.HTTP_201_CREATED,
+        )
+
+
+class BatchSubmitForApprovalView(APIView):
+    permission_classes = [IsAuthenticated, IsManufacturerStaff]
+
+    def post(self, request, pk):
+        batch = ProductBatch.objects.get(pk=pk)
+        site_org = batch.manufacturing_site.manufacturer.organisation_id if batch.manufacturing_site_id else None
+        if str(site_org) != str(request.user.organisation_id):
+            return api_response(message="Forbidden", status_code=403)
+        submit_batch_for_regulator_review(batch=batch, actor=request.user)
+        return api_response(data=ProductBatchSerializer(batch).data, message="Batch submitted for regulator review")
+
+
+class BatchGenerateSerialsView(APIView):
+    permission_classes = [IsAuthenticated, IsManufacturerStaff]
+
+    def post(self, request, pk):
+        ser = GenerateBatchSerialsSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        batch = ProductBatch.objects.get(pk=pk)
+        site_org = batch.manufacturing_site.manufacturer.organisation_id if batch.manufacturing_site_id else None
+        if str(site_org) != str(request.user.organisation_id):
+            return api_response(message="Forbidden", status_code=403)
+        try:
+            serials = issue_batch_serials(batch=batch, count=ser.validated_data["count"], actor=request.user)
+        except Exception as exc:
+            return api_response(message=str(exc), status_code=400)
+        return api_response(
+            data={
+                "batch": ProductBatchSerializer(batch).data,
+                "issued": len(serials),
+                "first_serial": serials[0].serial_number if serials else None,
+                "last_serial": serials[-1].serial_number if serials else None,
+            },
+            message="Serials issued",
             status_code=status.HTTP_201_CREATED,
         )
 

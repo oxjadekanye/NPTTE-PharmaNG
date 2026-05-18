@@ -12,6 +12,14 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductBatch)
 class ProductBatchAdmin(admin.ModelAdmin):
-    list_display = ("product", "batch_number", "expiry_date", "status", "is_active")
+    list_display = (
+        "product",
+        "batch_number",
+        "expiry_date",
+        "regulator_status",
+        "lifecycle_status",
+        "status",
+        "is_active",
+    )
     search_fields = ("batch_number", "product__name")
     list_filter = ("status", "is_active")

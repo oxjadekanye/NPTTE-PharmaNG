@@ -221,6 +221,54 @@ class RegulatorBatchStatus:
     ]
 
 
+class BatchLifecycleStatus:
+    """
+    National batch lifecycle for serialization and circulation (Phase 8).
+
+    Parallel to regulator_status: lifecycle tracks manufacturing/circulation state.
+    """
+
+    DRAFT = "draft"
+    APPROVED = "approved"
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    RECALLED = "recalled"
+    EXPIRED = "expired"
+    DESTROYED = "destroyed"
+
+    CHOICES = [
+        (DRAFT, "Draft"),
+        (APPROVED, "Approved"),
+        (ACTIVE, "Active"),
+        (SUSPENDED, "Suspended"),
+        (RECALLED, "Recalled"),
+        (EXPIRED, "Expired"),
+        (DESTROYED, "Destroyed"),
+    ]
+
+
+class BatchRegulatoryAuditAction:
+    """Immutable audit actions for regulator–batch interactions (Phase 8)."""
+
+    SUBMITTED = "submitted"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    SUSPENDED = "suspended"
+    RECALLED = "recalled"
+    SERIALS_ISSUED = "serials_issued"
+    DESTROYED = "destroyed"
+
+    CHOICES = [
+        (SUBMITTED, "Submitted for approval"),
+        (APPROVED, "Approved"),
+        (REJECTED, "Rejected"),
+        (SUSPENDED, "Suspended"),
+        (RECALLED, "Recalled"),
+        (SERIALS_ISSUED, "Serials issued"),
+        (DESTROYED, "Destroyed"),
+    ]
+
+
 class RiskLevel:
     LOW = "low"
     MEDIUM = "medium"

@@ -1,9 +1,11 @@
 """
 Serial number and QR identity models.
 """
+from django.conf import settings
 from django.db import models
 
 from apps.core.models import NPTTEBaseModel
+from apps.organisations.models import Organisation
 from apps.products.models import Product, ProductBatch
 
 
@@ -43,6 +45,22 @@ class ProductSerial(NPTTEBaseModel):
     qr_token_signature = models.CharField(max_length=128, blank=True)
     scan_count = models.PositiveIntegerField(default=0, db_index=True)
     is_dispensed = models.BooleanField(default=False, db_index=True)
+    custody_organisation = models.ForeignKey(
+        Organisation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="serials_in_custody",
+        help_text="Last pharmacy or supply-chain node that received this serial (Phase 8).",
+    )
+    custody_updated_at = models.DateTimeField(null=True, blank=True)
+    custody_updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="serial_custody_updates",
+    )
 
     class Meta:
         ordering = ["serial_number"]

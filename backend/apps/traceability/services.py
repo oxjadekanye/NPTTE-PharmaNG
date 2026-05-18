@@ -174,3 +174,30 @@ def check_batch_recall(batch) -> BatchRecall | None:
         .order_by("-effective_at")
         .first()
     )
+
+
+def list_pharmacy_organisations_holding_batch(*, batch) -> list:
+    """Organisation IDs with positive on-hand stock for a batch (recall enforcement)."""
+    from apps.inventory.models import InventoryItem
+
+    return list(
+        InventoryItem.objects.filter(batch=batch, is_active=True, quantity_on_hand__gt=0)
+        .values_list("organisation_id", flat=True)
+        .distinct()
+    )
+
+
+def record_serial_dispense_event(*, product_serial, source_organisation, actor, request=None):
+    """Single-pack dispense without prescriptions.Dispensing model (Phase 8)."""
+    return record_supply_chain_transaction(
+        transaction_type=SupplyChainTransactionType.PHARMACY_SALE,
+        request=request,
+        actor=actor,
+        source_organisation=source_organisation,
+        product=product_serial.batch.product,
+        batch=product_serial.batch,
+        product_serial=product_serial,
+        quantity_delta=-1,
+        verification_status=VerificationStatus.VERIFIED,
+        notes="Pharmacy serial dispense",
+    )

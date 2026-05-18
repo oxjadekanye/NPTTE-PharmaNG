@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from apps.traceability.models import BatchRecall, SupplyChainTransaction
+from apps.traceability.models import BatchRecall, BatchRegulatoryAudit, SupplyChainTransaction
 
 
 class SupplyChainTransactionSerializer(serializers.ModelSerializer):
@@ -50,3 +50,18 @@ class BatchRecallSerializer(serializers.ModelSerializer):
         model = BatchRecall
         fields = "__all__"
         read_only_fields = ("id", "created_at", "updated_at", "created_by")
+
+
+class BatchRegulatoryAuditSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BatchRegulatoryAudit
+        fields = (
+            "id",
+            "batch",
+            "action",
+            "actor",
+            "notes",
+            "payload",
+            "created_at",
+        )
+        read_only_fields = fields

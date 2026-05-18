@@ -35,6 +35,9 @@ class PublicVerifyView(APIView):
             request=request,
             serial_number=d.get("serial_number") or d.get("barcode", ""),
             qr_token=d.get("qr_token", ""),
+            latitude=d.get("latitude"),
+            longitude=d.get("longitude"),
+            device_id=d.get("device_id") or None,
         )
         record_citizen_verification(
             session=session,

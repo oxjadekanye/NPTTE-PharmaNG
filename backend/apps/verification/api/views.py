@@ -31,6 +31,7 @@ class VerifyMedicationView(APIView):
             qr_token=d.get("qr_token", ""),
             latitude=d.get("latitude"),
             longitude=d.get("longitude"),
+            device_id=d.get("device_id") or None,
         )
         return api_response(
             data=result["data"],

@@ -117,3 +117,51 @@ class PharmacyAvailabilityView(APIView):
             for i in items
         ]
         return Response({"count": len(data), "items": data})
+
+
+class PharmacyTraceabilityReceiveView(APIView):
+    """Receive batch serials into pharmacy custody and stock (Phase 8)."""
+
+    permission_classes = [IsAuthenticated, IsPharmacyInventoryManager]
+
+    def post(self, request):
+        from apps.core.api.responses import api_response
+        from apps.pharmacies.api.serializers import PharmacyReceiveBatchSerializer
+        from apps.pharmacies.traceability_services import pharmacy_receive_batch_serials
+
+        ser = PharmacyReceiveBatchSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        d = ser.validated_data
+        data = pharmacy_receive_batch_serials(
+            actor=request.user,
+            organisation_id=request.user.organisation_id,
+            batch_id=d["batch_id"],
+            serial_ids=d.get("serial_ids") or None,
+            quantity=d.get("quantity") or 0,
+            request=request,
+        )
+        return api_response(data=data, message="Receipt recorded", status_code=status.HTTP_201_CREATED)
+
+
+class PharmacyTraceabilityDispenseView(APIView):
+    """Dispense a single serial from pharmacy stock (Phase 8)."""
+
+    permission_classes = [IsAuthenticated, IsPharmacyInventoryManager]
+
+    def post(self, request):
+        from apps.core.api.responses import api_response
+        from apps.pharmacies.api.serializers import PharmacyDispenseSerialSerializer
+        from apps.pharmacies.traceability_services import pharmacy_dispense_serial
+
+        ser = PharmacyDispenseSerialSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            serial = pharmacy_dispense_serial(
+                actor=request.user,
+                organisation_id=request.user.organisation_id,
+                serial_number=ser.validated_data["serial_number"],
+                request=request,
+            )
+        except Exception as exc:
+            return api_response(message=str(exc), status_code=400)
+        return api_response(data={"serial_number": serial.serial_number, "dispensed": True}, message="Dispensed")

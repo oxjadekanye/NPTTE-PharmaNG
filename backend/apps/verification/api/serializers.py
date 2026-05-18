@@ -7,6 +7,7 @@ class VerifySerialSerializer(serializers.Serializer):
     serial_number = serializers.CharField(max_length=128, required=False, allow_blank=True)
     barcode = serializers.CharField(max_length=128, required=False, allow_blank=True)
     qr_token = serializers.CharField(max_length=512, required=False, allow_blank=True)
+    device_id = serializers.CharField(max_length=128, required=False, allow_blank=True)
     latitude = serializers.DecimalField(
         max_digits=9, decimal_places=6, required=False, allow_null=True
     )

@@ -3,6 +3,7 @@ Medicine product master data models.
 """
 from django.db import models
 
+from apps.core.constants import BatchLifecycleStatus
 from apps.core.models import NPTTEBaseModel
 from apps.organisations.models import Organisation
 
@@ -81,6 +82,13 @@ class ProductBatch(NPTTEBaseModel):
         default="pending",
         db_index=True,
         help_text="NAFDAC/regulator approval status for batch release.",
+    )
+    lifecycle_status = models.CharField(
+        max_length=32,
+        choices=BatchLifecycleStatus.CHOICES,
+        default=BatchLifecycleStatus.DRAFT,
+        db_index=True,
+        help_text="Batch serialization and circulation lifecycle (Phase 8).",
     )
 
     class Meta:

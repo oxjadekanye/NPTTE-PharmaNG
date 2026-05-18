@@ -1,6 +1,7 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from apps.core.constants import BatchLifecycleStatus
 from apps.organisations.models import Organisation, OrganisationType
 from apps.products.models import Product, ProductBatch
 from apps.serialization.models import ProductSerial
@@ -25,6 +26,7 @@ class VerificationAPITests(TestCase):
             product=product,
             batch_number="B001",
             regulator_status="approved",
+            lifecycle_status=BatchLifecycleStatus.ACTIVE,
         )
         self.serial = ProductSerial.objects.create(
             batch=batch,
