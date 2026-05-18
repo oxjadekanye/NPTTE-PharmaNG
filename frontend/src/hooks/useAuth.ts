@@ -10,6 +10,7 @@ import {
   type LoginPayload,
 } from "@/services/auth";
 import { useAuthStore } from "@/store/auth-store";
+import { useTenantStore } from "@/store/tenant-store";
 
 export function useAuth() {
   const { user, permissions, isAuthenticated, setUser, setPermissions, logout: storeLogout } =
@@ -25,9 +26,13 @@ export function useAuth() {
     }
     try {
       const profile = await fetchProfile();
-      const perms = await fetchPermissions();
+      const permsPayload = await fetchPermissions();
       setUser(profile);
-      setPermissions(perms);
+      setPermissions(permsPayload.permissions ?? []);
+      useTenantStore.getState().setContext(
+        permsPayload.organisation_id ? String(permsPayload.organisation_id) : null,
+        (permsPayload.membership_organisation_ids ?? []).map(String)
+      );
     } catch {
       clearTokens();
       storeLogout();
@@ -45,9 +50,13 @@ export function useAuth() {
     const tokens = await apiLogin(payload);
     persistTokens(tokens);
     const profile = await fetchProfile();
-    const perms = await fetchPermissions();
+    const permsPayload = await fetchPermissions();
     setUser(profile);
-    setPermissions(perms);
+    setPermissions(permsPayload.permissions ?? []);
+    useTenantStore.getState().setContext(
+      permsPayload.organisation_id ? String(permsPayload.organisation_id) : null,
+      (permsPayload.membership_organisation_ids ?? []).map(String)
+    );
   };
 
   const logout = () => {

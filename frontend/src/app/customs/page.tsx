@@ -1,11 +1,11 @@
 "use client";
 
-import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
+import { EnterpriseGuard } from "@/components/shared/EnterpriseGuard";
 import { OperationalPortalTemplate } from "@/components/portals/OperationalPortalTemplate";
 
 export default function CustomsPortalPage() {
   return (
-    <RegulatorGuard>
+    <EnterpriseGuard>
       <OperationalPortalTemplate
         portalId="customs"
         title="Customs Intelligence"
@@ -33,6 +33,6 @@ export default function CustomsPortalPage() {
           },
         ]}
       />
-    </RegulatorGuard>
+    </EnterpriseGuard>
   );
 }

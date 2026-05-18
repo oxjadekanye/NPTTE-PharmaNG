@@ -57,6 +57,14 @@ def _role_permissions(role_code: str | None) -> list[str]:
             "patient.medication_search",
             "patient.search_history",
         ],
+        RoleCode.MANUFACTURER_ADMIN: ["supply_chain.read", "supply_chain.write", "organisation.admin"],
+        RoleCode.DISTRIBUTOR_ADMIN: ["supply_chain.read", "supply_chain.write", "organisation.admin"],
+        RoleCode.WAREHOUSE_ADMIN: ["logistics.read", "logistics.write", "organisation.admin"],
+        RoleCode.CUSTOMS_ADMIN: ["customs.read", "customs.write", "organisation.admin"],
+        RoleCode.ORGANISATION_STAFF: ["organisation.read"],
+        RoleCode.WAREHOUSE_MANAGER: ["logistics.read", "logistics.write"],
+        RoleCode.NATIONAL_REGULATOR: ["regulatory.read", "regulatory.write", "audit.read"],
+        RoleCode.STATE_REGULATOR: ["regulatory.read", "regulatory.write", "audit.read"],
     }
     return mapping.get(role_code, [])
 
@@ -167,12 +175,19 @@ class PermissionsView(APIView):
     def get(self, request):
         user = request.user
         role_code = get_user_role_code(user)
+        from apps.tenancy.services.tenant import get_active_organisation_id, get_user_membership_organisations
+
+        active_org = get_active_organisation_id(request) or user.organisation_id
+        memberships = [
+            str(x) for x in get_user_membership_organisations(user)
+        ]
         data = {
             "role_code": role_code or "",
             "is_regulator": user.is_regulator,
             "is_superuser": user.is_superuser,
             "is_staff": user.is_staff,
-            "organisation_id": user.organisation_id,
+            "organisation_id": active_org,
+            "membership_organisation_ids": memberships,
             "permissions": _role_permissions(role_code),
         }
         return Response(PermissionsSerializer(data).data)

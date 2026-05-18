@@ -47,4 +47,6 @@ urlpatterns = [
     path("scanning/", include("apps.scanning.api.urls")),
     # Phase 13 — traceability demo story (additive)
     path("demo/", include("apps.traceability_demo.api.urls")),
+    # Phase 14 — multi-tenant organisation layer (additive)
+    path("tenancy/", include("apps.tenancy.api.urls")),
 ]

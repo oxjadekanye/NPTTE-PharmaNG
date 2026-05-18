@@ -1,11 +1,11 @@
 "use client";
 
-import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
+import { EnterpriseGuard } from "@/components/shared/EnterpriseGuard";
 import { OperationalPortalTemplate } from "@/components/portals/OperationalPortalTemplate";
 
 export default function HospitalPortalPage() {
   return (
-    <RegulatorGuard>
+    <EnterpriseGuard>
       <OperationalPortalTemplate
         portalId="hospital"
         title="Hospital Pharmacy & Therapeutics"
@@ -28,6 +28,6 @@ export default function HospitalPortalPage() {
           },
         ]}
       />
-    </RegulatorGuard>
+    </EnterpriseGuard>
   );
 }

@@ -44,6 +44,7 @@ export const COMMAND_NAV_SECTIONS: NavSection[] = [
     title: "Governance",
     items: [
       { href: "/regulator/onboarding", label: "Onboarding" },
+      { href: "/regulator/tenant-approvals", label: "Tenant approvals" },
       { href: "/regulator/demo-control", label: "Demo Control" },
       { href: "/regulator/api-readiness", label: "API Readiness" },
       { href: "/regulator/docs", label: "Documentation" },

@@ -1,11 +1,11 @@
 "use client";
 
-import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
+import { EnterpriseGuard } from "@/components/shared/EnterpriseGuard";
 import { OperationalPortalTemplate } from "@/components/portals/OperationalPortalTemplate";
 
 export default function WarehousePortalPage() {
   return (
-    <RegulatorGuard>
+    <EnterpriseGuard>
       <OperationalPortalTemplate
         portalId="warehouse"
         title="Warehouse & Logistics Network"
@@ -33,6 +33,6 @@ export default function WarehousePortalPage() {
           },
         ]}
       />
-    </RegulatorGuard>
+    </EnterpriseGuard>
   );
 }

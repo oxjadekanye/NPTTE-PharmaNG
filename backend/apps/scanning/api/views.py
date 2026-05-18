@@ -7,6 +7,8 @@ from apps.core.api.responses import api_response
 from apps.organisations.models import Organisation
 from apps.scanning.models import ScanEvent
 from apps.scanning.services import ingest_scan_event, serialize_scan_event
+from apps.core.roles import is_regulator_user
+from apps.tenancy.services.tenant import filter_queryset_for_tenant, get_active_organisation_id
 
 
 def _scan_type_from_request(request) -> str:
@@ -40,8 +42,12 @@ class ScanIngestView(APIView):
         org_id = data.get("organisation") or data.get("organisation_id")
         if org_id:
             org = Organisation.objects.filter(pk=org_id).first()
-        elif getattr(request.user, "organisation_id", None):
-            org = Organisation.objects.filter(pk=request.user.organisation_id).first()
+        else:
+            active_org = get_active_organisation_id(request)
+            if active_org:
+                org = Organisation.objects.filter(pk=active_org).first()
+            elif getattr(request.user, "organisation_id", None):
+                org = Organisation.objects.filter(pk=request.user.organisation_id).first()
 
         sync_status = data.get("sync_status", ScanEvent.SYNC_SYNCED)
         event = ingest_scan_event(
@@ -69,10 +75,14 @@ class ScanHistoryView(APIView):
         qs = ScanEvent.objects.order_by("-created_at")
         if serial:
             qs = qs.filter(serial_number=serial)
-        if not request.user.is_staff:
-            role = getattr(request.user, "role_code", "") or ""
-            if "NAFDAC" not in role and "REGULATOR" not in role:
-                qs = qs.filter(user=request.user)
+        if is_regulator_user(request.user) or request.user.is_superuser:
+            qs = filter_queryset_for_tenant(request, qs, org_field="organisation_id", allow_null=True)
+        else:
+            from django.db.models import Q
+            from apps.tenancy.services.tenant import get_user_membership_organisations
+
+            org_ids = get_user_membership_organisations(request.user)
+            qs = qs.filter(Q(user=request.user) | Q(organisation_id__in=org_ids))
         rows = [serialize_scan_event(e) for e in qs[:50]]
         return api_response(data={"scans": rows, "count": len(rows)}, message="Scan history")
 

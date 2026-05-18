@@ -92,6 +92,8 @@ INSTALLED_APPS = [
     "apps.scanning",
     # Phase 13 — traceability demo walkthrough (additive, no models)
     "apps.traceability_demo",
+    # Phase 14 — multi-tenant organisation infrastructure (additive)
+    "apps.tenancy",
 ]
 
 MIDDLEWARE = [
@@ -103,6 +105,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "apps.core.middleware.APIAuditMiddleware",
+    "apps.tenancy.middleware.TenantContextMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]

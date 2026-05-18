@@ -4,6 +4,7 @@ import clsx from "clsx";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { DemoBadge } from "@/components/command/DemoBadge";
+import { OrganisationSwitcher } from "@/components/tenant/OrganisationSwitcher";
 import type { PortalNavItem } from "@/config/portal-nav";
 
 export function EnterprisePortalShell({
@@ -70,10 +71,13 @@ export function EnterprisePortalShell({
             <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
             {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
           </div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-            Realtime-ready · Simulated feed
-          </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <OrganisationSwitcher />
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              Tenant-scoped · Simulated feed
+            </span>
+          </div>
         </header>
         <div className="flex-1 overflow-auto p-6 lg:p-8">{children}</div>
       </main>

@@ -170,4 +170,7 @@ class PermissionsSerializer(serializers.Serializer):
     is_superuser = serializers.BooleanField()
     is_staff = serializers.BooleanField()
     organisation_id = serializers.UUIDField(allow_null=True)
+    membership_organisation_ids = serializers.ListField(
+        child=serializers.CharField(), required=False, default=list
+    )
     permissions = serializers.ListField(child=serializers.CharField())

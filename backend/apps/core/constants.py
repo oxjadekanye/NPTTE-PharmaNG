@@ -29,6 +29,12 @@ class RoleCode:
     PCN_ADMIN = "PCN_ADMIN"
     NHIA_ADMIN = "NHIA_ADMIN"
     FMOH_ADMIN = "FMOH_ADMIN"
+    # Phase 14 — organisation tenant admin roles (additive)
+    MANUFACTURER_ADMIN = "MANUFACTURER_ADMIN"
+    DISTRIBUTOR_ADMIN = "DISTRIBUTOR_ADMIN"
+    WAREHOUSE_ADMIN = "WAREHOUSE_ADMIN"
+    CUSTOMS_ADMIN = "CUSTOMS_ADMIN"
+    ORGANISATION_STAFF = "ORGANISATION_STAFF"
 
     CHOICES = [
         (SUPER_ADMIN, "Super administrator"),
@@ -51,6 +57,11 @@ class RoleCode:
         (PCN_ADMIN, "PCN regulator admin"),
         (NHIA_ADMIN, "NHIA regulator admin"),
         (FMOH_ADMIN, "Federal Ministry of Health admin"),
+        (MANUFACTURER_ADMIN, "Manufacturer administrator"),
+        (DISTRIBUTOR_ADMIN, "Distributor administrator"),
+        (WAREHOUSE_ADMIN, "Warehouse administrator"),
+        (CUSTOMS_ADMIN, "Customs administrator"),
+        (ORGANISATION_STAFF, "Organisation staff"),
     ]
 
     REGULATOR_CODES = frozenset({
@@ -72,7 +83,29 @@ class RoleCode:
         PHARMACY_STAFF,
     })
 
-    SUPPLY_CHAIN_CODES = frozenset({DISTRIBUTOR, MANUFACTURER, LOGISTICS})
+    SUPPLY_CHAIN_CODES = frozenset({
+        DISTRIBUTOR,
+        MANUFACTURER,
+        LOGISTICS,
+        MANUFACTURER_ADMIN,
+        DISTRIBUTOR_ADMIN,
+        WAREHOUSE_ADMIN,
+        CUSTOMS_ADMIN,
+        ORGANISATION_STAFF,
+    })
+
+    ORGANISATION_ADMIN_CODES = frozenset({
+        MANUFACTURER_ADMIN,
+        DISTRIBUTOR_ADMIN,
+        WAREHOUSE_ADMIN,
+        PHARMACY_ADMIN,
+        HOSPITAL_ADMIN,
+        CUSTOMS_ADMIN,
+        MANUFACTURER,
+        DISTRIBUTOR,
+        WAREHOUSE_MANAGER,
+        LOGISTICS,
+    })
 
     HOSPITAL_CODES = frozenset({HOSPITAL_ADMIN, DOCTOR})
 

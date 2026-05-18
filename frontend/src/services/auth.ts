@@ -50,9 +50,16 @@ export async function fetchProfile(): Promise<UserProfile> {
   return authFetch<UserProfile>("/auth/profile/");
 }
 
-export async function fetchPermissions(): Promise<string[]> {
-  const data = await authFetch<{ permissions: string[] }>("/auth/permissions/");
-  return data.permissions ?? [];
+export type PermissionsPayload = {
+  permissions: string[];
+  organisation_id?: string | null;
+  membership_organisation_ids?: string[];
+  role_code?: string;
+  is_regulator?: boolean;
+};
+
+export async function fetchPermissions(): Promise<PermissionsPayload> {
+  return authFetch<PermissionsPayload>("/auth/permissions/");
 }
 
 export function persistTokens(tokens: TokenPair): void {
