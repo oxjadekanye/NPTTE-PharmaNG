@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { DEMO_INCIDENTS } from "@/demo/nigeria-intelligence";
 import type { DemoIncident } from "@/demo/types";
 import type { IncidentRow } from "@/shared/types";
+import { IncidentWorkflowPanel } from "./IncidentWorkflowPanel";
 
 function mergeIncidents(api: IncidentRow[]): DemoIncident[] {
   if (api.length === 0) return DEMO_INCIDENTS;
@@ -103,6 +104,7 @@ export function IncidentCenter({ apiIncidents = [] }: { apiIncidents?: IncidentR
           <LinkPanel title="Linked suppliers" items={selected.linkedSuppliers} />
           <LinkPanel title="Regulators / inspectors" items={[...selected.regulators, ...selected.inspectors]} />
         </div>
+        <IncidentWorkflowPanel incident={selected} />
         <div className="rounded-xl border border-sovereign-800 bg-sovereign-900/60 p-4">
           <h4 className="text-sm font-semibold text-white">Resolution timeline &amp; audit</h4>
           <ul className="mt-3 space-y-2 border-l border-sovereign-700 pl-4">

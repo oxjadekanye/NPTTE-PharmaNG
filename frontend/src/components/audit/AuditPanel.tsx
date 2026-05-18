@@ -43,6 +43,11 @@ export function AuditPanel() {
           ))}
         </ul>
       </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <ComplianceScoringCard />
+        <AuditReplayCard />
+        <OrganisationRiskCard />
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <SuspiciousActivityCard />
         <ChainOfCustodyCard />
@@ -79,6 +84,42 @@ function ChainOfCustodyCard() {
         <li>Lab transfer — NAFDAC central lab</li>
         <li>Evidence locker — reference INC-2026-0142</li>
       </ol>
+    </div>
+  );
+}
+
+function ComplianceScoringCard() {
+  return (
+    <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+      <h4 className="text-sm font-semibold text-emerald-100">Compliance scoring (Phase 9)</h4>
+      <p className="mt-2 text-3xl font-semibold text-white">87.6</p>
+      <p className="text-xs text-slate-500">Composite index — inspections, recalls cleared, scan integrity.</p>
+    </div>
+  );
+}
+
+function AuditReplayCard() {
+  return (
+    <div className="rounded-xl border border-sky-500/25 bg-sky-500/5 p-4">
+      <h4 className="text-sm font-semibold text-sky-100">Audit replay</h4>
+      <p className="mt-2 text-xs text-slate-400">
+        Deterministic replay of signed regulator actions for tribunal-grade evidence packages (UI shell).
+      </p>
+      <button type="button" className="mt-3 rounded-lg border border-sky-600/40 px-3 py-1.5 text-xs text-sky-200">
+        Open replay timeline
+      </button>
+    </div>
+  );
+}
+
+function OrganisationRiskCard() {
+  return (
+    <div className="rounded-xl border border-rose-500/25 bg-rose-500/5 p-4">
+      <h4 className="text-sm font-semibold text-rose-100">Organisation risk ratings</h4>
+      <ul className="mt-2 space-y-1 text-xs text-rose-100/80">
+        <li>Gulfline Distributors NG — elevated (diversion signals)</li>
+        <li>Lagos Pharma Industries Ltd — stable</li>
+      </ul>
     </div>
   );
 }

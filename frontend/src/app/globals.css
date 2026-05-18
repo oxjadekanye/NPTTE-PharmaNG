@@ -31,3 +31,12 @@ body {
 .threat-pulse-marker {
   animation: threat-pulse 2s ease-in-out infinite;
 }
+
+.glass-panel {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.85), rgba(2, 6, 23, 0.72));
+  backdrop-filter: blur(12px);
+}
+
+.neon-alert {
+  box-shadow: 0 0 12px rgba(52, 211, 153, 0.35), inset 0 0 20px rgba(52, 211, 153, 0.08);
+}

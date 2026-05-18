@@ -10,6 +10,7 @@ import type {
   DemoIncident,
   DemoRecall,
   DemoStateRisk,
+  DemoWarehouseHub,
   NationalKpis,
   NationalStatus,
 } from "./types";
@@ -285,4 +286,25 @@ export function computeNationalStatus(kpis: NationalKpis): NationalStatus {
 export const LOGISTICS_ROUTES = [
   { from: [6.52, 3.38] as [number, number], to: [9.08, 7.4] as [number, number], label: "Lagos → Abuja" },
   { from: [9.08, 7.4] as [number, number], to: [12.0, 8.59] as [number, number], label: "Abuja → Kano" },
+];
+
+/** Phase 9 — warehouse hubs for map / logistics portal (simulated). */
+export const WAREHOUSE_HUBS: DemoWarehouseHub[] = [
+  { id: "wh-1", name: "Lagos Pharma Bond — Apapa", lat: 6.44, lng: 3.35, throughput: 920 },
+  { id: "wh-2", name: "Abuja National Cold Hub", lat: 9.05, lng: 7.49, throughput: 540 },
+  { id: "wh-3", name: "Kano Northern Distribution", lat: 11.99, lng: 8.52, throughput: 610 },
+  { id: "wh-4", name: "Port Harcourt South Hub", lat: 4.77, lng: 7.02, throughput: 480 },
+];
+
+/** Customs / border checkpoints (simulated markers). */
+export const CUSTOMS_MARKERS: DemoHotspot[] = [
+  { id: "cs-1", lat: 6.44, lng: 3.35, intensity: 88, label: "Apapa — pharmaceutical manifest lane", type: "seizure" },
+  { id: "cs-2", lat: 13.06, lng: 5.24, intensity: 72, label: "Sokoto — trans-Sahel corridor watch", type: "diversion" },
+  { id: "cs-3", lat: 6.32, lng: 5.61, intensity: 65, label: "Seme border — import authentication queue", type: "seizure" },
+];
+
+/** Active investigation zones (pulse). */
+export const INVESTIGATION_ZONES: DemoHotspot[] = [
+  { id: "inv-1", lat: 6.45, lng: 3.39, intensity: 91, label: "Task force zone — Lagos Island INC-0142", type: "counterfeit" },
+  { id: "inv-2", lat: 12.0, lng: 8.59, intensity: 74, label: "PCN / NAFDAC joint sweep — Kano metro", type: "online_pharmacy" },
 ];

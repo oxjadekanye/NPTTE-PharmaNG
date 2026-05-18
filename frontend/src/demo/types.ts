@@ -24,6 +24,17 @@ export interface DemoHotspot {
   type: "counterfeit" | "seizure" | "diversion" | "online_pharmacy";
 }
 
+/** Phase 9 — sovereign map layer toggles (simulated overlays). */
+export type MapIntelLayer = "risk" | "pharmacy_density" | "shortage" | "customs" | "investigations" | "logistics";
+
+export interface DemoWarehouseHub {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  throughput: number;
+}
+
 export interface DemoIncident {
   id: string;
   code: string;

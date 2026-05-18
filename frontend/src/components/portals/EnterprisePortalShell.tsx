@@ -1,29 +1,24 @@
-"use client";
-
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { CommandModeToggle } from "@/components/command/CommandModeToggle";
 import { DemoBadge } from "@/components/command/DemoBadge";
+import type { PortalNavItem } from "@/config/portal-nav";
 
-const NAV = [
-  { href: "/regulator", label: "Overview" },
-  { href: "/regulator/traceability", label: "Traceability" },
-  { href: "/command-center", label: "Command" },
-  { href: "/command-center/threat-map", label: "Threat Map" },
-  { href: "/command-center/incidents", label: "Incidents" },
-  { href: "/command-center/recalls", label: "Recalls" },
-  { href: "/command-center/approvals", label: "Approvals" },
-  { href: "/emergency-ops", label: "Emergency" },
-  { href: "/executive", label: "Executive" },
-  { href: "/manufacturer", label: "Manufacturer" },
-  { href: "/pharmacy", label: "Pharmacy" },
-  { href: "/regulator/analytics", label: "Analytics" },
-  { href: "/regulator/audit", label: "Audit & Security" },
-];
-
-export function CommandShell({ children, title }: { children: React.ReactNode; title: string }) {
+export function EnterprisePortalShell({
+  title,
+  subtitle,
+  nav,
+  children,
+  badge = "Phase 9 · National Ecosystem",
+}: {
+  title: string;
+  subtitle?: string;
+  nav: PortalNavItem[];
+  children: ReactNode;
+  badge?: string;
+}) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
@@ -31,20 +26,21 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
     <div className="flex min-h-screen bg-sovereign-950 text-slate-100">
       <aside className="flex w-64 shrink-0 flex-col border-r border-sovereign-800 bg-sovereign-900/95 shadow-xl">
         <div className="border-b border-sovereign-800 px-5 py-6">
-          <p className="text-xs uppercase tracking-widest text-sovereign-accent">NPTTE PharmaNG</p>
-          <h1 className="mt-1 text-lg font-semibold leading-tight">National Command</h1>
+          <p className="text-[10px] uppercase tracking-widest text-sovereign-accent">{badge}</p>
+          <h1 className="mt-1 text-lg font-semibold leading-tight">{title}</h1>
+          {subtitle && <p className="mt-1 text-xs text-slate-500">{subtitle}</p>}
           <div className="mt-3">
             <DemoBadge />
           </div>
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-          {NAV.map((item) => (
+          {nav.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={clsx(
                 "block rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200",
-                pathname === item.href || (item.href !== "/regulator" && pathname.startsWith(item.href + "/"))
+                pathname === item.href || pathname.startsWith(item.href + "/")
                   ? "bg-sovereign-accent/20 text-sovereign-accent shadow-inner"
                   : "text-slate-400 hover:bg-sovereign-800 hover:text-white"
               )}
@@ -54,6 +50,9 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
           ))}
         </nav>
         <div className="border-t border-sovereign-800 p-4 text-xs text-slate-500">
+          <Link href="/regulator" className="mb-2 block text-sovereign-accent hover:underline">
+            ← National Command
+          </Link>
           <p className="truncate font-medium text-slate-300">{user?.username}</p>
           <p className="truncate">{user?.role_code}</p>
           <button
@@ -67,14 +66,14 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
       </aside>
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-sovereign-800 bg-sovereign-900/60 px-6 py-4 backdrop-blur-md lg:px-8">
-          <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
-          <div className="flex flex-wrap items-center gap-3">
-            <CommandModeToggle />
-            <span className="hidden items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400 sm:inline-flex">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
-              LIVE · Sovereign Infrastructure
-            </span>
+          <div>
+            <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
+            {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
           </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+            Realtime-ready · Simulated feed
+          </span>
         </header>
         <div className="flex-1 overflow-auto p-6 lg:p-8">{children}</div>
       </main>
