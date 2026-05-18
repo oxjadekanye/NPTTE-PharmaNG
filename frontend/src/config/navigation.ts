@@ -50,6 +50,7 @@ export const COMMAND_NAV_SECTIONS: NavSection[] = [
       { href: "/regulator/docs", label: "Documentation" },
       { href: "/regulator/audit", label: "Audit & Security" },
       { href: "/developer", label: "Developer API" },
+      { href: "/regulator/integrations", label: "Integrations" },
     ],
   },
 ];

@@ -96,6 +96,8 @@ INSTALLED_APPS = [
     "apps.tenancy",
     # Phase 15 — operational persistence (additive)
     "apps.operations",
+    # Phase 16 — external connectivity (additive)
+    "apps.integrations",
 ]
 
 MIDDLEWARE = [
@@ -194,6 +196,19 @@ EMAIL_BACKEND = env(
 )
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@nptte.gov.ng")
 NPTTE_FRONTEND_URL = env("NPTTE_FRONTEND_URL", default="http://localhost:3000")
+
+# Phase 16 — integration providers (env-driven, no hardcoded vendors)
+NPTTE_EMAIL_PROVIDER = env("NPTTE_EMAIL_PROVIDER", default="console")
+NPTTE_SMS_PROVIDER = env("NPTTE_SMS_PROVIDER", default="mock")
+NPTTE_STORAGE_BACKEND = env("NPTTE_STORAGE_BACKEND", default="local")
+SENDGRID_API_KEY = env("SENDGRID_API_KEY", default="")
+MAILGUN_API_KEY = env("MAILGUN_API_KEY", default="")
+TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID", default="")
+TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN", default="")
+AFRICAS_TALKING_API_KEY = env("AFRICAS_TALKING_API_KEY", default="")
+AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="")
+GCS_BUCKET_NAME = env("GCS_BUCKET_NAME", default="")
+AZURE_STORAGE_CONNECTION_STRING = env("AZURE_STORAGE_CONNECTION_STRING", default="")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

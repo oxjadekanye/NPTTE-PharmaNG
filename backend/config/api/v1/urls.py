@@ -51,4 +51,6 @@ urlpatterns = [
     path("tenancy/", include("apps.tenancy.api.urls")),
     # Phase 15 — operational persistence & notifications (additive)
     path("operations/", include("apps.operations.api.urls")),
+    # Phase 16 — external connectivity & integrations (additive)
+    path("integrations/", include("apps.integrations.api.urls")),
 ]

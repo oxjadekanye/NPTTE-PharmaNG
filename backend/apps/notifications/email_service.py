@@ -33,13 +33,13 @@ def send_platform_email(
         return "skipped:no_recipients"
 
     def _send():
-        send_mail(
+        from apps.integrations.providers.email import send_email_with_logging
+
+        send_email_with_logging(
             subject=subject,
             message=message,
-            from_email=get_default_from_email(),
             recipient_list=recipients,
             html_message=html_message,
-            fail_silently=False,
         )
         logger.info("Email sent to %s: %s", recipients, subject)
 
