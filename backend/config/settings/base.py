@@ -88,6 +88,8 @@ INSTALLED_APPS = [
     "apps.developer_access",
     # Phase 11 — pilot readiness (additive)
     "apps.pilot_readiness",
+    # Phase 12 — mobile scanning operations (additive)
+    "apps.scanning",
 ]
 
 MIDDLEWARE = [

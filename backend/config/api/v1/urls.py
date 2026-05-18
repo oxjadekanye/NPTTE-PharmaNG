@@ -43,4 +43,6 @@ urlpatterns = [
     path("developer/", include("apps.developer_access.api.urls")),
     # Phase 11 — pilot launch preparation (additive)
     path("pilot/", include("apps.pilot_readiness.api.urls")),
+    # Phase 12 — mobile scanning (additive)
+    path("scanning/", include("apps.scanning.api.urls")),
 ]

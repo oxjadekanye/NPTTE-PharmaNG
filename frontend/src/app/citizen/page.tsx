@@ -76,7 +76,10 @@ export default function CitizenPortalPage() {
         </Link>
         <h1 className="mt-1 text-xl font-semibold sm:text-2xl">Citizen verification</h1>
         <p className="mt-1 max-w-xl text-xs text-slate-500">
-          Mobile-first national authenticity check — scan QR, barcode, or enter serial manually.
+          Mobile-first national authenticity check — scan QR, barcode, or enter serial manually.{" "}
+          <Link href="/citizen/scan" className="text-sovereign-accent hover:underline">
+            Open camera scan
+          </Link>
         </p>
       </header>
 
