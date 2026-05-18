@@ -6,26 +6,7 @@ import clsx from "clsx";
 import { useAuth } from "@/hooks/useAuth";
 import { CommandModeToggle } from "@/components/command/CommandModeToggle";
 import { DemoBadge } from "@/components/command/DemoBadge";
-
-const NAV = [
-  { href: "/regulator", label: "Overview" },
-  { href: "/regulator/traceability", label: "Traceability" },
-  { href: "/regulator/serialization", label: "Serialization" },
-  { href: "/regulator/custody", label: "Custody" },
-  { href: "/command-center", label: "Command" },
-  { href: "/command-center/threat-map", label: "Threat Map" },
-  { href: "/command-center/incidents", label: "Incidents" },
-  { href: "/command-center/recalls", label: "Recalls" },
-  { href: "/command-center/notifications", label: "Notifications" },
-  { href: "/developer", label: "Developer API" },
-  { href: "/command-center/approvals", label: "Approvals" },
-  { href: "/emergency-ops", label: "Emergency" },
-  { href: "/executive", label: "Executive" },
-  { href: "/manufacturer", label: "Manufacturer" },
-  { href: "/pharmacy", label: "Pharmacy" },
-  { href: "/regulator/analytics", label: "Analytics" },
-  { href: "/regulator/audit", label: "Audit & Security" },
-];
+import { COMMAND_NAV_SECTIONS } from "@/config/navigation";
 
 export function CommandShell({ children, title }: { children: React.ReactNode; title: string }) {
   const pathname = usePathname();
@@ -41,20 +22,30 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
             <DemoBadge />
           </div>
         </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={clsx(
-                "block rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200",
-                pathname === item.href || (item.href !== "/regulator" && pathname.startsWith(item.href + "/"))
-                  ? "bg-sovereign-accent/20 text-sovereign-accent shadow-inner"
-                  : "text-slate-400 hover:bg-sovereign-800 hover:text-white"
-              )}
-            >
-              {item.label}
-            </Link>
+        <nav className="flex-1 space-y-4 overflow-y-auto p-3">
+          {COMMAND_NAV_SECTIONS.map((section) => (
+            <div key={section.title}>
+              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                {section.title}
+              </p>
+              <div className="space-y-0.5">
+                {section.items.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={clsx(
+                      "block rounded-lg px-3 py-2 text-sm font-medium transition duration-200",
+                      pathname === item.href ||
+                        (item.href !== "/regulator" && pathname.startsWith(item.href + "/"))
+                        ? "bg-sovereign-accent/20 text-sovereign-accent shadow-inner"
+                        : "text-slate-400 hover:bg-sovereign-800 hover:text-white"
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
         <div className="border-t border-sovereign-800 p-4 text-xs text-slate-500">

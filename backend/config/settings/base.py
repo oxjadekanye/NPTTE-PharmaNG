@@ -86,6 +86,8 @@ INSTALLED_APPS = [
     # Phase 10 — sovereign AI & operational intelligence (additive)
     "apps.certificates",
     "apps.developer_access",
+    # Phase 11 — pilot readiness (additive)
+    "apps.pilot_readiness",
 ]
 
 MIDDLEWARE = [

@@ -41,4 +41,6 @@ urlpatterns = [
     path("notifications/", include("apps.notifications.api.urls")),
     path("certificates/", include("apps.certificates.api.urls")),
     path("developer/", include("apps.developer_access.api.urls")),
+    # Phase 11 — pilot launch preparation (additive)
+    path("pilot/", include("apps.pilot_readiness.api.urls")),
 ]
