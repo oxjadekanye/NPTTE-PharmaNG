@@ -96,17 +96,10 @@ class EventStreamService:
 
     @staticmethod
     def _broadcast(event: EventStreamBase) -> None:
-        """Redis Pub/Sub hook — no-op when Redis unavailable."""
-        from django.conf import settings
+        """Redis / in-memory pub/sub — no-op failure must not break publish."""
+        from apps.core.redis_bus import publish_channel
 
-        if not getattr(settings, "REDIS_URL", ""):
-            return
-        try:
-            import json
-
-            from django.core.cache import cache
-
-            channel = f"nptte:events:{event.category}"
-            cache.client.get_client().publish(channel, json.dumps(EventStreamService._serialize(event)))
-        except Exception:
-            pass
+        message = EventStreamService._serialize(event)
+        publish_channel(f"nptte:events:{event.category}", message)
+        org_id = str(event.organisation_id) if event.organisation_id else "national"
+        publish_channel(f"nptte:bus:{org_id}", message)

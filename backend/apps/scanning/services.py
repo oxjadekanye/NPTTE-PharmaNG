@@ -145,6 +145,24 @@ def ingest_scan_event(
         replay_nonce=replay_nonce,
         created_by=user or (request.user if getattr(request, "user", None) and request.user.is_authenticated else None),
     )
+    try:
+        from apps.streambus.constants import EVT_SCAN, EVT_SCAN_SUSPICIOUS, SEV_CRITICAL, SEV_INFO
+        from apps.streambus.services.bus import publish_operational_event
+
+        alerts = _alert_hooks(event)
+        publish_operational_event(
+            event_type=EVT_SCAN_SUSPICIOUS if alerts.get("suspicious_scan_alert") else EVT_SCAN,
+            payload={
+                "scan_id": str(event.id),
+                "serial_number": event.serial_number,
+                "outcome_label": event.outcome_label,
+                "summary": f"Scan {event.scan_type}: {event.outcome_label}",
+            },
+            organisation_id=organisation.id if organisation else None,
+            severity=SEV_CRITICAL if alerts.get("suspicious_scan_alert") else SEV_INFO,
+        )
+    except Exception:
+        pass
     return event
 
 

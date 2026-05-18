@@ -98,6 +98,8 @@ INSTALLED_APPS = [
     "apps.operations",
     # Phase 16 — external connectivity (additive)
     "apps.integrations",
+    # Phase 17 — realtime event bus (additive)
+    "apps.streambus",
 ]
 
 MIDDLEWARE = [

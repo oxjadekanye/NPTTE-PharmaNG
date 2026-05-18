@@ -53,4 +53,6 @@ urlpatterns = [
     path("operations/", include("apps.operations.api.urls")),
     # Phase 16 — external connectivity & integrations (additive)
     path("integrations/", include("apps.integrations.api.urls")),
+    # Phase 17 — realtime event bus & operational intelligence (additive)
+    path("streambus/", include("apps.streambus.api.urls")),
 ]

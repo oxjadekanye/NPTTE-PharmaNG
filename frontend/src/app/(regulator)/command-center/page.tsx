@@ -6,6 +6,7 @@ import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
 import { OverviewGrid } from "@/components/dashboard/OverviewGrid";
 import { AlertTicker } from "@/components/dashboard/AlertTicker";
 import { IntelligenceFeed } from "@/components/dashboard/IntelligenceFeed";
+import { LiveEventFeed } from "@/components/realtime/LiveEventFeed";
 import { fetchLiveOverview, fetchEmergencyResponse } from "@/services/command-center";
 import { useSimulatedRealtime } from "@/hooks/useSimulatedRealtime";
 import { NATIONAL_KPIS } from "@/demo/nigeria-intelligence";
@@ -61,7 +62,8 @@ export default function CommandCenterPage() {
         <div className="mt-6">
           <OverviewGrid metrics={metrics} />
         </div>
-        <div className="mt-8">
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <LiveEventFeed />
           <IntelligenceFeed />
         </div>
       </CommandShell>
