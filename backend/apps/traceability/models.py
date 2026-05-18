@@ -173,3 +173,97 @@ class BatchRecall(NPTTEBaseModel):
         ordering = ["-effective_at"]
         verbose_name = "Batch recall"
         verbose_name_plural = "Batch recalls"
+
+
+class SerialCustodyEvent(NPTTEBaseModel):
+    """Sovereign chain-of-custody ledger per serial (Phase 10)."""
+
+    NODE_MANUFACTURER = "manufacturer"
+    NODE_DISTRIBUTOR = "distributor"
+    NODE_WAREHOUSE = "warehouse"
+    NODE_CUSTOMS = "customs"
+    NODE_PHARMACY = "pharmacy"
+    NODE_HOSPITAL = "hospital"
+    NODE_PATIENT = "patient"
+    NODE_CHOICES = [
+        (NODE_MANUFACTURER, "Manufacturer"),
+        (NODE_DISTRIBUTOR, "Distributor"),
+        (NODE_WAREHOUSE, "Warehouse"),
+        (NODE_CUSTOMS, "Customs"),
+        (NODE_PHARMACY, "Pharmacy"),
+        (NODE_HOSPITAL, "Hospital"),
+        (NODE_PATIENT, "Patient"),
+    ]
+
+    product_serial = models.ForeignKey(
+        ProductSerial,
+        on_delete=models.CASCADE,
+        related_name="custody_events",
+    )
+    source_node = models.CharField(max_length=32, choices=NODE_CHOICES, blank=True)
+    destination_node = models.CharField(max_length=32, choices=NODE_CHOICES, db_index=True)
+    source_organisation = models.ForeignKey(
+        Organisation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="custody_events_out",
+    )
+    destination_organisation = models.ForeignKey(
+        Organisation,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="custody_events_in",
+    )
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    verification_signature = models.CharField(max_length=256, blank=True)
+    custody_confirmed = models.BooleanField(default=False, db_index=True)
+    integrity_status = models.CharField(max_length=32, default="pending", db_index=True)
+    supply_chain_transaction = models.ForeignKey(
+        SupplyChainTransaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="custody_events",
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [models.Index(fields=["product_serial", "created_at"])]
+
+
+class RecallExecutionCampaign(NPTTEBaseModel):
+    """Nationwide recall propagation and completion tracking (Phase 10)."""
+
+    batch_recall = models.ForeignKey(
+        BatchRecall,
+        on_delete=models.CASCADE,
+        related_name="execution_campaigns",
+    )
+    campaign_code = models.CharField(max_length=64, unique=True, db_index=True)
+    status = models.CharField(max_length=32, default="active", db_index=True)
+    pharmacies_targeted = models.PositiveIntegerField(default=0)
+    pharmacies_acknowledged = models.PositiveIntegerField(default=0)
+    estimated_patient_exposure = models.PositiveIntegerField(default=0)
+    destruction_verified = models.BooleanField(default=False)
+    quarantine_active = models.BooleanField(default=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class PharmacyRecallAcknowledgement(NPTTEBaseModel):
+    campaign = models.ForeignKey(
+        RecallExecutionCampaign,
+        on_delete=models.CASCADE,
+        related_name="pharmacy_acks",
+    )
+    pharmacy_organisation = models.ForeignKey(
+        Organisation,
+        on_delete=models.CASCADE,
+        related_name="recall_acknowledgements",
+    )
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    completion_pct = models.PositiveSmallIntegerField(default=0)

@@ -35,4 +35,10 @@ urlpatterns = [
     path("mobile/", include("apps.mobile.api.urls")),
     # Phase 6 — realtime SSE (additive)
     path("realtime/", include("apps.realtime.api.urls")),
+    # Phase 10 — sovereign serialization & intelligence (additive)
+    path("serialization/", include("apps.serialization.api.urls")),
+    path("intelligence/", include("apps.ai_engine.api.urls")),
+    path("notifications/", include("apps.notifications.api.urls")),
+    path("certificates/", include("apps.certificates.api.urls")),
+    path("developer/", include("apps.developer_access.api.urls")),
 ]

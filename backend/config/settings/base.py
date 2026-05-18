@@ -83,6 +83,9 @@ INSTALLED_APPS = [
     "apps.mobile",
     # Phase 6 — realtime operations (additive SSE)
     "apps.realtime",
+    # Phase 10 — sovereign AI & operational intelligence (additive)
+    "apps.certificates",
+    "apps.developer_access",
 ]
 
 MIDDLEWARE = [

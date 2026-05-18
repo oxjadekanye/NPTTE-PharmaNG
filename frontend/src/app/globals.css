@@ -40,3 +40,23 @@ body {
 .neon-alert {
   box-shadow: 0 0 12px rgba(52, 211, 153, 0.35), inset 0 0 20px rgba(52, 211, 153, 0.08);
 }
+
+.operational-glow {
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+@keyframes scan-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 0.55;
+  }
+}
+
+.scan-pulse {
+  animation: scan-pulse 2.2s ease-in-out infinite;
+}

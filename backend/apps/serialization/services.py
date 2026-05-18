@@ -8,7 +8,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from apps.core.security import sign_verification_token
-from apps.serialization.models import ProductSerial, SerialSequence
+from apps.serialization.gs1 import build_nptte_serial_with_gs1
+from apps.serialization.models import ProductSerial, SerialPackagingUnit, SerialScanRecord, SerialSequence
 
 
 def _product_slug(product) -> str:
@@ -61,6 +62,12 @@ def ensure_qr_payload(serial: ProductSerial) -> ProductSerial:
         serial.qr_payload = build_qr_payload(serial)
     if not serial.barcode_payload:
         serial.barcode_payload = build_barcode_payload(serial.serial_number)
+    gs1_fields = build_nptte_serial_with_gs1(
+        product=serial.batch.product,
+        national_serial=serial.serial_number,
+    )
+    serial.gtin14 = gs1_fields["gtin14"]
+    serial.gs1_element_string = gs1_fields["gs1_element_string"]
     token_payload = {"serial": serial.serial_number, "batch_id": str(serial.batch_id)}
     serial.qr_token_signature = sign_verification_token(token_payload)
     serial.verification_hash = hashlib.sha256(serial.serial_number.encode()).hexdigest()
@@ -68,6 +75,8 @@ def ensure_qr_payload(serial: ProductSerial) -> ProductSerial:
         update_fields=[
             "qr_payload",
             "barcode_payload",
+            "gtin14",
+            "gs1_element_string",
             "qr_token_signature",
             "verification_hash",
             "updated_at",

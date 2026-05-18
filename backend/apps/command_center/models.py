@@ -14,6 +14,10 @@ class NationalIncident(NPTTEBaseModel):
     status = models.CharField(
         max_length=32, choices=IncidentStatus.CHOICES, default=IncidentStatus.OPEN, db_index=True
     )
+    assigned_investigator = models.CharField(max_length=255, blank=True, db_index=True)
+    escalation_level = models.PositiveSmallIntegerField(default=1, db_index=True)
+    workflow_state = models.CharField(max_length=64, default="open", db_index=True)
+    evidence_lifecycle = models.JSONField(default=list, blank=True)
     affected_states = models.JSONField(default=list, blank=True)
     organisation = models.ForeignKey(
         Organisation, on_delete=models.SET_NULL, null=True, blank=True, related_name="incidents"

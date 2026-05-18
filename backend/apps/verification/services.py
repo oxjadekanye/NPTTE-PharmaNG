@@ -19,7 +19,9 @@ from apps.core.constants import (
 from apps.core.security import request_fingerprint, verify_signed_token
 from apps.fraud_detection.services import create_fraud_flag
 from apps.products.models import ProductBatch
+from apps.serialization.gs1 import decode_gs1_scan, resolve_serial_from_scan
 from apps.serialization.models import ProductSerial
+from apps.serialization.operations import record_serial_scan
 from apps.serialization.services import ensure_qr_payload
 from apps.traceability.services import check_batch_recall
 from apps.verification.models import VerificationEvent, VerificationScanLog
@@ -142,7 +144,9 @@ def sovereign_verify(
 
     Phase 8: optional device_id for scan analytics; pharmacy_organisation_id enforces custody on dispense checks.
     """
-    serial_number = (serial_number or "").strip()
+    raw_scan = (serial_number or qr_token or "").strip()
+    serial_number = resolve_serial_from_scan(raw_scan) if raw_scan else ""
+    gs1_decoded = decode_gs1_scan(raw_scan) if raw_scan else None
     fingerprint = _device_fingerprint(request, device_id)
     ip = request.META.get("REMOTE_ADDR")
     ua = (request.META.get("HTTP_USER_AGENT") or "")[:512]
@@ -308,13 +312,34 @@ def sovereign_verify(
     )
 
     duplicate_soft = product_serial.scan_count > 1
-    return _response(
+    from apps.ai_engine.services import calculate_counterfeit_probability
+
+    counterfeit_probability = float(calculate_counterfeit_probability(serial_number=serial_number))
+    product_serial.counterfeit_probability = counterfeit_probability
+    product_serial.save(update_fields=["counterfeit_probability", "updated_at"])
+    record_serial_scan(
+        raw_scan=raw_scan or serial_number,
+        scan_source="citizen",
+        scanner_type="public_verify",
+        outcome=outcome,
+        latitude=latitude,
+        longitude=longitude,
+        device_fingerprint=fingerprint,
+    )
+    resp = _response(
         outcome=outcome,
         is_authentic=True,
         message="Authentic medicine pack registered with NPTTE.",
         product_serial=product_serial,
         duplicate_soft=duplicate_soft,
     )
+    resp["data"]["counterfeit_probability"] = counterfeit_probability
+    if gs1_decoded:
+        resp["data"]["scan_metadata"] = {
+            "format_hint": gs1_decoded.format_hint,
+            "gtin": gs1_decoded.gtin,
+        }
+    return resp
 
 
 def _log_scan(serial, serial_number, outcome, fingerprint, ip, ua, lat, lon, qr_token):
@@ -356,12 +381,14 @@ def _response(
     }
     if product_serial:
         batch = product_serial.batch
+        cp = float(product_serial.counterfeit_probability or 0)
         data.update(
             {
                 "serial_number": product_serial.serial_number,
                 "qr_payload": product_serial.qr_payload,
                 "barcode_payload": product_serial.barcode_payload,
                 "scan_count": product_serial.scan_count,
+                "counterfeit_probability": cp,
                 "product": {
                     "name": batch.product.name,
                     "brand_name": batch.product.brand_name,

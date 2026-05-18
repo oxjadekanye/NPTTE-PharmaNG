@@ -130,6 +130,11 @@ export default function CitizenPortalPage() {
             {Boolean(result.next_action) && typeof result.next_action === "string" && (
               <p className="mt-2 text-xs text-sovereign-accent">Next: {String(result.next_action)}</p>
             )}
+            {result.counterfeit_probability != null && (
+              <p className="mt-2 text-xs text-amber-200">
+                Counterfeit probability (AI): {String(result.counterfeit_probability)}%
+              </p>
+            )}
             {(Boolean(result.product) || Boolean(result.manufacturer) || Boolean(result.batch_number)) && (
               <ul className="mt-4 space-y-1 border-t border-white/10 pt-3 text-xs text-slate-300">
                 {Boolean(result.manufacturer) && <li>Manufacturer: {String(result.manufacturer)}</li>}

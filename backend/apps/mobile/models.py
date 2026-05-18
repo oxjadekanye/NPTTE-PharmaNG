@@ -24,3 +24,27 @@ class DeviceRegistration(NPTTEBaseModel):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["device_type", "trust_score"])]
+
+
+class OfflineScanQueue(NPTTEBaseModel):
+    """Offline-first scan cache for sync when connectivity returns (Phase 10)."""
+
+    device = models.ForeignKey(
+        DeviceRegistration,
+        on_delete=models.CASCADE,
+        related_name="offline_scans",
+    )
+    raw_scan = models.CharField(max_length=512)
+    scan_source = models.CharField(max_length=32, db_index=True)
+    scanner_type = models.CharField(max_length=32, blank=True)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    replay_nonce = models.CharField(max_length=64, blank=True, db_index=True)
+    sync_status = models.CharField(max_length=32, default="pending", db_index=True)
+    sync_attempts = models.PositiveSmallIntegerField(default=0)
+    synced_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [models.Index(fields=["sync_status", "created_at"])]

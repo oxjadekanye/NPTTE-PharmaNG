@@ -6,6 +6,7 @@ import { CommandShell } from "@/components/shared/CommandShell";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
 import { useIntelligenceBusStore } from "@/store/intelligence-bus-store";
 import { fetchNationalOperationsSummary } from "@/services/national-operations";
+import { fetchNationalIntelligence } from "@/services/sovereign-intelligence";
 import type { NationalOperationsSummary } from "@/services/national-operations";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
 
@@ -25,9 +26,13 @@ export default function ExecutiveModePage() {
   const nationalThreatIndex = useIntelligenceBusStore((s) => s.nationalThreatIndex);
   const [summary, setSummary] = useState<NationalOperationsSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [aiIntel, setAiIntel] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    fetchNationalIntelligence()
+      .then((r) => !cancelled && r.success && setAiIntel(r.data))
+      .catch(() => setAiIntel(null));
     fetchNationalOperationsSummary()
       .then((r) => {
         if (!cancelled && r.success) setSummary(r.data);
@@ -65,11 +70,17 @@ export default function ExecutiveModePage() {
               )}
               {!summary && !summaryError && <p className="text-sm text-slate-500">Loading…</p>}
             </GlassPanel>
-            <GlassPanel title="Geopolitical & import dependency" accent="amber">
-              <p className="text-sm text-slate-400">
-                Sovereign indicators for API feedstock reliance, port congestion, and regional stability overlays —
-                presentation layer only.
-              </p>
+            <GlassPanel title="National AI intelligence (Phase 10)" accent="amber">
+              {aiIntel ? (
+                <ul className="space-y-1 text-xs text-slate-300">
+                  <li>National risk: {String(aiIntel.national_risk_score)}</li>
+                  <li>Shortage forecast: {String(aiIntel.shortage_forecast_probability)}%</li>
+                  <li>Diversion risk: {String(aiIntel.diversion_risk_probability)}%</li>
+                  <li>Counterfeit signals: {String(aiIntel.counterfeit_signals_24h)}</li>
+                </ul>
+              ) : (
+                <p className="text-sm text-slate-400">Loading /intelligence/national/ …</p>
+              )}
             </GlassPanel>
           </div>
           <MinisterialOverview />
