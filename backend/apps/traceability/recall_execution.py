@@ -6,7 +6,11 @@ import uuid
 from django.db import transaction
 from django.utils import timezone
 
-from apps.traceability.models import PharmacyRecallAcknowledgement, RecallExecutionCampaign
+from apps.traceability.models import (
+    PharmacyRecallAcknowledgement,
+    RecallExecutionCampaign,
+    WarehouseRecallAcknowledgement,
+)
 
 
 @transaction.atomic
@@ -35,4 +39,27 @@ def acknowledge_pharmacy_recall(*, campaign, pharmacy_organisation, completion_p
         ack.save(update_fields=["acknowledged_at", "completion_pct", "updated_at"])
     campaign.pharmacies_acknowledged = campaign.pharmacy_acks.filter(acknowledged_at__isnull=False).count()
     campaign.save(update_fields=["pharmacies_acknowledged", "updated_at"])
+    return ack
+
+
+@transaction.atomic
+def acknowledge_warehouse_recall(
+    *, campaign, warehouse_organisation, completion_pct: int = 100, escalation_required: bool = False
+) -> WarehouseRecallAcknowledgement:
+    ack, _ = WarehouseRecallAcknowledgement.objects.get_or_create(
+        campaign=campaign,
+        warehouse_organisation=warehouse_organisation,
+        defaults={
+            "completion_pct": completion_pct,
+            "acknowledged_at": timezone.now(),
+            "escalation_required": escalation_required,
+        },
+    )
+    if not ack.acknowledged_at:
+        ack.acknowledged_at = timezone.now()
+        ack.completion_pct = completion_pct
+        ack.escalation_required = escalation_required
+        ack.save(
+            update_fields=["acknowledged_at", "completion_pct", "escalation_required", "updated_at"]
+        )
     return ack

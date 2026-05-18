@@ -21,7 +21,7 @@ def invite_user(*, organisation, email: str, role, invited_by, days_valid: int =
         invitation_status=OrganisationInvitation.STATUS_PENDING,
     ).update(invitation_status=OrganisationInvitation.STATUS_REVOKED)
 
-    return OrganisationInvitation.objects.create(
+    invitation = OrganisationInvitation.objects.create(
         organisation=organisation,
         email=email.lower().strip(),
         role=role,
@@ -30,6 +30,10 @@ def invite_user(*, organisation, email: str, role, invited_by, days_valid: int =
         invited_by=invited_by,
         created_by=invited_by,
     )
+    from apps.operations.integrations import on_invitation_created
+
+    on_invitation_created(invitation=invitation, invited_by=invited_by)
+    return invitation
 
 
 def resend_invitation(*, invitation: OrganisationInvitation) -> OrganisationInvitation:
@@ -81,6 +85,10 @@ def accept_invitation(*, token: str, user=None) -> dict:
     invitation.accepted_by = user
     invitation.accepted_at = timezone.now()
     invitation.save(update_fields=["invitation_status", "accepted_by", "accepted_at", "updated_at"])
+
+    from apps.operations.integrations import on_invitation_accepted
+
+    on_invitation_accepted(invitation=invitation, user=user)
 
     return {
         "accepted": True,

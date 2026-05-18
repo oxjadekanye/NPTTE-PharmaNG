@@ -6,8 +6,13 @@ from apps.core.permissions import IsRegulatorUser
 from apps.serialization.models import ProductSerial
 from apps.organisations.models import Organisation
 from apps.traceability.custody_services import custody_timeline_for_serial, record_custody_transfer
-from apps.traceability.recall_execution import acknowledge_pharmacy_recall, launch_recall_campaign
+from apps.traceability.recall_execution import (
+    acknowledge_pharmacy_recall,
+    acknowledge_warehouse_recall,
+    launch_recall_campaign,
+)
 from apps.traceability.models import BatchRecall, RecallExecutionCampaign
+from apps.tenancy.services.tenant import get_active_organisation_id, user_can_access_organisation
 
 
 class CustodyTimelineView(APIView):
@@ -81,5 +86,59 @@ class RecallExecutionLaunchView(APIView):
         return api_response(
             data={"campaign_code": campaign.campaign_code},
             message="Recall campaign launched",
+            status_code=201,
+        )
+
+
+class RecallPharmacyAcknowledgeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        campaign = RecallExecutionCampaign.objects.get(pk=request.data["campaign_id"])
+        org_id = request.data.get("organisation_id") or get_active_organisation_id(request)
+        pharmacy = Organisation.objects.get(pk=org_id)
+        if not user_can_access_organisation(request.user, pharmacy.id):
+            return api_response(message="Access denied", status_code=403)
+        completion_pct = int(request.data.get("completion_pct", 100))
+        ack = acknowledge_pharmacy_recall(
+            campaign=campaign,
+            pharmacy_organisation=pharmacy,
+            completion_pct=completion_pct,
+        )
+        from apps.operations.services.recall_ops import on_recall_acknowledged
+
+        on_recall_acknowledged(campaign=campaign, organisation=pharmacy, actor=request.user, ack_type="pharmacy")
+        return api_response(
+            data={"acknowledged_at": ack.acknowledged_at.isoformat(), "completion_pct": ack.completion_pct},
+            message="Pharmacy recall acknowledged",
+            status_code=201,
+        )
+
+
+class RecallWarehouseAcknowledgeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        campaign = RecallExecutionCampaign.objects.get(pk=request.data["campaign_id"])
+        org_id = request.data.get("organisation_id") or get_active_organisation_id(request)
+        warehouse = Organisation.objects.get(pk=org_id)
+        if not user_can_access_organisation(request.user, warehouse.id):
+            return api_response(message="Access denied", status_code=403)
+        ack = acknowledge_warehouse_recall(
+            campaign=campaign,
+            warehouse_organisation=warehouse,
+            completion_pct=int(request.data.get("completion_pct", 100)),
+            escalation_required=bool(request.data.get("escalation_required", False)),
+        )
+        from apps.operations.services.recall_ops import on_recall_acknowledged
+
+        on_recall_acknowledged(campaign=campaign, organisation=warehouse, actor=request.user, ack_type="warehouse")
+        return api_response(
+            data={
+                "acknowledged_at": ack.acknowledged_at.isoformat(),
+                "completion_pct": ack.completion_pct,
+                "escalation_required": ack.escalation_required,
+            },
+            message="Warehouse recall acknowledged",
             status_code=201,
         )

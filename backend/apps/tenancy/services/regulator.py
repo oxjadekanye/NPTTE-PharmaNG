@@ -48,6 +48,9 @@ def approve_onboarding_application(*, onboarding_id, actor, notes: str = "") -> 
     role_code = ROLE_FOR_ORG_TYPE.get(org_type, "ORGANISATION_STAFF")
     if actor and actor.organisation_id == onboarding.organisation_id:
         ensure_membership_for_user(user=actor, organisation=onboarding.organisation, role_code=role_code)
+    from apps.operations.integrations import on_onboarding_approved
+
+    on_onboarding_approved(onboarding=onboarding, actor=actor, notes=notes)
     return {"status": onboarding.status, "organisation_id": str(onboarding.organisation_id)}
 
 
@@ -55,6 +58,9 @@ def approve_onboarding_application(*, onboarding_id, actor, notes: str = "") -> 
 def reject_onboarding_application(*, onboarding_id, actor, reason: str) -> dict:
     onboarding = OrganisationOnboarding.objects.get(pk=onboarding_id)
     reject_organisation(onboarding=onboarding, actor=actor, reason=reason)
+    from apps.operations.integrations import on_onboarding_rejected
+
+    on_onboarding_rejected(onboarding=onboarding, actor=actor, reason=reason)
     return {"status": onboarding.status, "reason": reason}
 
 
@@ -66,6 +72,9 @@ def suspend_organisation(*, organisation_id, actor, reason: str = "") -> Organis
     org.metadata = {**(org.metadata or {}), "suspension_reason": reason}
     org.save(update_fields=["is_active", "status", "metadata", "updated_at"])
     OrganisationOnboarding.objects.filter(organisation=org).update(status=OnboardingStatus.REJECTED)
+    from apps.operations.integrations import on_organisation_suspended
+
+    on_organisation_suspended(org=org, actor=actor, reason=reason)
     return org
 
 

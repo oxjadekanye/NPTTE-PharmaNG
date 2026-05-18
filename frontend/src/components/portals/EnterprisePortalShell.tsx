@@ -4,6 +4,8 @@ import clsx from "clsx";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { DemoBadge } from "@/components/command/DemoBadge";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
+import { OperationalBanners } from "@/components/operations/OperationalBanners";
 import { OrganisationSwitcher } from "@/components/tenant/OrganisationSwitcher";
 import type { PortalNavItem } from "@/config/portal-nav";
 
@@ -72,6 +74,7 @@ export function EnterprisePortalShell({
             {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <NotificationCenter compact />
             <OrganisationSwitcher />
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
@@ -79,6 +82,7 @@ export function EnterprisePortalShell({
             </span>
           </div>
         </header>
+        <OperationalBanners />
         <div className="flex-1 overflow-auto p-6 lg:p-8">{children}</div>
       </main>
     </div>

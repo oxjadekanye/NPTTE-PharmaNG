@@ -5,6 +5,8 @@ from apps.traceability.api.custody_views import (
     CustodyTimelineView,
     RecallExecutionLaunchView,
     RecallExecutionListView,
+    RecallPharmacyAcknowledgeView,
+    RecallWarehouseAcknowledgeView,
 )
 from apps.traceability.api.views import (
     BatchRecallListView,
@@ -26,4 +28,14 @@ urlpatterns = [
     path("custody/record/", CustodyRecordView.as_view(), name="custody-record"),
     path("recall-execution/", RecallExecutionListView.as_view(), name="recall-execution-list"),
     path("recall-execution/launch/", RecallExecutionLaunchView.as_view(), name="recall-execution-launch"),
+    path(
+        "recall-execution/pharmacy-ack/",
+        RecallPharmacyAcknowledgeView.as_view(),
+        name="recall-pharmacy-ack",
+    ),
+    path(
+        "recall-execution/warehouse-ack/",
+        RecallWarehouseAcknowledgeView.as_view(),
+        name="recall-warehouse-ack",
+    ),
 ]

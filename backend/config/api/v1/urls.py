@@ -49,4 +49,6 @@ urlpatterns = [
     path("demo/", include("apps.traceability_demo.api.urls")),
     # Phase 14 — multi-tenant organisation layer (additive)
     path("tenancy/", include("apps.tenancy.api.urls")),
+    # Phase 15 — operational persistence & notifications (additive)
+    path("operations/", include("apps.operations.api.urls")),
 ]

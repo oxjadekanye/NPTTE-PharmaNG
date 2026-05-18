@@ -99,6 +99,9 @@ def submit_onboarding_for_review(*, onboarding_id) -> OrganisationOnboarding:
     onboarding.status = OnboardingStatus.SUBMITTED
     onboarding.submitted_at = timezone.now()
     onboarding.save(update_fields=["status", "submitted_at", "updated_at"])
+    from apps.operations.integrations import on_onboarding_submitted
+
+    on_onboarding_submitted(onboarding=onboarding)
     return onboarding
 
 

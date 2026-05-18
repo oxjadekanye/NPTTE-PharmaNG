@@ -267,3 +267,21 @@ class PharmacyRecallAcknowledgement(NPTTEBaseModel):
     )
     acknowledged_at = models.DateTimeField(null=True, blank=True)
     completion_pct = models.PositiveSmallIntegerField(default=0)
+
+
+class WarehouseRecallAcknowledgement(NPTTEBaseModel):
+    """Phase 15 — warehouse recall acknowledgement."""
+
+    campaign = models.ForeignKey(
+        RecallExecutionCampaign,
+        on_delete=models.CASCADE,
+        related_name="warehouse_acks",
+    )
+    warehouse_organisation = models.ForeignKey(
+        Organisation,
+        on_delete=models.CASCADE,
+        related_name="warehouse_recall_acknowledgements",
+    )
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+    completion_pct = models.PositiveSmallIntegerField(default=0)
+    escalation_required = models.BooleanField(default=False, db_index=True)

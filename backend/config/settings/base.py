@@ -94,6 +94,8 @@ INSTALLED_APPS = [
     "apps.traceability_demo",
     # Phase 14 — multi-tenant organisation infrastructure (additive)
     "apps.tenancy",
+    # Phase 15 — operational persistence (additive)
+    "apps.operations",
 ]
 
 MIDDLEWARE = [
@@ -184,6 +186,14 @@ STORAGES = {
 }
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Phase 15 — email delivery (console locally; override via env in production)
+EMAIL_BACKEND = env(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@nptte.gov.ng")
+NPTTE_FRONTEND_URL = env("NPTTE_FRONTEND_URL", default="http://localhost:3000")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

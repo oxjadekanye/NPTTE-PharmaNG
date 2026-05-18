@@ -10,3 +10,7 @@ export async function markNotificationRead(id: string) {
     body: JSON.stringify({ id }),
   });
 }
+
+export async function fetchNotificationUnread() {
+  return apiRequest<{ unread: number }>("/notifications/unread/");
+}
