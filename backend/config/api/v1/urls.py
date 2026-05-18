@@ -45,4 +45,6 @@ urlpatterns = [
     path("pilot/", include("apps.pilot_readiness.api.urls")),
     # Phase 12 — mobile scanning (additive)
     path("scanning/", include("apps.scanning.api.urls")),
+    # Phase 13 — traceability demo story (additive)
+    path("demo/", include("apps.traceability_demo.api.urls")),
 ]

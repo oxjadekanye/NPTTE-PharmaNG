@@ -19,6 +19,7 @@ export const COMMAND_NAV_SECTIONS: NavSection[] = [
     title: "Operations",
     items: [
       { href: "/regulator/traceability", label: "Traceability" },
+      { href: "/regulator/live-demo", label: "Live Demo" },
       { href: "/regulator/serialization", label: "Serialization" },
       { href: "/regulator/custody", label: "Custody Ledger" },
       { href: "/command-center/threat-map", label: "Threat Map" },

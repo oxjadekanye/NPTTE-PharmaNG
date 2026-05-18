@@ -90,6 +90,8 @@ INSTALLED_APPS = [
     "apps.pilot_readiness",
     # Phase 12 — mobile scanning operations (additive)
     "apps.scanning",
+    # Phase 13 — traceability demo walkthrough (additive, no models)
+    "apps.traceability_demo",
 ]
 
 MIDDLEWARE = [
