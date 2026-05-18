@@ -1,6 +1,10 @@
 export type MetricCard = {
   label: string;
-  value: string | number;
+  value?: string | number;
+  numericValue?: number;
+  decimals?: number;
+  suffix?: string;
+  pulse?: boolean;
   trend?: "up" | "down" | "neutral";
   severity?: "normal" | "warning" | "critical";
 };

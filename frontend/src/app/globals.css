@@ -17,3 +17,17 @@ body {
   width: 100%;
   border-radius: 0.75rem;
 }
+
+@keyframes threat-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.threat-pulse-marker {
+  animation: threat-pulse 2s ease-in-out infinite;
+}

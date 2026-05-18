@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useAuth } from "@/hooks/useAuth";
+import { CommandModeToggle } from "@/components/command/CommandModeToggle";
+import { DemoBadge } from "@/components/command/DemoBadge";
 
 const NAV = [
   { href: "/regulator", label: "Overview" },
@@ -13,6 +15,7 @@ const NAV = [
   { href: "/command-center/approvals", label: "Approvals" },
   { href: "/emergency-ops", label: "Emergency" },
   { href: "/regulator/analytics", label: "Analytics" },
+  { href: "/regulator/audit", label: "Audit & Security" },
 ];
 
 export function CommandShell({ children, title }: { children: React.ReactNode; title: string }) {
@@ -21,20 +24,23 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
 
   return (
     <div className="flex min-h-screen bg-sovereign-950 text-slate-100">
-      <aside className="flex w-64 flex-col border-r border-sovereign-800 bg-sovereign-900/90">
+      <aside className="flex w-64 shrink-0 flex-col border-r border-sovereign-800 bg-sovereign-900/95 shadow-xl">
         <div className="border-b border-sovereign-800 px-5 py-6">
           <p className="text-xs uppercase tracking-widest text-sovereign-accent">NPTTE PharmaNG</p>
-          <h1 className="mt-1 text-lg font-semibold">National Command</h1>
+          <h1 className="mt-1 text-lg font-semibold leading-tight">National Command</h1>
+          <div className="mt-3">
+            <DemoBadge />
+          </div>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto p-3">
           {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={clsx(
-                "block rounded-lg px-3 py-2 text-sm transition",
-                pathname === item.href || pathname.startsWith(item.href + "/")
-                  ? "bg-sovereign-accent/20 text-sovereign-accent"
+                "block rounded-lg px-3 py-2.5 text-sm font-medium transition duration-200",
+                pathname === item.href || (item.href !== "/regulator" && pathname.startsWith(item.href + "/"))
+                  ? "bg-sovereign-accent/20 text-sovereign-accent shadow-inner"
                   : "text-slate-400 hover:bg-sovereign-800 hover:text-white"
               )}
             >
@@ -48,20 +54,24 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
           <button
             type="button"
             onClick={logout}
-            className="mt-3 w-full rounded border border-sovereign-700 py-1.5 text-slate-300 hover:bg-sovereign-800"
+            className="mt-3 w-full rounded-lg border border-sovereign-700 py-2 text-slate-300 transition hover:bg-sovereign-800 hover:text-white"
           >
             Sign out
           </button>
         </div>
       </aside>
-      <main className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-sovereign-800 bg-sovereign-900/50 px-8 py-4 backdrop-blur">
-          <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
-          <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400">
-            LIVE · Sovereign Infrastructure
-          </span>
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="flex flex-wrap items-center justify-between gap-4 border-b border-sovereign-800 bg-sovereign-900/60 px-6 py-4 backdrop-blur-md lg:px-8">
+          <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
+          <div className="flex flex-wrap items-center gap-3">
+            <CommandModeToggle />
+            <span className="hidden items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400 sm:inline-flex">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              LIVE · Sovereign Infrastructure
+            </span>
+          </div>
         </header>
-        <div className="flex-1 overflow-auto p-8">{children}</div>
+        <div className="flex-1 overflow-auto p-6 lg:p-8">{children}</div>
       </main>
     </div>
   );
