@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import clsx from "clsx";
 import { fetchNotificationCenter, markNotificationRead } from "@/services/notifications";
+import { openExplorerFromNotification } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 type NotificationRow = {
@@ -11,6 +12,8 @@ type NotificationRow = {
   body: string;
   severity: string;
   notification_type: string;
+  related_entity_type?: string | null;
+  related_entity_id?: string | null;
   is_read: boolean;
   created_at: string;
 };
@@ -143,13 +146,7 @@ function NotificationList({
             <button
               type="button"
               className="min-w-0 flex-1 text-left outline-none transition hover:text-sovereign-accent"
-              onClick={() =>
-                openDrawer({
-                  entityType: "notification",
-                  entityId: n.id,
-                  title: n.title,
-                })
-              }
+              onClick={() => openExplorerFromNotification(openDrawer, n)}
             >
               <p className="font-medium text-slate-100">{n.title}</p>
               {n.body && <p className="mt-1 text-slate-400">{n.body}</p>}

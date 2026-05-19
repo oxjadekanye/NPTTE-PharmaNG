@@ -2,25 +2,30 @@
 
 import { memo } from "react";
 import { ExplorerSeverityBadge } from "../ExplorerSeverityBadge";
-import { formatTimestamp, recordSearchText, type OperationalRecord } from "@/services/explorer-format";
+import {
+  formatLocation,
+  formatTimestamp,
+  recordSearchText,
+  type OperationalRecord,
+} from "@/services/explorer-format";
 
 export const ExplorerRecordsTable = memo(function ExplorerRecordsTable({
   records,
   filter,
   onFilterChange,
+  onRowClick,
 }: {
   records: OperationalRecord[];
   filter: string;
   onFilterChange: (v: string) => void;
+  onRowClick?: (row: OperationalRecord) => void;
 }) {
   const q = filter.trim().toLowerCase();
-  const visible = q
-    ? records.filter((row) => recordSearchText(row).includes(q))
-    : records;
+  const visible = q ? records.filter((row) => recordSearchText(row).includes(q)) : records;
 
   return (
     <section>
-      <div className="flex items-center justify-between gap-2">
+      <div className="mb-2 flex items-center justify-between gap-2">
         <h4 className="text-[11px] font-semibold uppercase text-slate-400">Operational records</h4>
         <input
           type="search"
@@ -36,15 +41,14 @@ export const ExplorerRecordsTable = memo(function ExplorerRecordsTable({
             <tr>
               <th className="px-2 py-1">Record</th>
               <th className="px-2 py-1">Severity</th>
-              <th className="px-2 py-1">Organisation</th>
-              <th className="px-2 py-1">Location</th>
+              <th className="px-2 py-1">Site & location</th>
               <th className="px-2 py-1">Detected</th>
             </tr>
           </thead>
           <tbody>
             {visible.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-2 py-4 text-center text-slate-500">
+                <td colSpan={4} className="px-2 py-4 text-center text-slate-500">
                   No matching operational records
                 </td>
               </tr>
@@ -52,16 +56,27 @@ export const ExplorerRecordsTable = memo(function ExplorerRecordsTable({
             {visible.slice(0, 50).map((row, i) => (
               <tr
                 key={String(row.id ?? i)}
-                className="border-t border-sovereign-800/60 hover:bg-sovereign-800/30"
+                className={`border-t border-sovereign-800/60 ${onRowClick ? "cursor-pointer hover:bg-sovereign-800/40" : "hover:bg-sovereign-800/30"}`}
+                onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onKeyDown={
+                  onRowClick
+                    ? (ev) => {
+                        if (ev.key === "Enter" || ev.key === " ") {
+                          ev.preventDefault();
+                          onRowClick(row);
+                        }
+                      }
+                    : undefined
+                }
+                tabIndex={onRowClick ? 0 : undefined}
+                role={onRowClick ? "button" : undefined}
               >
                 <td className="px-2 py-1.5 text-slate-200">
                   <p className="font-medium">
                     {String(row.title ?? row.name ?? row.case_reference ?? "Record")}
                   </p>
                   {row.recommended_action ? (
-                    <p className="mt-0.5 text-[10px] text-slate-500">
-                      {String(row.recommended_action)}
-                    </p>
+                    <p className="mt-0.5 text-[10px] text-slate-500">{String(row.recommended_action)}</p>
                   ) : null}
                 </td>
                 <td className="px-2 py-1">
@@ -71,9 +86,8 @@ export const ExplorerRecordsTable = memo(function ExplorerRecordsTable({
                     <span className="text-slate-500">{String(row.status ?? "—")}</span>
                   )}
                 </td>
-                <td className="px-2 py-1 text-slate-400">{String(row.organisation ?? "—")}</td>
-                <td className="px-2 py-1 text-slate-500">
-                  {[row.city, row.state].filter(Boolean).join(", ") || String(row.address ?? "—")}
+                <td className="max-w-[200px] px-2 py-1 text-slate-400">
+                  <p className="line-clamp-3">{formatLocation(row)}</p>
                 </td>
                 <td className="px-2 py-1 text-slate-500">{formatTimestamp(row.detected_at)}</td>
               </tr>

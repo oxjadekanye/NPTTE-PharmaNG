@@ -76,6 +76,13 @@ def _demo_signal_qs(**filters):
     return IntelligenceSignal.objects.filter(q, **filters)
 
 
+def _full_address(org, ev: dict) -> str:
+    if org:
+        parts = [org.address_line_1, org.address_line_2, org.city, org.state]
+        return ", ".join(p for p in parts if p)
+    return str(ev.get("full_address") or ev.get("address") or "")
+
+
 def _record_from_alert(a: NationalAlert) -> dict[str, Any]:
     ev = a.evidence_payload if isinstance(a.evidence_payload, dict) else {}
     org = a.organisation
@@ -88,6 +95,8 @@ def _record_from_alert(a: NationalAlert) -> dict[str, Any]:
         "organisation": org.legal_name if org else ev.get("organisation_name", ""),
         "organisation_type": org.organisation_type.code if org else ev.get("organisation_type", ""),
         "address": org.address_line_1 if org else ev.get("address", ""),
+        "address_line_2": org.address_line_2 if org else ev.get("address_line_2", ""),
+        "full_address": _full_address(org, ev),
         "state": a.state or ev.get("state", ""),
         "city": ev.get("city", org.city if org else ""),
         "phone": org.phone_number if org else ev.get("phone", ""),
@@ -119,6 +128,8 @@ def _record_from_scan(s: ScanEvent) -> dict[str, Any]:
         "organisation": org.legal_name if org else "",
         "organisation_type": org.organisation_type.code if org else "",
         "address": org.address_line_1 if org else "",
+        "address_line_2": org.address_line_2 if org else "",
+        "full_address": _full_address(org, rp),
         "state": rp.get("state", org.state if org else ""),
         "city": rp.get("city", org.city if org else ""),
         "phone": org.phone_number if org else "",

@@ -1,5 +1,6 @@
 import { fetchExplorerContextRoute, fetchExplorerQuickSummary } from "@/services/explorer";
 import { resolveContextTarget } from "@/services/explorer-context-map";
+import type { OperationalRecord } from "@/services/explorer-format";
 import {
   getExplorerCache,
   setExplorerCache,
@@ -90,4 +91,42 @@ export async function openExplorerTarget(
   if (target.context) {
     openExplorerFromContext(openDrawer, target.context, target.title);
   }
+}
+
+/** Open drawer for a single operational record (alert, scan, notification, etc.). */
+export function openExplorerFromRecord(
+  openDrawer: (target: ExplorerOpenPayload) => void,
+  row: OperationalRecord,
+  fallbackTitle?: string
+) {
+  const entityType = String(row.entity_type ?? "");
+  const entityId = String(row.id ?? "");
+  if (!entityType || !entityId) return;
+  perfMark("explorer-drawer-open");
+  openDrawer({
+    entityType,
+    entityId,
+    title: fallbackTitle ?? String(row.title ?? row.name ?? "Record detail"),
+  });
+}
+
+/** Notification with optional linked entity — opens the underlying record when present. */
+export function openExplorerFromNotification(
+  openDrawer: (target: ExplorerOpenPayload) => void,
+  n: {
+    id: string;
+    title: string;
+    related_entity_type?: string | null;
+    related_entity_id?: string | null;
+  }
+) {
+  if (n.related_entity_type && n.related_entity_id) {
+    openDrawer({
+      entityType: n.related_entity_type,
+      entityId: n.related_entity_id,
+      title: n.title,
+    });
+    return;
+  }
+  openDrawer({ entityType: "notification", entityId: n.id, title: n.title });
 }

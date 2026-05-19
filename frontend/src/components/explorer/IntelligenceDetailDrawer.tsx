@@ -22,7 +22,9 @@ import {
   summaryCacheKey,
   TTL_SUMMARY_MS,
 } from "@/services/explorer-memory-cache";
-import { recordSearchText } from "@/services/explorer-format";
+import { normalizeExplorerRecords, recordSearchText, type OperationalRecord } from "@/services/explorer-format";
+import { explorerFullPageHref } from "@/services/explorer-navigation";
+import { openExplorerFromRecord } from "@/services/explorer-routing";
 import { perfMark, perfMeasure } from "@/services/perf";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import { ExplorerActionModal, type ExplorerWorkflow } from "./ExplorerActionModal";
@@ -36,10 +38,6 @@ import { ExplorerRecordsTable } from "./renderers/ExplorerRecordsTable";
 import { ExplorerRiskFactors } from "./renderers/ExplorerRiskFactors";
 import { ExplorerTimelineCard } from "./renderers/ExplorerTimelineCard";
 import { ExplorerRelatedCards } from "./ExplorerRelatedCards";
-
-function explorerPageHref(entityType: string, entityId: string) {
-  return `/regulator/explorer/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
-}
 
 function IntelligenceDetailDrawerInner() {
   const open = useExplorerDrawerStore((s) => s.open);
@@ -77,7 +75,7 @@ function IntelligenceDetailDrawerInner() {
         body: typeof s.summary === "string" ? s.summary : (s.summary as Record<string, unknown>)?.body,
       },
       record_count: s.count,
-      record_preview: s.top_records,
+      record_preview: (s.top_records as Record<string, unknown>[]) ?? [],
       risk_status: s.status ?? s.risk_status,
       risk_score: s.risk_score,
       top_states: s.top_states,
@@ -141,35 +139,41 @@ function IntelligenceDetailDrawerInner() {
           applyQuickSummary(s);
         }
         if (recRes.status === "fulfilled" && recRes.value.success && recRes.value.data) {
-          const rec = recRes.value.data.records as { items?: Record<string, unknown>[] };
+          const rec = recRes.value.data.records;
           setExplorerCache(recordsCacheKey(contextKey, 1), recRes.value.data);
-          setDetail({ records: rec?.items ?? [] });
+          setDetail({ records: normalizeExplorerRecords(rec) });
+        } else if (cached && (cached.top_records as unknown[])?.length) {
+          setDetail({ records: normalizeExplorerRecords(cached.top_records) });
         }
         if (actRes.status === "fulfilled" && actRes.value.success) {
           setActions((actRes.value.data as { actions?: typeof actions })?.actions ?? []);
         }
 
-        const [r, t, e, rel] = await Promise.allSettled([
+        setOverviewLoading(false);
+        setSectionsLoading(false);
+
+        void Promise.allSettled([
           fetchExplorerRiskBreakdown(et, eid),
           fetchExplorerTimeline(et, eid, 1),
           fetchExplorerEvidence(et, eid, 1),
           fetchExplorerRelated(et, eid),
-        ]);
-        if (ac.signal.aborted) return;
-        if (r.status === "fulfilled" && r.value.success) setRisk(r.value.data as Record<string, unknown>);
-        if (t.status === "fulfilled" && t.value.success) {
-          const tItems = (t.value.data as { timeline?: { items?: unknown[] } })?.timeline;
-          setTimeline((tItems?.items ?? []) as Record<string, unknown>[]);
-        }
-        if (e.status === "fulfilled" && e.value.success) {
-          const eItems = (e.value.data as { evidence?: { items?: unknown[] } })?.evidence;
-          setEvidence((eItems?.items ?? []) as Record<string, unknown>[]);
-        }
-        if (rel.status === "fulfilled" && rel.value.success) {
-          setRelated(
-            (rel.value.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null
-          );
-        }
+        ]).then(([r, t, e, rel]) => {
+          if (ac.signal.aborted) return;
+          if (r.status === "fulfilled" && r.value.success) setRisk(r.value.data as Record<string, unknown>);
+          if (t.status === "fulfilled" && t.value.success) {
+            const tItems = (t.value.data as { timeline?: { items?: unknown[] } })?.timeline;
+            setTimeline((tItems?.items ?? []) as Record<string, unknown>[]);
+          }
+          if (e.status === "fulfilled" && e.value.success) {
+            const eItems = (e.value.data as { evidence?: { items?: unknown[] } })?.evidence;
+            setEvidence((eItems?.items ?? []) as Record<string, unknown>[]);
+          }
+          if (rel.status === "fulfilled" && rel.value.success) {
+            setRelated(
+              (rel.value.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null
+            );
+          }
+        });
       } else {
         const [ovRes, dRes, actRes, rRes] = await Promise.allSettled([
           fetchExplorerOverviewCached(et, eid),
@@ -188,7 +192,11 @@ function IntelligenceDetailDrawerInner() {
           if (!dRes.value.success) {
             setError(dRes.value.message || "Unable to load explorer detail");
           } else {
-            setDetail((dRes.value.data as Record<string, unknown>) ?? null);
+            const data = (dRes.value.data as Record<string, unknown>) ?? {};
+            setDetail({
+              ...data,
+              records: normalizeExplorerRecords(data.records),
+            });
           }
         }
         if (actRes.status === "fulfilled" && actRes.value.success) {
@@ -198,24 +206,31 @@ function IntelligenceDetailDrawerInner() {
           setRisk(rRes.value.data as Record<string, unknown>);
         }
 
-        const [t, e, rel] = await Promise.allSettled([
-          fetchExplorerTimeline(et, eid, 1),
-          fetchExplorerEvidence(et, eid, 1),
-          fetchExplorerRelated(et, eid),
-        ]);
-        if (ac.signal.aborted) return;
-        if (t.status === "fulfilled" && t.value.success) {
-          const tItems = (t.value.data as { timeline?: { items?: unknown[] } })?.timeline;
-          setTimeline((tItems?.items ?? []) as Record<string, unknown>[]);
-        }
-        if (e.status === "fulfilled" && e.value.success) {
-          const eItems = (e.value.data as { evidence?: { items?: unknown[] } })?.evidence;
-          setEvidence((eItems?.items ?? []) as Record<string, unknown>[]);
-        }
-        if (rel.status === "fulfilled" && rel.value.success) {
-          setRelated(
-            (rel.value.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null
-          );
+        setOverviewLoading(false);
+        setSectionsLoading(false);
+
+        const loadSecondary = et !== "notification";
+        if (loadSecondary) {
+          void Promise.allSettled([
+            fetchExplorerTimeline(et, eid, 1),
+            fetchExplorerEvidence(et, eid, 1),
+            fetchExplorerRelated(et, eid),
+          ]).then(([t, e, rel]) => {
+            if (ac.signal.aborted) return;
+            if (t.status === "fulfilled" && t.value.success) {
+              const tItems = (t.value.data as { timeline?: { items?: unknown[] } })?.timeline;
+              setTimeline((tItems?.items ?? []) as Record<string, unknown>[]);
+            }
+            if (e.status === "fulfilled" && e.value.success) {
+              const eItems = (e.value.data as { evidence?: { items?: unknown[] } })?.evidence;
+              setEvidence((eItems?.items ?? []) as Record<string, unknown>[]);
+            }
+            if (rel.status === "fulfilled" && rel.value.success) {
+              setRelated(
+                (rel.value.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null
+              );
+            }
+          });
         }
       }
       perfMeasure("explorer-drawer-content", "explorer-drawer-open");
@@ -248,14 +263,25 @@ function IntelligenceDetailDrawerInner() {
     return () => abortRef.current?.abort();
   }, [open, target, load]);
 
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
+
   const records = useMemo(() => {
-    const raw = (detail?.records as Record<string, unknown>[]) ?? [];
-    const fromPreview = (overview?.record_preview as Record<string, unknown>[]) ?? [];
+    const raw = normalizeExplorerRecords(detail?.records);
+    const fromPreview = normalizeExplorerRecords(overview?.record_preview);
     const list = raw.length ? raw : fromPreview;
     if (!filter.trim()) return list;
     const q = filter.toLowerCase();
     return list.filter((row) => recordSearchText(row).includes(q));
   }, [detail, overview, filter]);
+
+  const onRecordClick = useCallback(
+    (row: OperationalRecord) => {
+      if (row.entity_type && row.id) {
+        openExplorerFromRecord(openDrawer, row);
+      }
+    },
+    [openDrawer]
+  );
 
   if (!open || !target) return null;
 
@@ -316,7 +342,7 @@ function IntelligenceDetailDrawerInner() {
                 topOrganisations={(overview?.top_organisations as string[]) ?? []}
                 updatedAt={String(overview?.updated_at ?? "")}
               />
-              {slowLoad && sectionsLoading ? (
+              {slowLoad && sectionsLoading && records.length === 0 ? (
                 <p className="text-[11px] text-amber-300/90">Still loading records…</p>
               ) : null}
               {showRetry && sectionsLoading ? (
@@ -329,7 +355,12 @@ function IntelligenceDetailDrawerInner() {
               ) : (
                 <>
                   <ExplorerRiskFactors risk={risk} />
-                  <ExplorerRecordsTable records={records} filter={filter} onFilterChange={setFilter} />
+                  <ExplorerRecordsTable
+                    records={records}
+                    filter={filter}
+                    onFilterChange={setFilter}
+                    onRowClick={target.contextKey ? onRecordClick : undefined}
+                  />
                   <section>
                     <h4 className="text-[11px] font-semibold uppercase text-slate-400">Timeline</h4>
                     <div className="mt-2">
@@ -384,7 +415,7 @@ function IntelligenceDetailDrawerInner() {
 
         <div className="border-t border-sovereign-800 px-4 py-3">
           <Link
-            href={explorerPageHref(entityType, entityId)}
+            href={explorerFullPageHref(target)}
             className="text-sm text-sovereign-accent hover:underline"
             onClick={closeDrawer}
           >

@@ -9,6 +9,9 @@ import { ExplorerActionModal, type ExplorerWorkflow } from "@/components/explore
 import { ExplorerRiskPanel } from "@/components/explorer/ExplorerRiskPanel";
 import { ExplorerSeverityBadge } from "@/components/explorer/ExplorerSeverityBadge";
 import { fetchExplorerActions, fetchExplorerContextBundle } from "@/services/explorer";
+import { formatLocation, recordSearchText } from "@/services/explorer-format";
+import { openExplorerFromRecord } from "@/services/explorer-routing";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 function paginatedItems(data: Record<string, unknown> | null): Record<string, unknown>[] {
   const rec = data?.records;
@@ -36,6 +39,7 @@ export default function ExplorerContextDetailPage() {
   const route = bundle?.route as { entity_type?: string; entity_id?: string } | undefined;
   const entityType = route?.entity_type ?? "national_risk";
   const entityId = route?.entity_id ?? "national-risk-current";
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
 
   const load = useCallback(() => {
     fetchExplorerContextBundle(contextKey, page, 50).then((r) => {
@@ -54,7 +58,7 @@ export default function ExplorerContextDetailPage() {
     let rows = paginatedItems(bundle);
     if (search.trim()) {
       const q = search.toLowerCase();
-      rows = rows.filter((r) => JSON.stringify(r).toLowerCase().includes(q));
+      rows = rows.filter((r) => recordSearchText(r).includes(q));
     }
     if (stateFilter) rows = rows.filter((r) => String(r.state ?? "").toLowerCase() === stateFilter.toLowerCase());
     if (severityFilter)
@@ -135,14 +139,15 @@ export default function ExplorerContextDetailPage() {
                 </tr>
               )}
               {records.map((row) => (
-                <tr key={String(row.id)} className="border-t border-sovereign-800/80 hover:bg-sovereign-800/30">
+                <tr
+                  key={String(row.id)}
+                  className="cursor-pointer border-t border-sovereign-800/80 hover:bg-sovereign-800/40"
+                  onClick={() => openExplorerFromRecord(openDrawer, row)}
+                >
                   <td className="px-2 py-2 text-slate-200">{String(row.title ?? "—")}</td>
                   <td className="px-2 py-2">{String(row.severity ?? "—")}</td>
                   <td className="px-2 py-2">{String(row.organisation ?? "—")}</td>
-                  <td className="px-2 py-2">
-                    {String(row.city ?? "")}
-                    {row.state ? `, ${row.state}` : ""}
-                  </td>
+                  <td className="max-w-xs px-2 py-2 text-slate-400">{formatLocation(row)}</td>
                   <td className="px-2 py-2">{String(row.product ?? "—")}</td>
                   <td className="px-2 py-2">{String(row.assigned_officer ?? "—")}</td>
                   <td className="px-2 py-2">{String(row.action_status ?? row.status ?? "—")}</td>

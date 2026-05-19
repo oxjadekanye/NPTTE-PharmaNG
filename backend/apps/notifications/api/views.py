@@ -31,6 +31,8 @@ class NotificationCenterView(APIView):
                 "severity": n.severity,
                 "notification_type": n.notification_type,
                 "organisation_id": str(n.organisation_id) if n.organisation_id else None,
+                "related_entity_type": n.related_entity_type or None,
+                "related_entity_id": str(n.related_entity_id) if n.related_entity_id else None,
                 "is_read": n.is_read,
                 "created_at": n.created_at.isoformat(),
             }

@@ -7,11 +7,15 @@ from apps.explorer.services.payloads import list_operational_actions
 
 SLIM_RECORD_KEYS = (
     "id",
+    "entity_type",
     "title",
     "severity",
     "status",
     "organisation",
+    "organisation_type",
     "address",
+    "address_line_2",
+    "full_address",
     "city",
     "state",
     "phone",
@@ -21,7 +25,6 @@ SLIM_RECORD_KEYS = (
     "detected_at",
     "assigned_officer",
     "recommended_action",
-    "entity_type",
 )
 
 
@@ -71,6 +74,7 @@ def build_quick_summary(*, context_key: str, request=None, lite: bool = False) -
             if o and o not in orgs:
                 orgs.append(str(o))
     top_states = list(states.keys())[:3]
+    preview = [slim_record(r) for r in records[:8] if isinstance(r, dict)]
     out = {
         "context_key": context_key,
         "entity_type": base.get("entity_type"),
@@ -84,6 +88,7 @@ def build_quick_summary(*, context_key: str, request=None, lite: bool = False) -
         "confidence": summary.get("confidence") or summary.get("confidence_score"),
         "top_states": top_states,
         "top_organisations": orgs[:3],
+        "top_records": preview,
         "updated_at": base.get("updated_at"),
         "recommended_actions": base.get("recommended_actions") or [],
     }

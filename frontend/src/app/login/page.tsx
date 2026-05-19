@@ -18,8 +18,9 @@ export default function LoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await login({ username, password });
+      const loginPromise = login({ username, password });
       router.replace("/regulator");
+      await loginPromise;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

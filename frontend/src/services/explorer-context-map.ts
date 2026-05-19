@@ -30,6 +30,8 @@ const MAP: Record<string, ContextTarget> = {
   scan_success_rate: { entityType: "national_risk", entityId: "scan-success-rate-current", title: "Scan success rate" },
   counterfeit_reduction: { entityType: "national_risk", entityId: "counterfeit-reduction-current", title: "Counterfeit reduction" },
   national_verifications: { entityType: "national_risk", entityId: "national-verifications-current", title: "National verifications" },
+  enforcement_recommendation: { entityType: "national_risk", entityId: "urgent-actions-current", title: "Enforcement recommendations" },
+  customs: { entityType: "national_risk", entityId: "customs-holds-current", title: "Customs activity" },
 };
 
 export function resolveContextTarget(contextKey: string, fallbackTitle?: string): ContextTarget {
