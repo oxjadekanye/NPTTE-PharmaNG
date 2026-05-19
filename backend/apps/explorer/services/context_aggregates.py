@@ -139,10 +139,13 @@ def _state_distribution(records: list[dict]) -> dict[str, int]:
     return dict(Counter(r.get("state", "unknown") for r in records if r.get("state")))
 
 
-def build_context_aggregate_bundle(*, aggregate_id: str, request=None) -> dict[str, Any]:
+def build_context_aggregate_bundle(
+    *, aggregate_id: str, request=None, record_limit: int = 100
+) -> dict[str, Any]:
     """Build a full explorer-style bundle for a context aggregate pseudo-ID."""
     now = timezone.now().isoformat()
     base: dict[str, Any] = {
+        "_record_limit": record_limit,
         "entity_type": "national_risk",
         "entity_id": aggregate_id,
         "last_updated": now,
@@ -253,6 +256,9 @@ def build_context_aggregate_bundle(*, aggregate_id: str, request=None) -> dict[s
         _fill_national_composite(base)
 
     records = base.get("records") or []
+    if isinstance(records, list) and len(records) > record_limit:
+        base["records"] = records[:record_limit]
+        records = base["records"]
     if isinstance(records, dict) and "items" in records:
         items = records["items"]
     else:
@@ -263,8 +269,20 @@ def build_context_aggregate_bundle(*, aggregate_id: str, request=None) -> dict[s
     return base
 
 
+def _record_limit(base: dict, default: int = 100) -> int:
+    try:
+        return int(base.get("_record_limit") or default)
+    except (TypeError, ValueError):
+        return default
+
+
 def _fill_alerts(base: dict, qs, *, title: str, body: str = "") -> None:
-    rows = list(qs.order_by("-created_at")[:500])
+    limit = _record_limit(base, 100)
+    rows = list(
+        qs.select_related("organisation", "organisation__organisation_type", "product").order_by(
+            "-created_at"
+        )[:limit]
+    )
     base["summary"] = {
         "title": title,
         "body": body or f"{len(rows)} operational records in national demo dataset",
@@ -280,13 +298,20 @@ def _fill_alerts(base: dict, qs, *, title: str, body: str = "") -> None:
 
 
 def _fill_scans(base: dict, qs, *, title: str) -> None:
-    rows = list(qs.order_by("-created_at")[:500])
+    limit = _record_limit(base, 100)
+    rows = list(
+        qs.select_related("organisation", "organisation__organisation_type").order_by("-created_at")[:limit]
+    )
     base["summary"] = {"title": title, "count": len(rows), "body": f"{len(rows)} verification events"}
     base["records"] = [_record_from_scan(s) for s in rows]
 
 
 def _fill_cases(base: dict) -> None:
-    qs = EnforcementCase.objects.exclude(case_status="closed").order_by("-created_at")[:80]
+    qs = (
+        EnforcementCase.objects.exclude(case_status="closed")
+        .select_related("organisation", "assigned_regulator")
+        .order_by("-created_at")[:80]
+    )
     base["summary"] = {"title": "Active investigations", "count": qs.count()}
     base["records"] = [
         {

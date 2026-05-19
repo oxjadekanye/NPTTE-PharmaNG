@@ -10,21 +10,26 @@ from apps.core.redis_cache import cache_delete_pattern, cache_get_safe, cache_se
 
 logger = logging.getLogger("nptte.explorer.cache")
 
-TTL_NATIONAL_RISK = 30
-TTL_TIMELINE = 20
-TTL_ENFORCEMENT = 60
+TTL_NATIONAL_RISK = 90
+TTL_TIMELINE = 45
+TTL_ENFORCEMENT = 90
 TTL_NARRATIVE = 120
-TTL_DEFAULT = 30
-TTL_OVERVIEW = 25
-TTL_AGGREGATE = 30
+TTL_DEFAULT = 60
+TTL_OVERVIEW = 90
+TTL_AGGREGATE = 90
+TTL_CONTEXT_SUMMARY = 120
 
 PREFIX = "nptte:explorer:v20a:"
 
 
+def _slug(value: str, max_len: int = 64) -> str:
+    return (value or "unknown").replace(":", "_")[:max_len]
+
+
 def _cache_key(*, scope: str, entity_type: str, entity_id: str, user_id: str, org_scope: str = "") -> str:
-    raw = f"{scope}:{entity_type}:{entity_id}:{user_id}:{org_scope}"
-    digest = hashlib.sha256(raw.encode()).hexdigest()[:24]
-    return f"{PREFIX}{scope}:{digest}"
+    raw = f"{user_id}:{org_scope}"
+    digest = hashlib.sha256(raw.encode()).hexdigest()[:16]
+    return f"{PREFIX}{scope}:{_slug(entity_type)}:{_slug(entity_id)}:{digest}"
 
 
 def get_cached(key: str) -> Any | None:
@@ -61,8 +66,17 @@ def cached_explorer(
 
 
 def invalidate_entity(entity_type: str, entity_id: str) -> None:
-    """Best-effort pattern invalidation (django-redis only)."""
-    cache_delete_pattern(f"{PREFIX}*{entity_type}*{entity_id}*")
+    """Targeted invalidation for one entity across scopes."""
+    et, eid = _slug(entity_type), _slug(entity_id)
+    for scope in ("overview", "detail", "risk", "timeline", "evidence", "related", "context"):
+        cache_delete_pattern(f"{PREFIX}{scope}:{et}:{eid}:*")
+
+
+def invalidate_context(context_key: str) -> None:
+    key = _slug(context_key.replace("-", "_"))
+    cache_delete_pattern(f"{PREFIX}context:{key}*")
+    cache_delete_pattern(f"{PREFIX}context-summary:{key}*")
+    cache_delete_pattern(f"{PREFIX}context-records:{key}*")
 
 
 def invalidate_scope(scope: str) -> None:
@@ -70,11 +84,9 @@ def invalidate_scope(scope: str) -> None:
 
 
 def invalidate_national() -> None:
-    invalidate_scope("overview")
-    invalidate_scope("detail")
-    invalidate_scope("risk")
-    invalidate_scope("aggregate")
-    invalidate_scope("timeline")
+    """Broad invalidation — use sparingly (e.g. full reseed)."""
+    for scope in ("overview", "detail", "risk", "aggregate", "timeline", "context-summary"):
+        invalidate_scope(scope)
 
 
 def ttl_for_scope(scope: str) -> int:

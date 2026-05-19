@@ -12,11 +12,19 @@ import { useSimulatedRealtime } from "@/hooks/useSimulatedRealtime";
 import { NATIONAL_KPIS } from "@/demo/nigeria-intelligence";
 import type { MetricCard } from "@/shared/types";
 
+const STARTER_METRICS: MetricCard[] = [
+  { label: "Active disruptions", value: "—", numericValue: 0, explorerContext: "national_status" },
+  { label: "Interventions", value: "—", numericValue: 0, severity: "warning", explorerContext: "active_investigations" },
+  { label: "Shortage alerts", value: "—", numericValue: 0, severity: "critical", explorerContext: "open_alerts" },
+  { label: "National threat score", value: "—", numericValue: 62, explorerContext: "national_status" },
+];
+
 export default function CommandCenterPage() {
-  const [metrics, setMetrics] = useState<MetricCard[]>([]);
+  const [metrics, setMetrics] = useState<MetricCard[]>(STARTER_METRICS);
   useSimulatedRealtime(true);
 
   useEffect(() => {
+    const t = setTimeout(() => {
     Promise.all([fetchLiveOverview(), fetchEmergencyResponse()])
       .then(([live, emergency]) => {
         const d = live.data as Record<string, unknown>;
@@ -57,6 +65,8 @@ export default function CommandCenterPage() {
           { label: "Fraud alerts", numericValue: NATIONAL_KPIS.fraudAlerts, value: NATIONAL_KPIS.fraudAlerts, severity: "warning", explorerContext: "fraud_flags" },
         ])
       );
+    }, 100);
+    return () => clearTimeout(t);
   }, []);
 
   return (

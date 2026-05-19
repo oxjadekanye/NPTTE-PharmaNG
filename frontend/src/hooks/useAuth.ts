@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { clearTokens, fetchPermissions, fetchProfile, login as apiLogin, persistTokens, type LoginPayload } from "@/services/auth";
+import {
+  clearTokens,
+  fetchPermissions,
+  fetchProfile,
+  login as apiLogin,
+  persistTokens,
+  type LoginPayload,
+} from "@/services/auth";
+import { clearAuthSession, readAuthSession, writeAuthSession } from "@/services/auth-session-cache";
 import { ensureAuthBootstrap, resetAuthBootstrap } from "@/services/auth-bootstrap";
 import { useAuthStore } from "@/store/auth-store";
 import { useTenantStore } from "@/store/tenant-store";
@@ -18,18 +26,29 @@ export function useAuth() {
       setLoading(false);
       return;
     }
+    const cached = readAuthSession();
+    if (cached) {
+      setUser(cached.user);
+      setPermissions(cached.permissions);
+      useTenantStore.getState().setContext(
+        cached.organisationId,
+        cached.membershipOrganisationIds
+      );
+      setLoading(false);
+    }
     try {
       await ensureAuthBootstrap();
     } catch {
       clearTokens();
+      clearAuthSession();
       storeLogout();
     } finally {
       setLoading(false);
     }
-  }, [storeLogout]);
+  }, [setUser, setPermissions, storeLogout]);
 
   useEffect(() => {
-    bootstrap();
+    void bootstrap();
   }, [bootstrap]);
 
   const login = async (payload: LoginPayload) => {
@@ -40,6 +59,7 @@ export function useAuth() {
     const [profile, permsPayload] = await Promise.all([fetchProfile(), fetchPermissions()]);
     setUser(profile);
     setPermissions(permsPayload.permissions ?? []);
+    writeAuthSession(profile, permsPayload);
     useTenantStore.getState().setContext(
       permsPayload.organisation_id ? String(permsPayload.organisation_id) : null,
       (permsPayload.membership_organisation_ids ?? []).map(String)
@@ -48,6 +68,7 @@ export function useAuth() {
 
   const logout = () => {
     clearTokens();
+    clearAuthSession();
     resetAuthBootstrap();
     storeLogout();
   };

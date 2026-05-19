@@ -132,9 +132,15 @@ def execute_explorer_action(
         return {"ok": True, "message": "Acknowledgement recorded"}
 
     if action_id == "generate_briefing":
-        bundle = build_explorer_bundle(request, entity_type, entity_id)
+        from apps.explorer.constants import AGGREGATE_IDS
+        from apps.explorer.services.context_summary import build_light_overview
         from apps.copilot.services.briefing import generate_operational_briefing
 
+        if entity_id in AGGREGATE_IDS:
+            bundle = build_light_overview(request, entity_type, entity_id)
+            bundle["records"] = bundle.get("record_preview") or []
+        else:
+            bundle = build_explorer_bundle(request, entity_type, entity_id)
         briefing = generate_operational_briefing(explorer_bundle=bundle)
         return {"ok": True, "briefing": briefing, "message": "Briefing generated"}
 

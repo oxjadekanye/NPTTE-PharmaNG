@@ -22,10 +22,11 @@ export function RegulatorGuard({
     }
   }, [loading, isAuthenticated, permissions, permission, router]);
 
-  if (loading) {
+  if (loading && !isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-sovereign-950 text-slate-400">
-        Initializing sovereign command session…
+      <div className="flex min-h-screen items-center justify-center gap-2 bg-sovereign-950 text-sm text-slate-400">
+        <span className="h-2 w-2 animate-pulse rounded-full bg-sovereign-accent" />
+        Loading…
       </div>
     );
   }

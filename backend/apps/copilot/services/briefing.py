@@ -4,7 +4,10 @@ from __future__ import annotations
 import json
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 from typing import Any
+
+OPENAI_BRIEFING_TIMEOUT_SEC = 12
 
 logger = logging.getLogger("nptte.copilot.briefing")
 
@@ -69,12 +72,18 @@ def generate_operational_briefing(*, explorer_bundle: dict) -> dict:
             "urgency_level, assigned_owner_suggestion, next_24h_priority. "
             f"Context: {json.dumps(safe)[:6000]}"
         )
-        resp = client.chat.completions.create(
-            model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
-            max_tokens=800,
-        )
+        def _call_openai():
+            return client.chat.completions.create(
+                model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.2,
+                max_tokens=800,
+                timeout=OPENAI_BRIEFING_TIMEOUT_SEC,
+            )
+
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(_call_openai)
+            resp = future.result(timeout=OPENAI_BRIEFING_TIMEOUT_SEC + 2)
         text = (resp.choices[0].message.content or "").strip()
         if text.startswith("```"):
             text = text.split("```")[1]
@@ -87,7 +96,7 @@ def generate_operational_briefing(*, explorer_bundle: dict) -> dict:
         data["disclaimer"] = "AI-assisted recommendation — requires human review"
         data["source_records"] = safe.get("records_preview", [])
         return data
-    except Exception as exc:
+    except (FuturesTimeout, Exception) as exc:
         logger.warning("OpenAI briefing failed, using fallback: %s", exc)
         out = _deterministic_briefing(context=explorer_bundle)
         out["source"] = "deterministic_fallback"

@@ -9,6 +9,13 @@ from .base import *  # noqa: F403
 
 DEBUG = env.bool("DEBUG", default=False)  # noqa: F405
 
+# Compress JSON API responses (SSE streams are not affected — no GZip on event-stream)
+MIDDLEWARE = [  # noqa: F405
+    "django.middleware.security.SecurityMiddleware",
+    "django.middleware.gzip.GZipMiddleware",
+    *MIDDLEWARE[1:],  # noqa: F405
+]
+
 # Require DATABASE_URL on Render; never use SQLite in production
 if env("USE_SQLITE"):  # noqa: F405
     raise ValueError("USE_SQLITE must be False in production.")

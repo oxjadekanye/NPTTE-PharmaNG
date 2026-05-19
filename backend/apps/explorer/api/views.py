@@ -13,19 +13,27 @@ from apps.explorer.services.access_control import (
     aggregate_requires_regulator,
     is_aggregate_id,
 )
+from apps.core.perf import perf_span
 from apps.explorer.services.cache import (
+    TTL_CONTEXT_SUMMARY,
     TTL_ENFORCEMENT,
     TTL_NATIONAL_RISK,
+    TTL_OVERVIEW,
     TTL_TIMELINE,
     cached_explorer,
 )
 from apps.explorer.services.context_aggregates import build_context_aggregate_bundle
 from apps.explorer.services.context_router import resolve_context_route
+from apps.explorer.services.context_summary import (
+    build_context_records,
+    build_context_summary,
+)
 from apps.explorer.services.staff import list_assignable_staff
 from apps.explorer.services.entity_resolution import resolve_entity
 from apps.explorer.services.execute_action import execute_explorer_action
 from apps.explorer.services.invalidate import on_enforcement_mutation
-from apps.explorer.services.overview import build_explorer_overview, paginate_list
+from apps.explorer.services.overview import build_explorer_overview
+from apps.explorer.services.pagination import paginate_list
 from apps.explorer.services.payloads import (
     build_evidence_entries,
     build_explorer_bundle,
@@ -137,7 +145,21 @@ class ExplorerStaffView(APIView):
     def get(self, request):
         if not (is_regulator_user(request.user) or request.user.is_superuser):
             return api_response(message="Regulator access required", status_code=403)
-        return api_response(data={"staff": list_assignable_staff()}, message="Assignable staff")
+        uid = _user_cache_id(request)
+
+        def _build():
+            return {"staff": list_assignable_staff()}
+
+        data = cached_explorer(
+            scope="staff",
+            entity_type="regulator",
+            entity_id="assignable",
+            user_id=uid,
+            ttl=300,
+            org_scope="",
+            builder=_build,
+        )
+        return api_response(data=data, message="Assignable staff")
 
 
 class ExplorerContextBundleView(APIView):
@@ -186,11 +208,103 @@ class ExplorerContextRouteView(APIView):
         context_key = request.query_params.get("context", "").strip()
         if not context_key:
             return api_response(message="context required", status_code=400)
+        with perf_span(f"explorer.context-route:{context_key}"):
+            route = resolve_context_route(context_key=context_key, user=request.user)
+            ok, reason = _check_explorer_access(request, route["entity_type"], route["entity_id"])
+            if not ok:
+                return api_response(message=reason, status_code=403)
+            return api_response(data=route, message="Context routed")
+
+
+class ExplorerContextSummaryView(APIView):
+    """Lightweight summary for instant drawer paint."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        context_key = request.query_params.get("context", "").strip()
+        if not context_key:
+            return api_response(message="context required", status_code=400)
         route = resolve_context_route(context_key=context_key, user=request.user)
         ok, reason = _check_explorer_access(request, route["entity_type"], route["entity_id"])
         if not ok:
             return api_response(message=reason, status_code=403)
-        return api_response(data=route, message="Context routed")
+        uid = _user_cache_id(request)
+        org = _org_scope(request)
+
+        def _build():
+            return build_context_summary(context_key=context_key, request=request)
+
+        with perf_span(f"explorer.context-summary:{context_key}"):
+            data = cached_explorer(
+                scope="context-summary",
+                entity_type="context",
+                entity_id=context_key,
+                user_id=uid,
+                ttl=TTL_CONTEXT_SUMMARY,
+                org_scope=org,
+                builder=_build,
+            )
+            data["route"] = route
+            return api_response(data=data, message="Context summary")
+
+
+class ExplorerContextRecordsView(APIView):
+    """Paginated records for a dashboard context."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        context_key = request.query_params.get("context", "").strip()
+        if not context_key:
+            return api_response(message="context required", status_code=400)
+        route = resolve_context_route(context_key=context_key, user=request.user)
+        ok, reason = _check_explorer_access(request, route["entity_type"], route["entity_id"])
+        if not ok:
+            return api_response(message=reason, status_code=403)
+        page, page_size = _page_params(request)
+        uid = _user_cache_id(request)
+        org = _org_scope(request)
+
+        def _build():
+            return build_context_records(
+                context_key=context_key,
+                request=request,
+                page=page,
+                page_size=page_size,
+            )
+
+        with perf_span(f"explorer.context-records:{context_key}"):
+            data = cached_explorer(
+                scope=f"context-records:{page}:{page_size}",
+                entity_type="context",
+                entity_id=context_key,
+                user_id=uid,
+                ttl=TTL_NATIONAL_RISK,
+                org_scope=org,
+                builder=_build,
+            )
+            return api_response(data=data, message="Context records")
+
+
+class ExplorerContextActionsView(APIView):
+    """Action metadata only for a dashboard context."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        context_key = request.query_params.get("context", "").strip()
+        if not context_key:
+            return api_response(message="context required", status_code=400)
+        route = resolve_context_route(context_key=context_key, user=request.user)
+        ok, reason = _check_explorer_access(request, route["entity_type"], route["entity_id"])
+        if not ok:
+            return api_response(message=reason, status_code=403)
+        actions = list_operational_actions(route["entity_type"], route["entity_id"])
+        return api_response(
+            data={"route": route, "actions": actions},
+            message="Context actions",
+        )
 
 
 class ExplorerResolveView(APIView):
@@ -221,16 +335,17 @@ class ExplorerOverviewView(APIView):
             return api_response(message=reason, status_code=403 if reason != "not_found" else 404)
         uid = _user_cache_id(request)
         org = _org_scope(request)
-        data = cached_explorer(
-            scope="overview",
-            entity_type=entity_type,
-            entity_id=entity_id,
-            user_id=uid,
-            ttl=TTL_NATIONAL_RISK,
-            org_scope=org,
-            builder=lambda: build_explorer_overview(request, entity_type, entity_id),
-        )
-        return api_response(data=data, message="Explorer overview")
+        with perf_span(f"explorer.overview:{entity_type}/{entity_id}"):
+            data = cached_explorer(
+                scope="overview",
+                entity_type=entity_type,
+                entity_id=entity_id,
+                user_id=uid,
+                ttl=TTL_OVERVIEW,
+                org_scope=org,
+                builder=lambda: build_explorer_overview(request, entity_type, entity_id),
+            )
+            return api_response(data=data, message="Explorer overview")
 
 
 class ExplorerDetailView(APIView):

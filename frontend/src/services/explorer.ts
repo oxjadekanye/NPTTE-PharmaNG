@@ -1,4 +1,8 @@
 import { apiRequest } from "./api-client";
+import { explorerCacheKey, readExplorerCache, writeExplorerCache } from "./explorer-cache";
+
+const SUMMARY_TTL = 90_000;
+const OVERVIEW_TTL = 90_000;
 
 export type ExplorerContextRoute = {
   entity_type: string;
@@ -33,6 +37,42 @@ export function fetchExplorerContextRoute(context: string) {
   return apiRequest<ExplorerContextRoute>(`/explorer/context-route/?context=${encodeURIComponent(context)}`);
 }
 
+export function fetchExplorerContextSummary(context: string) {
+  return apiRequest<Record<string, unknown>>(
+    `/explorer/context-summary/?context=${encodeURIComponent(context)}`
+  );
+}
+
+export function fetchExplorerContextRecords(context: string, page = 1, pageSize = 25) {
+  return apiRequest<Record<string, unknown>>(
+    `/explorer/context-records/?context=${encodeURIComponent(context)}&page=${page}&page_size=${pageSize}`
+  );
+}
+
+export function fetchExplorerContextActions(context: string) {
+  return apiRequest<{ route: ExplorerContextRoute; actions: { id: string; label: string; workflow?: string }[] }>(
+    `/explorer/context-actions/?context=${encodeURIComponent(context)}`
+  );
+}
+
+export async function fetchExplorerContextSummaryCached(context: string) {
+  const key = explorerCacheKey(["summary", context]);
+  const hit = readExplorerCache<Record<string, unknown>>(key, SUMMARY_TTL);
+  if (hit) return { success: true as const, data: hit };
+  const res = await fetchExplorerContextSummary(context);
+  if (res.success && res.data) writeExplorerCache(key, res.data);
+  return res;
+}
+
+export async function fetchExplorerOverviewCached(entityType: string, entityId: string) {
+  const key = explorerCacheKey(["overview", entityType, entityId]);
+  const hit = readExplorerCache<ExplorerOverview>(key, OVERVIEW_TTL);
+  if (hit) return { success: true as const, data: hit };
+  const res = await fetchExplorerOverview(entityType, entityId);
+  if (res.success && res.data) writeExplorerCache(key, res.data);
+  return res;
+}
+
 export function fetchExplorerContextBundle(context: string, page = 1, pageSize = 25) {
   return apiRequest<Record<string, unknown>>(
     `/explorer/context-bundle/?context=${encodeURIComponent(context)}&page=${page}&page_size=${pageSize}`
@@ -56,9 +96,9 @@ export function fetchExplorerResolve(entityType: string, entityId: string) {
   return apiRequest<Record<string, unknown>>(`/explorer/resolve/${q}`);
 }
 
-export function fetchExplorerDetail(entityType: string, entityId: string) {
+export function fetchExplorerDetail(entityType: string, entityId: string, page = 1, pageSize = 25) {
   return apiRequest<Record<string, unknown>>(
-    `/explorer/detail/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/`
+    `/explorer/detail/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/?page=${page}&page_size=${pageSize}`
   );
 }
 

@@ -1,6 +1,11 @@
 import { create } from "zustand";
 
-export type ExplorerOpenPayload = { entityType: string; entityId: string; title?: string };
+export type ExplorerOpenPayload = {
+  entityType: string;
+  entityId: string;
+  title?: string;
+  contextKey?: string;
+};
 
 type ExplorerDrawerState = {
   open: boolean;

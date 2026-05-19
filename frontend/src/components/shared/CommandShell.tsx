@@ -1,9 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useAuth } from "@/hooks/useAuth";
+import { prefetchHotExplorerContexts } from "@/services/explorer-prefetch";
+import { fetchExplorerStaff } from "@/services/explorer";
+import { readStaffCache, writeStaffCache } from "@/services/auth-session-cache";
 import { CommandModeToggle } from "@/components/command/CommandModeToggle";
 import { DemoBadge } from "@/components/command/DemoBadge";
 import { IntelligenceDetailDrawer } from "@/components/explorer/IntelligenceDetailDrawer";
@@ -12,6 +16,17 @@ import { COMMAND_NAV_SECTIONS } from "@/config/navigation";
 export function CommandShell({ children, title }: { children: React.ReactNode; title: string }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    prefetchHotExplorerContexts();
+    if (!readStaffCache()) {
+      void fetchExplorerStaff().then((r) => {
+        if (r.success && r.data) {
+          writeStaffCache((r.data as { staff: { id: string; full_name: string }[] }).staff ?? []);
+        }
+      });
+    }
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-sovereign-950 text-slate-100">

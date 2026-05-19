@@ -1,26 +1,39 @@
 import { fetchExplorerContextRoute } from "@/services/explorer";
+import { resolveContextTarget } from "@/services/explorer-context-map";
+import { perfMark, perfMeasure } from "@/services/perf";
 import type { ExplorerOpenPayload } from "@/store/explorer-drawer-store";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
-/** Open drawer with true entity resolution from dashboard context keys. */
-export async function openExplorerFromContext(
+/** Open drawer immediately; resolve route in background if needed. */
+export function openExplorerFromContext(
   openDrawer: (target: ExplorerOpenPayload) => void,
   contextKey: string,
   title?: string
 ) {
-  const res = await fetchExplorerContextRoute(contextKey);
-  if (res.success && res.data) {
-    const d = res.data as { entity_type: string; entity_id: string; title?: string };
+  perfMark("explorer-drawer-open");
+  const hint = resolveContextTarget(contextKey, title);
+  openDrawer({
+    entityType: hint.entityType,
+    entityId: hint.entityId,
+    title: hint.title ?? title,
+    contextKey,
+  });
+  void fetchExplorerContextRoute(contextKey).then((res) => {
+    if (!res.success || !res.data) return;
+    const d = res.data;
+    const current = useExplorerDrawerStore.getState().target;
+    if (!current || current.contextKey !== contextKey) return;
+    if (current.entityType === d.entity_type && current.entityId === d.entity_id) {
+      perfMeasure("explorer-context-route", "explorer-drawer-open");
+      return;
+    }
     openDrawer({
       entityType: d.entity_type,
       entityId: d.entity_id,
       title: title ?? d.title,
+      contextKey,
     });
-    return;
-  }
-  openDrawer({
-    entityType: "national_risk",
-    entityId: "national-risk-current",
-    title: title ?? contextKey,
+    perfMeasure("explorer-context-route", "explorer-drawer-open");
   });
 }
 
@@ -56,10 +69,11 @@ export async function openExplorerTarget(
   }
 ) {
   if (target.explorer?.entityType && target.explorer?.entityId) {
+    perfMark("explorer-drawer-open");
     openDrawer({ ...target.explorer, title: target.title });
     return;
   }
   if (target.context) {
-    await openExplorerFromContext(openDrawer, target.context, target.title);
+    openExplorerFromContext(openDrawer, target.context, target.title);
   }
 }

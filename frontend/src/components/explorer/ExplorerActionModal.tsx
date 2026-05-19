@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import clsx from "clsx";
+import { readStaffCache, writeStaffCache } from "@/services/auth-session-cache";
 import { executeExplorerAction, fetchExplorerStaff } from "@/services/explorer";
 
 export type ExplorerWorkflow = "task" | "ack" | "briefing" | "investigation" | "escalation" | "dismiss";
@@ -47,11 +48,19 @@ export function ExplorerActionModal({
     setError(null);
     setBriefing(null);
     setTitle(actionLabel);
+    const cached = readStaffCache();
+    if (cached?.length) setStaff(cached as Staff[]);
     fetchExplorerStaff()
       .then((r) => {
-        if (r.success && r.data) setStaff((r.data as { staff: Staff[] }).staff ?? []);
+        if (r.success && r.data) {
+          const list = (r.data as { staff: Staff[] }).staff ?? [];
+          setStaff(list);
+          writeStaffCache(list);
+        }
       })
-      .catch(() => setStaff([]));
+      .catch(() => {
+        if (!cached?.length) setStaff([]);
+      });
   }, [open, actionLabel]);
 
   if (!open || !workflow) return null;

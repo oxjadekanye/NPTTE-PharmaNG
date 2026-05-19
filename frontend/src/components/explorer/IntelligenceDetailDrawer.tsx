@@ -1,17 +1,20 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import {
   fetchExplorerActions,
+  fetchExplorerContextRecords,
+  fetchExplorerContextSummaryCached,
   fetchExplorerDetail,
   fetchExplorerEvidence,
-  fetchExplorerOverview,
+  fetchExplorerOverviewCached,
   fetchExplorerRelated,
   fetchExplorerRiskBreakdown,
   fetchExplorerTimeline,
 } from "@/services/explorer";
+import { perfMark, perfMeasure } from "@/services/perf";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import { ExplorerActionModal, type ExplorerWorkflow } from "./ExplorerActionModal";
 import { ExplorerCopilotPlaceholder } from "./ExplorerCopilotPlaceholder";
@@ -52,73 +55,178 @@ function IntelligenceDetailDrawerInner() {
     label: string;
   } | null>(null);
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const entityType = target?.entityType ?? "";
   const entityId = target?.entityId ?? "";
+  const displayTitle = String(
+    target?.title ??
+      (overview?.summary as Record<string, unknown> | undefined)?.title ??
+      "Operational intelligence"
+  );
 
   const load = useCallback(async () => {
     if (!target) return;
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
     setOverviewLoading(true);
     setSectionsLoading(true);
     setError(null);
     setExecMsg(null);
     setOverview(null);
     setDetail(null);
+    setRisk(null);
+    setTimeline([]);
+    setEvidence([]);
+    setRelated(null);
+    setActions([]);
+
+    const { entityType: et, entityId: eid, contextKey } = target;
 
     try {
-      const ovRes = await fetchExplorerOverview(target.entityType, target.entityId);
-      if (ovRes.success && ovRes.data) {
-        setOverview(ovRes.data as Record<string, unknown>);
-      }
-    } catch {
-      /* overview optional */
-    } finally {
-      setOverviewLoading(false);
-    }
+      if (contextKey) {
+        const [sumRes, recRes, actRes] = await Promise.allSettled([
+          fetchExplorerContextSummaryCached(contextKey),
+          fetchExplorerContextRecords(contextKey, 1, 25),
+          fetchExplorerActions(et, eid),
+        ]);
+        if (ac.signal.aborted) return;
 
-    try {
-      const [d, r, t, e, rel, a] = await Promise.all([
-        fetchExplorerDetail(target.entityType, target.entityId),
-        fetchExplorerRiskBreakdown(target.entityType, target.entityId).catch(() => null),
-        fetchExplorerTimeline(target.entityType, target.entityId).catch(() => null),
-        fetchExplorerEvidence(target.entityType, target.entityId).catch(() => null),
-        fetchExplorerRelated(target.entityType, target.entityId).catch(() => null),
-        fetchExplorerActions(target.entityType, target.entityId).catch(() => null),
-      ]);
-      if (!d.success) {
-        setError(d.message || "Unable to load explorer detail");
-        return;
+        if (sumRes.status === "fulfilled" && sumRes.value.success && sumRes.value.data) {
+          const s = sumRes.value.data;
+          const sumObj = (s.summary && typeof s.summary === "object" ? s.summary : {}) as Record<string, unknown>;
+          setOverview({
+            summary: sumObj.title ? sumObj : { title: s.title, body: sumObj.body },
+            record_count: s.count,
+            record_preview: s.top_records,
+            risk_status: s.risk_status,
+            risk_score: s.risk_score,
+          });
+        }
+        if (recRes.status === "fulfilled" && recRes.value.success && recRes.value.data) {
+          const rec = recRes.value.data.records as { items?: Record<string, unknown>[] };
+          setDetail({
+            records: rec?.items ?? [],
+            summary:
+              sumRes.status === "fulfilled" && sumRes.value.success
+                ? (sumRes.value.data as Record<string, unknown>)?.summary
+                : undefined,
+          });
+        }
+        if (actRes.status === "fulfilled" && actRes.value.success) {
+          setActions((actRes.value.data as { actions?: typeof actions })?.actions ?? []);
+        }
+        setOverviewLoading(false);
+
+        const [r, t, e, rel] = await Promise.allSettled([
+          fetchExplorerRiskBreakdown(et, eid),
+          fetchExplorerTimeline(et, eid, 1),
+          fetchExplorerEvidence(et, eid, 1),
+          fetchExplorerRelated(et, eid),
+        ]);
+        if (ac.signal.aborted) return;
+        if (r.status === "fulfilled" && r.value.success) setRisk(r.value.data as Record<string, unknown>);
+        if (t.status === "fulfilled" && t.value.success) {
+          const tItems = (t.value.data as { timeline?: { items?: unknown[] } })?.timeline;
+          setTimeline((tItems?.items ?? []) as Record<string, unknown>[]);
+        }
+        if (e.status === "fulfilled" && e.value.success) {
+          const eItems = (e.value.data as { evidence?: { items?: unknown[] } })?.evidence;
+          setEvidence((eItems?.items ?? []) as Record<string, unknown>[]);
+        }
+        if (rel.status === "fulfilled" && rel.value.success) {
+          setRelated(
+            (rel.value.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null
+          );
+        }
+      } else {
+        const [ovRes, dRes, actRes, rRes] = await Promise.allSettled([
+          fetchExplorerOverviewCached(et, eid),
+          fetchExplorerDetail(et, eid, 1, 25),
+          fetchExplorerActions(et, eid),
+          fetchExplorerRiskBreakdown(et, eid),
+        ]);
+        if (ac.signal.aborted) return;
+
+        if (ovRes.status === "fulfilled" && ovRes.value.success && ovRes.value.data) {
+          setOverview(ovRes.value.data as Record<string, unknown>);
+        }
+        setOverviewLoading(false);
+
+        if (dRes.status === "fulfilled") {
+          if (!dRes.value.success) {
+            setError(dRes.value.message || "Unable to load explorer detail");
+          } else {
+            setDetail((dRes.value.data as Record<string, unknown>) ?? null);
+          }
+        }
+        if (actRes.status === "fulfilled" && actRes.value.success) {
+          setActions((actRes.value.data as { actions?: typeof actions })?.actions ?? []);
+        }
+        if (rRes.status === "fulfilled" && rRes.value.success) {
+          setRisk(rRes.value.data as Record<string, unknown>);
+        }
+
+        const [t, e, rel] = await Promise.allSettled([
+          fetchExplorerTimeline(et, eid, 1),
+          fetchExplorerEvidence(et, eid, 1),
+          fetchExplorerRelated(et, eid),
+        ]);
+        if (ac.signal.aborted) return;
+        if (t.status === "fulfilled" && t.value.success) {
+          const tItems = (t.value.data as { timeline?: { items?: unknown[] } })?.timeline;
+          setTimeline((tItems?.items ?? []) as Record<string, unknown>[]);
+        }
+        if (e.status === "fulfilled" && e.value.success) {
+          const eItems = (e.value.data as { evidence?: { items?: unknown[] } })?.evidence;
+          setEvidence((eItems?.items ?? []) as Record<string, unknown>[]);
+        }
+        if (rel.status === "fulfilled" && rel.value.success) {
+          setRelated(
+            (rel.value.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null
+          );
+        }
       }
-      setDetail((d.data as Record<string, unknown>) ?? null);
-      setRisk(r?.success ? (r.data as Record<string, unknown>) : null);
-      const tItems = (t?.data as { timeline?: { items?: unknown[] } })?.timeline;
-      setTimeline((tItems?.items ?? (tItems as unknown as unknown[]) ?? []) as Record<string, unknown>[]);
-      const eItems = (e?.data as { evidence?: { items?: unknown[] } })?.evidence;
-      setEvidence((eItems?.items ?? (eItems as unknown as unknown[]) ?? []) as Record<string, unknown>[]);
-      setRelated((rel?.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null);
-      setActions((a?.data as { actions?: typeof actions })?.actions ?? []);
+      perfMeasure("explorer-drawer-content", "explorer-drawer-open");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Request failed");
+      if (!ac.signal.aborted) {
+        setError(err instanceof Error ? err.message : "Request failed");
+      }
     } finally {
-      setSectionsLoading(false);
+      if (!ac.signal.aborted) {
+        setOverviewLoading(false);
+        setSectionsLoading(false);
+      }
     }
   }, [target]);
 
   useEffect(() => {
-    if (open && target) void load();
+    if (open && target) {
+      perfMark("explorer-drawer-open");
+      void load();
+    }
+    return () => abortRef.current?.abort();
   }, [open, target, load]);
 
   const records = useMemo(() => {
     const raw = (detail?.records as Record<string, unknown>[]) ?? [];
-    if (!filter.trim()) return raw;
+    const fromPreview = (overview?.record_preview as Record<string, unknown>[]) ?? [];
+    const list = raw.length ? raw : fromPreview;
+    if (!filter.trim()) return list;
     const q = filter.toLowerCase();
-    return raw.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
-  }, [detail, filter]);
+    return list.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+  }, [detail, overview, filter]);
 
   if (!open || !target) return null;
 
-  const summary = (detail?.summary as Record<string, unknown>) ?? (overview?.summary as Record<string, unknown>) ?? {};
+  const summary =
+    (detail?.summary as Record<string, unknown>) ??
+    (overview?.summary as Record<string, unknown>) ??
+    {};
   const severity = String(summary.severity ?? overview?.risk_status ?? "");
-  const loading = overviewLoading && sectionsLoading;
+  const showSkeleton = overviewLoading && !overview && !detail;
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm" role="presentation">
@@ -136,29 +244,16 @@ function IntelligenceDetailDrawerInner() {
         aria-modal="true"
         aria-labelledby="explorer-drawer-title"
       >
-        <div className="flex items-start justify-between border-b border-sovereign-800 px-4 py-3">
-          <div>
-            <p id="explorer-drawer-title" className="text-sm font-semibold text-white">
-              {String(summary.title ?? target.title ?? "Operational intelligence")}
-            </p>
-            <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-slate-500">
-              <span>
-                {entityType} · {entityId}
-              </span>
-              {severity && <ExplorerSeverityBadge severity={severity} />}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={closeDrawer}
-            className="rounded-lg border border-sovereign-700 px-2 py-1 text-xs text-slate-300 hover:bg-sovereign-800"
-          >
-            Close
-          </button>
-        </div>
+        <DrawerHeader
+          title={displayTitle}
+          entityType={entityType}
+          entityId={entityId}
+          severity={severity}
+          onClose={closeDrawer}
+        />
 
         <div className="flex-1 overflow-y-auto px-4 py-3">
-          {loading && <ExplorerDrawerSkeleton />}
+          {showSkeleton && <ExplorerDrawerSkeleton />}
           {error && (
             <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
               <p>{error}</p>
@@ -171,20 +266,12 @@ function IntelligenceDetailDrawerInner() {
               </button>
             </div>
           )}
-          {!error && (overview || detail || overviewLoading) && (
+          {!error && (
             <div className="space-y-4 text-xs text-slate-300">
-              {(detail || overview) && (
-                <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
-                  <span>Visibility: {String(detail?.tenant_visibility ?? overview?.tenant_visibility ?? "—")}</span>
-                  {(detail?.confidence_score ?? overview?.confidence_score) != null && (
-                    <span>Confidence: {String(detail?.confidence_score ?? overview?.confidence_score)}</span>
-                  )}
-                </div>
-              )}
               {summary.body != null && String(summary.body).length > 0 && (
                 <p className="text-sm text-slate-200">{String(summary.body)}</p>
               )}
-              {sectionsLoading && !detail ? (
+              {sectionsLoading && !detail && !overview ? (
                 <ExplorerDrawerSkeleton />
               ) : (
                 <>
@@ -193,7 +280,11 @@ function IntelligenceDetailDrawerInner() {
                   <section>
                     <h4 className="text-[11px] font-semibold uppercase text-slate-400">Timeline</h4>
                     <div className="mt-2">
-                      <ExplorerTimelineList items={timeline} />
+                      {sectionsLoading && timeline.length === 0 ? (
+                        <p className="text-slate-500">Loading…</p>
+                      ) : (
+                        <ExplorerTimelineList items={timeline} />
+                      )}
                     </div>
                   </section>
                   <section>
@@ -204,9 +295,7 @@ function IntelligenceDetailDrawerInner() {
                   </section>
                   <section>
                     <h4 className="text-[11px] font-semibold uppercase text-slate-400">Related entities</h4>
-                    <div className="mt-2">
-                      <ExplorerRelatedCards related={related} />
-                    </div>
+                    <RelatedSection related={related} />
                   </section>
                   {actions.length > 0 && (
                     <section>
@@ -263,6 +352,51 @@ function IntelligenceDetailDrawerInner() {
           void load();
         }}
       />
+    </div>
+  );
+}
+
+function DrawerHeader({
+  title,
+  entityType,
+  entityId,
+  severity,
+  onClose,
+}: {
+  title: string;
+  entityType: string;
+  entityId: string;
+  severity: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between border-b border-sovereign-800 px-4 py-3">
+      <div>
+        <p id="explorer-drawer-title" className="text-sm font-semibold text-white">
+          {title}
+        </p>
+        <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-slate-500">
+          <span>
+            {entityType} · {entityId}
+          </span>
+          {severity && <ExplorerSeverityBadge severity={severity} />}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-lg border border-sovereign-700 px-2 py-1 text-xs text-slate-300 hover:bg-sovereign-800"
+      >
+        Close
+      </button>
+    </div>
+  );
+}
+
+function RelatedSection({ related }: { related: Record<string, unknown> | null }) {
+  return (
+    <div className="mt-2">
+      <ExplorerRelatedCards related={related} />
     </div>
   );
 }
