@@ -81,6 +81,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     "expo-asset",
     "expo-secure-store",
+    "expo-updates",
   ],
   experiments: { typedRoutes: true },
   extra: {
