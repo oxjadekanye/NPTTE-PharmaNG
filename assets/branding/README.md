@@ -8,7 +8,7 @@ Canonical branding assets for mobile, web, and release pipelines.
 |-------|------|--------|
 | App icon | `icon.png` (1024×1024) | iOS/Android store |
 | Adaptive foreground | `adaptive-icon-foreground.png` (432×432) | Android adaptive icon safe zone |
-| Splash logo | `splash-logo.png` (512×512) | Expo splash |
+| Splash logo | `splash-logo.png` (1024×1024) | Expo native splash + in-app boot |
 | Notification icon | `notification-icon.png` (96×96, white glyph) | Android notifications |
 | Favicon | `favicon.png` / `favicon.svg` | Web |
 | Executive emblem | `executive-emblem.svg` | Executive dashboards |

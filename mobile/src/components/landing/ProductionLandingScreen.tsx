@@ -104,8 +104,7 @@ export function ProductionLandingScreen() {
             alignItems: "center",
           }}
         >
-          <NptteLogoMark />
-          <Text style={[styles.brand, isCompact && styles.brandCompact]}>NPTTE PharmaNG</Text>
+          <NptteLogoMark width={isCompact ? 220 : 260} />
           <Text style={styles.subtitle}>
             National Pharmaceutical Traceability &{"\n"}Enforcement Platform
           </Text>
@@ -184,16 +183,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#0284c722",
   },
   scroll: { flexGrow: 1, justifyContent: "space-between" },
-  brand: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: "#f8fafc",
-    letterSpacing: -0.8,
-    marginTop: 16,
-    textAlign: "center",
-    lineHeight: 38,
-  },
-  brandCompact: { fontSize: 28, lineHeight: 34, marginTop: 12 },
   subtitle: {
     fontSize: 14,
     color: "#94a3b8",

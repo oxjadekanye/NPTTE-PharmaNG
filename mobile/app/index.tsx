@@ -30,5 +30,5 @@ export default function LandingRoute() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#020617" },
+  root: { flex: 1, backgroundColor: "#000000" },
 });

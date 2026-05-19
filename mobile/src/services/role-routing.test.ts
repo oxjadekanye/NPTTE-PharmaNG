@@ -21,6 +21,10 @@ describe("resolveMobileRole", () => {
   it("maps regulator when flag set", () => {
     expect(resolveMobileRole("STATE_REGULATOR", true)).toBe("regulator");
   });
+
+  it("maps patient to citizen mobile home", () => {
+    expect(resolveMobileRole("PATIENT")).toBe("citizen");
+  });
 });
 
 describe("mobileHomePath", () => {

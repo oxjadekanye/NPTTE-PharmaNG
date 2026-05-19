@@ -153,7 +153,7 @@ class Command(BaseCommand):
                 )
 
         patient_role = Role.objects.get(code=RoleCode.PATIENT)
-        patient_user, created = User.objects.get_or_create(
+        patient_user, _ = User.objects.get_or_create(
             username="demo_patient",
             defaults={
                 "email": "patient@demo.nptte.gov.ng",
@@ -162,9 +162,9 @@ class Command(BaseCommand):
                 "last_name": "Patient",
             },
         )
-        if created:
-            patient_user.set_password("DemoPatient2026!")
-            patient_user.save()
+        patient_user.role = patient_role
+        patient_user.set_password("DemoPatient2026!")
+        patient_user.save()
 
         PatientProfile.objects.get_or_create(
             user=patient_user,
@@ -176,7 +176,7 @@ class Command(BaseCommand):
 
         pharmacy_role = Role.objects.get(code=RoleCode.PHARMACY_ADMIN)
         if organisations:
-            pharm_user, pc = User.objects.get_or_create(
+            pharm_user, _ = User.objects.get_or_create(
                 username="demo_pharmacy_admin",
                 defaults={
                     "email": "pharmacy@demo.nptte.gov.ng",
@@ -184,9 +184,14 @@ class Command(BaseCommand):
                     "organisation": organisations[0],
                 },
             )
-            if pc:
-                pharm_user.set_password("DemoPharmacy2026!")
-                pharm_user.save()
+            pharm_user.role = pharmacy_role
+            pharm_user.organisation = organisations[0]
+            pharm_user.set_password("DemoPharmacy2026!")
+            pharm_user.save()
+        else:
+            self.stdout.write(
+                self.style.WARNING("No demo pharmacies created — demo_pharmacy_admin skipped.")
+            )
 
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully."))
         self.stdout.write("  demo_patient / DemoPatient2026!")

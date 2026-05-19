@@ -4,6 +4,29 @@ import { clearTokens, persistTokens, setTokenExpiry } from "@/services/auth-stor
 import { decodeJwtExpiry, secureLogout } from "@/services/session-security";
 
 export type LoginPayload = { username: string; password: string };
+
+/** Normalize Django/JWT login error payloads for display. */
+export function parseLoginError(json: unknown, status: number): string {
+  if (json && typeof json === "object") {
+    const body = json as Record<string, unknown>;
+    const detail = body.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      return detail
+        .map((item) =>
+          typeof item === "string" ? item : String((item as { msg?: string })?.msg ?? item)
+        )
+        .join(". ");
+    }
+    if (typeof body.message === "string") return body.message;
+    const nonField = body.non_field_errors;
+    if (Array.isArray(nonField) && nonField.length > 0) {
+      return String(nonField[0]);
+    }
+  }
+  if (status === 401) return "Invalid username or password";
+  return "Login failed";
+}
 export type UserProfile = {
   id: string;
   username: string;
@@ -32,12 +55,17 @@ export async function login(payload: LoginPayload) {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(json.detail || json.message || "Login failed");
+      throw new Error(parseLoginError(json, res.status));
     }
-    await persistTokens(json.access, json.refresh);
-    const exp = decodeJwtExpiry(json.access);
+    const access = (json as { access?: string }).access;
+    const refresh = (json as { refresh?: string }).refresh;
+    if (!access || !refresh) {
+      throw new Error("Login response missing tokens");
+    }
+    await persistTokens(access, refresh);
+    const exp = decodeJwtExpiry(access);
     if (exp) await setTokenExpiry(exp);
-    return json as { access: string; refresh: string };
+    return { access, refresh };
   } finally {
     clearTimeout(timeout);
   }

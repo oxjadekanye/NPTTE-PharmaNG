@@ -37,6 +37,7 @@ export function resolveMobileRole(
 ): MobileRole | null {
   if (!roleCode) return isRegulator ? "regulator" : null;
   const code = roleCode.toUpperCase();
+  if (code === "PATIENT") return "citizen";
   if (EXECUTIVE_CODES.has(code)) return "executive";
   if (CUSTOMS_CODES.has(code)) return "customs";
   if (WAREHOUSE_CODES.has(code)) return "warehouse";

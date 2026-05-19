@@ -1,9 +1,16 @@
 import { useEffect, useRef } from "react";
-import { Animated, Easing, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Image, StyleSheet, type ImageStyle } from "react-native";
+import { splashLogo } from "@/assets/branding-images";
 
-export function NptteLogoMark() {
+type Props = {
+  /** Logo width in dp — height scales with aspect ratio */
+  width?: number;
+  style?: ImageStyle;
+};
+
+export function NptteLogoMark({ width = 260, style }: Props) {
   const pulse = useRef(new Animated.Value(0)).current;
-  const glow = useRef(new Animated.Value(0.4)).current;
+  const glow = useRef(new Animated.Value(0.92)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
@@ -11,13 +18,13 @@ export function NptteLogoMark() {
         Animated.parallel([
           Animated.timing(pulse, {
             toValue: 1,
-            duration: 2200,
+            duration: 2400,
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
           Animated.timing(glow, {
             toValue: 1,
-            duration: 2200,
+            duration: 2400,
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
@@ -25,13 +32,13 @@ export function NptteLogoMark() {
         Animated.parallel([
           Animated.timing(pulse, {
             toValue: 0,
-            duration: 2200,
+            duration: 2400,
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
           Animated.timing(glow, {
-            toValue: 0.4,
-            duration: 2200,
+            toValue: 0.92,
+            duration: 2400,
             easing: Easing.inOut(Easing.sin),
             useNativeDriver: true,
           }),
@@ -42,52 +49,22 @@ export function NptteLogoMark() {
     return () => loop.stop();
   }, [pulse, glow]);
 
-  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.04] });
+  const scale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.03] });
+  const height = width * 0.92;
 
   return (
     <Animated.View style={[styles.wrap, { transform: [{ scale }], opacity: glow }]}>
-      <View style={styles.ring}>
-        <View style={styles.core}>
-          <Text style={styles.glyph}>N</Text>
-        </View>
-      </View>
-      <View style={styles.accent} />
+      <Image
+        source={splashLogo}
+        style={[styles.logo, { width, height }, style]}
+        resizeMode="contain"
+        accessibilityLabel="NPTTE PharmaNG"
+      />
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { alignItems: "center", marginBottom: 4 },
-  ring: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 2,
-    borderColor: "#38bdf8",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0f172a",
-    shadowColor: "#38bdf8",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  core: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: "#0284c7",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  glyph: { color: "#f8fafc", fontSize: 32, fontWeight: "800", letterSpacing: -1 },
-  accent: {
-    position: "absolute",
-    bottom: -4,
-    width: 48,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: "#22c55e",
-  },
+  wrap: { alignItems: "center" },
+  logo: {},
 });
