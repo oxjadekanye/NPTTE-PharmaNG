@@ -84,5 +84,5 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       projectId: "5aa01d79-7ce7-4c8c-9583-a4a2639848ca",
     },
   },
-  owner: process.env.EXPO_OWNER,
+  owner: "aurexus-group-ltd",
 });
