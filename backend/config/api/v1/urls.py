@@ -60,4 +60,6 @@ urlpatterns = [
     path("explorer/", include("apps.explorer.api.urls")),
     # Phase 20B — sovereign AI copilot (on-demand, additive)
     path("copilot/", include("apps.copilot.api.urls")),
+    # Phase 20C — command orchestration & geospatial intelligence (additive)
+    path("command-orchestration/", include("apps.command_orchestration.api.urls")),
 ]

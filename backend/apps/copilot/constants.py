@@ -15,5 +15,11 @@ PROMPT_MODES = frozenset(
         "summarise_investigation",
         "draft_enforcement_note",
         "executive_briefing",
+        "operational_recommendations",
+        "escalation_reasoning",
+        "deployment_suggestions",
+        "hotspot_prediction",
+        "recall_spread_analysis",
+        "shortage_forecast",
     }
 )

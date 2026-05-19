@@ -27,7 +27,13 @@ export default function EnforcementCasesPage() {
               <p className="text-xs text-slate-400">
                 Status {String(c.case_status)} · Severity {String(c.severity)}
               </p>
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <Link
+                  href={`/regulator/enforcement/cases/${encodeURIComponent(String(c.id))}/room`}
+                  className="text-xs text-sovereign-accent hover:underline"
+                >
+                  Investigation room →
+                </Link>
                 <EnforcementCopilotPanel caseId={String(c.id)} />
               </div>
             </GlassPanel>

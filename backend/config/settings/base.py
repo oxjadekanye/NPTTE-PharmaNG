@@ -107,6 +107,8 @@ INSTALLED_APPS = [
     "apps.explorer",
     # Phase 20B preparation — copilot boundaries (no models, placeholders only)
     "apps.copilot",
+    # Phase 20C — realtime command orchestration (additive)
+    "apps.command_orchestration",
     # Phase 20A.2 — national operational demo seed (no models)
     "apps.operational_demo",
 ]

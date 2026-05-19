@@ -168,9 +168,15 @@ export default function ExecutiveModePage() {
             </div>
           )}
           <ExecutiveAiBriefingPanel compact />
-          <p className="text-center text-xs">
+          <p className="flex flex-wrap justify-center gap-4 text-center text-xs">
             <Link href="/executive/ai-briefing" className="text-sovereign-accent hover:underline">
-              Open full AI briefing workspace →
+              AI briefing workspace →
+            </Link>
+            <Link href="/executive/map" className="text-sovereign-accent hover:underline">
+              National geospatial view →
+            </Link>
+            <Link href="/command-room" className="text-sovereign-accent hover:underline">
+              Command room wallboard →
             </Link>
           </p>
           <MinisterialOverview />

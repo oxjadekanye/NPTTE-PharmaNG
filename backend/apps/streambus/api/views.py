@@ -158,6 +158,32 @@ class DeferredTaskQueueView(APIView):
         return api_response(data={"queue": rows, "count": len(rows)}, message="Deferred task queue")
 
 
+class ScopedEventReplayView(APIView):
+    """Phase 20C — targeted channel replay for selective hydration."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not is_regulator_user(request.user) and not request.user.is_superuser:
+            return api_response(message="regulator_only", status_code=403)
+        channel = request.query_params.get("channel", "national")
+        since = int(request.query_params.get("since_sequence", 0))
+        limit = min(int(request.query_params.get("limit", 50)), 100)
+        events = OperationalEventBus.replay(since_sequence=since, limit=limit * 3)
+        filtered = []
+        for ev in events:
+            payload = ev.get("payload") if isinstance(ev.get("payload"), dict) else {}
+            ev_channel = payload.get("stream_channel") or "national"
+            if channel == "all" or ev_channel == channel:
+                filtered.append(ev)
+            if len(filtered) >= limit:
+                break
+        return api_response(
+            data={"channel": channel, "events": filtered, "count": len(filtered)},
+            message="Scoped replay",
+        )
+
+
 class CommandCenterLiveView(APIView):
     """Live operational snapshot for command center dashboards."""
 

@@ -110,6 +110,43 @@ class InvestigationAssignment(NPTTEBaseModel):
         ordering = ["-assigned_at"]
 
 
+class InvestigationNote(NPTTEBaseModel):
+    """Phase 20C — collaborative investigation notes."""
+
+    case = models.ForeignKey(EnforcementCase, on_delete=models.CASCADE, related_name="investigation_notes")
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="investigation_notes",
+    )
+    body = models.TextField()
+    note_type = models.CharField(max_length=32, default="general", db_index=True)
+    evidence_status = models.CharField(max_length=32, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
+class InvestigationComment(NPTTEBaseModel):
+    """Phase 20C — threaded operational comments on investigations."""
+
+    case = models.ForeignKey(EnforcementCase, on_delete=models.CASCADE, related_name="investigation_comments")
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="investigation_comments",
+    )
+    body = models.TextField()
+    escalation_level = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
 class EnforcementTimelineEntry(NPTTEBaseModel):
     case = models.ForeignKey(
         EnforcementCase,

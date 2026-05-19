@@ -2,6 +2,7 @@ from django.urls import path
 
 from apps.streambus.api.views import (
     CommandCenterLiveView,
+    ScopedEventReplayView,
     DeferredTaskQueueView,
     EscalationListView,
     EventAcknowledgeView,
@@ -14,6 +15,7 @@ from apps.streambus.api.views import (
 urlpatterns = [
     path("publish/", EventPublishView.as_view(), name="streambus-publish"),
     path("replay/", EventReplayView.as_view(), name="streambus-replay"),
+    path("scoped-replay/", ScopedEventReplayView.as_view(), name="streambus-scoped-replay"),
     path("acknowledge/<str:event_id>/", EventAcknowledgeView.as_view(), name="streambus-ack"),
     path("telemetry/", TelemetryView.as_view(), name="streambus-telemetry"),
     path("escalations/", EscalationListView.as_view(), name="streambus-escalations"),

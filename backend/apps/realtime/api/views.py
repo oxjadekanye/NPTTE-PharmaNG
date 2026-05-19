@@ -39,6 +39,8 @@ class RealtimeStreamView(View):
     def get(self, request):
         user = _resolve_user(request)
         category = request.GET.get("category")
+        channel = request.GET.get("channel")
+        include_patches = request.GET.get("patches", "1") in ("1", "true", "yes")
         try:
             since = int(request.GET.get("since_sequence", 0))
         except (TypeError, ValueError):
@@ -63,8 +65,25 @@ class RealtimeStreamView(View):
                 if events:
                     batch_count += len(events)
                     for ev in events:
+                        if channel:
+                            payload = ev.get("payload") if isinstance(ev.get("payload"), dict) else {}
+                            ev_channel = payload.get("stream_channel") or "national"
+                            if ev_channel != channel:
+                                continue
                         last_seq = max(last_seq, ev.get("sequence_number", 0))
                         yield f"data: {json.dumps({'type': 'event', 'payload': ev})}\n\n"
+                        if include_patches:
+                            payload = ev.get("payload") if isinstance(ev.get("payload"), dict) else ev
+                            patch = payload.get("patch") if isinstance(payload, dict) else None
+                            if not patch and isinstance(payload, dict):
+                                from apps.command_orchestration.services.patches import build_event_patch
+
+                                patch = build_event_patch(
+                                    event_type=str(ev.get("event_type") or payload.get("event_type", "")),
+                                    payload=payload,
+                                )
+                            if patch:
+                                yield f"data: {json.dumps({'type': 'patch', 'payload': patch})}\n\n"
                 if tick % 6 == 0 and tick > 0:
                     try:
                         snap = aggregate_telemetry(organisation=None, window_seconds=300)

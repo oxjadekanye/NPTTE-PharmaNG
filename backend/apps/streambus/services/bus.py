@@ -106,12 +106,14 @@ def publish_operational_event(
         elif event_type.startswith("scan"):
             explorer_entity_type = "scan_event"
             explorer_entity_id = payload.get("scan_id", payload.get("serial_number", ""))
+    stream_channel = payload.get("stream_channel") or "national"
     enriched = {
         **payload,
         "correlation_id": str(correlation_id),
         "source": source,
         "severity": severity,
         "event_type": event_type,
+        "stream_channel": stream_channel,
         "explorer_entity_type": explorer_entity_type,
         "explorer_entity_id": str(explorer_entity_id) if explorer_entity_id else "",
         "explorer_target": {
@@ -119,6 +121,14 @@ def publish_operational_event(
             "entity_id": str(explorer_entity_id) if explorer_entity_id else "",
         },
     }
+    try:
+        from apps.command_orchestration.services.patches import build_event_patch
+
+        patch = build_event_patch(event_type=event_type, payload=enriched)
+        if patch:
+            enriched["patch"] = patch
+    except Exception:
+        pass
     try:
         from apps.explorer.services.invalidate import on_streambus_event
 
@@ -145,6 +155,7 @@ def publish_operational_event(
     bus_message = EventStreamService._serialize(event)
     publish_channel(f"nptte:bus:{'regulator' if not organisation_id else organisation_id}", bus_message)
     publish_channel("nptte:bus:national", bus_message)
+    publish_channel(f"nptte:bus:channel:{stream_channel}", bus_message)
     EventLifecycleLog.objects.create(
         event_id=event.event_id,
         correlation_id=correlation_id,

@@ -164,6 +164,77 @@ def _deterministic_executive(bundle: dict) -> dict:
     return leg
 
 
+def _deterministic_operational(bundle: dict, *, mode: str, title: str, reasoning: str, actions: list[str]) -> dict:
+    return _base_response(
+        bundle=bundle,
+        mode=mode,
+        source="deterministic",
+        summary=title,
+        reasoning=reasoning,
+        recommended_actions=actions,
+        urgency="high",
+        confidence=0.71,
+    )
+
+
+def _deterministic_hotspot(bundle: dict) -> dict:
+    states = list((bundle.get("state_distribution") or {}).keys())[:5]
+    return _deterministic_operational(
+        bundle,
+        mode="hotspot_prediction",
+        title="Predicted counterfeit hotspots",
+        reasoning=f"Elevated scan anomalies concentrated in: {', '.join(states) or 'Lagos, Kano, Rivers'}.",
+        actions=["Deploy field teams to top 3 states", "Increase customs screening at Apapa corridor"],
+    )
+
+
+def _deterministic_recall_spread(bundle: dict) -> dict:
+    return _deterministic_operational(
+        bundle,
+        mode="recall_spread_analysis",
+        title="Recall spread analysis",
+        reasoning="Recall pressure likely to propagate via distributor hubs within 48–72 hours.",
+        actions=["Notify regional supervisors", "Hold affected batches at wholesale nodes"],
+    )
+
+
+def _deterministic_shortage_forecast(bundle: dict) -> dict:
+    return _deterministic_operational(
+        bundle,
+        mode="shortage_forecast",
+        title="Shortage forecast",
+        reasoning="Cold-chain and antimalarial categories show elevated shortage risk in northern corridors.",
+        actions=["Release strategic buffer stock", "Monitor pharmacy dispensing rates"],
+    )
+
+
+def _deterministic_deployment(bundle: dict) -> dict:
+    return _deterministic_operational(
+        bundle,
+        mode="deployment_suggestions",
+        title="Officer deployment suggestions",
+        reasoning="Rebalance inspectors toward highest severity open cases and overdue tasks.",
+        actions=["Assign 2 inspectors to Lagos corridor", "Escalate overdue tasks >24h"],
+    )
+
+
+def _deterministic_escalation_reasoning(bundle: dict) -> dict:
+    return _deterministic_operational(
+        bundle,
+        mode="escalation_reasoning",
+        title="Escalation reasoning",
+        reasoning="Combined counterfeit signals and open enforcement cases exceed regional tolerance.",
+        actions=["Escalate to national enforcement desk", "Request ministerial situational note"],
+    )
+
+
+def _deterministic_operational_recommendations(bundle: dict) -> dict:
+    leg = _deterministic_recommend_actions(bundle)
+    leg["mode"] = "operational_recommendations"
+    leg["summary"] = "AI operational coordination recommendations"
+    return leg
+
+
 _DETERMINISTIC = {
     "explain_risk": _deterministic_explain_risk,
     "generate_briefing": _deterministic_briefing,
@@ -171,6 +242,12 @@ _DETERMINISTIC = {
     "summarise_investigation": _deterministic_investigation,
     "draft_enforcement_note": _deterministic_enforcement_note,
     "executive_briefing": _deterministic_executive,
+    "operational_recommendations": _deterministic_operational_recommendations,
+    "escalation_reasoning": _deterministic_escalation_reasoning,
+    "deployment_suggestions": _deterministic_deployment,
+    "hotspot_prediction": _deterministic_hotspot,
+    "recall_spread_analysis": _deterministic_recall_spread,
+    "shortage_forecast": _deterministic_shortage_forecast,
 }
 
 
