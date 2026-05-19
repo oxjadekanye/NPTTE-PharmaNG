@@ -50,6 +50,9 @@ class NationalAlert(NPTTEBaseModel):
             models.Index(fields=["alert_type", "severity", "created_at"]),
             models.Index(fields=["state", "risk_level"]),
             models.Index(fields=["risk_score", "created_at"]),
+            # Phase 20A.4 — kept in sync with 0003_phase20a4_alert_perf_indexes
+            models.Index(fields=["resolved_at", "created_at"], name="alert_resolved_created_idx"),
+            models.Index(fields=["severity", "resolved_at"], name="alert_sev_resolved_idx"),
         ]
 
 
