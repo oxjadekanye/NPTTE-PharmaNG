@@ -1,11 +1,12 @@
-import { fetchExplorerContextRoute, fetchExplorerQuickSummary } from "@/services/explorer";
+import { fetchExplorerContextRoute, fetchExplorerQuickBundle } from "@/services/explorer";
 import { resolveContextTarget } from "@/services/explorer-context-map";
 import type { OperationalRecord } from "@/services/explorer-format";
 import {
-  getExplorerCache,
+  bundleCacheKey,
+  getExplorerCacheStale,
   setExplorerCache,
   summaryCacheKey,
-  TTL_SUMMARY_MS,
+  TTL_BUNDLE_MS,
 } from "@/services/explorer-memory-cache";
 import { perfMark, perfMeasure } from "@/services/perf";
 import type { ExplorerOpenPayload } from "@/store/explorer-drawer-store";
@@ -19,7 +20,10 @@ export function openExplorerFromContext(
 ) {
   perfMark("explorer-drawer-open");
   const hint = resolveContextTarget(contextKey, title);
-  const cached = getExplorerCache<Record<string, unknown>>(summaryCacheKey({ contextKey }), TTL_SUMMARY_MS);
+  const cached =
+    getExplorerCacheStale<Record<string, unknown>>(bundleCacheKey(contextKey, 1), TTL_BUNDLE_MS) ??
+    getExplorerCacheStale<Record<string, unknown>>(summaryCacheKey({ contextKey }), TTL_BUNDLE_MS);
+
   openDrawer({
     entityType: (cached?.entity_type as string) ?? hint.entityType,
     entityId: (cached?.entity_id as string) ?? hint.entityId,
@@ -27,6 +31,7 @@ export function openExplorerFromContext(
     contextKey,
     cachedSummary: cached ?? undefined,
   });
+
   void fetchExplorerContextRoute(contextKey).then((res) => {
     if (!res.success || !res.data) return;
     const d = res.data;
@@ -45,8 +50,10 @@ export function openExplorerFromContext(
     });
     perfMeasure("explorer-context-route", "explorer-drawer-open");
   });
-  void fetchExplorerQuickSummary(contextKey).then((res) => {
+
+  void fetchExplorerQuickBundle(contextKey, 1, 25).then((res) => {
     if (res.success && res.data) {
+      setExplorerCache(bundleCacheKey(contextKey, 1), res.data);
       setExplorerCache(summaryCacheKey({ contextKey }), res.data);
     }
   });
@@ -129,4 +136,16 @@ export function openExplorerFromNotification(
     return;
   }
   openDrawer({ entityType: "notification", entityId: n.id, title: n.title });
+}
+
+/** Warm bundle cache before click (hover / idle prefetch). */
+export function prefetchExplorerContext(contextKey: string): void {
+  if (!contextKey) return;
+  if (getExplorerCacheStale(bundleCacheKey(contextKey, 1), TTL_BUNDLE_MS)) return;
+  void fetchExplorerQuickBundle(contextKey, 1, 25).then((res) => {
+    if (res.success && res.data) {
+      setExplorerCache(bundleCacheKey(contextKey, 1), res.data);
+      setExplorerCache(summaryCacheKey({ contextKey }), res.data);
+    }
+  });
 }

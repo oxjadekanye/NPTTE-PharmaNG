@@ -44,6 +44,13 @@ export function fetchExplorerQuickSummary(context: string, opts?: { lite?: boole
   );
 }
 
+/** One request: summary + records + actions (preferred for drawer). */
+export function fetchExplorerQuickBundle(context: string, page = 1, pageSize = 25) {
+  return apiRequest<Record<string, unknown>>(
+    `/explorer/quick-bundle/?context=${encodeURIComponent(context)}&page=${page}&page_size=${pageSize}`
+  );
+}
+
 export function fetchExplorerQuickRecords(context: string, page = 1, pageSize = 25) {
   return apiRequest<Record<string, unknown>>(
     `/explorer/quick-records/?context=${encodeURIComponent(context)}&page=${page}&page_size=${pageSize}`

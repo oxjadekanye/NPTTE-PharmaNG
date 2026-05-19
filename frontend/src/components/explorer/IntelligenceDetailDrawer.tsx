@@ -8,20 +8,16 @@ import {
   fetchExplorerDetail,
   fetchExplorerEvidence,
   fetchExplorerOverviewCached,
-  fetchExplorerQuickActions,
-  fetchExplorerQuickRecords,
-  fetchExplorerQuickSummary,
   fetchExplorerRelated,
   fetchExplorerRiskBreakdown,
   fetchExplorerTimeline,
 } from "@/services/explorer";
 import {
-  getExplorerCache,
-  recordsCacheKey,
-  setExplorerCache,
-  summaryCacheKey,
-  TTL_SUMMARY_MS,
-} from "@/services/explorer-memory-cache";
+  applyQuickBundleToState,
+  hydrateQuickBundle,
+  readCachedQuickBundle,
+} from "@/services/explorer-drawer-hydrate";
+import { bundleCacheKey, getExplorerCacheStale, TTL_BUNDLE_MS } from "@/services/explorer-memory-cache";
 import { normalizeExplorerRecords, recordSearchText, type OperationalRecord } from "@/services/explorer-format";
 import { explorerFullPageHref } from "@/services/explorer-navigation";
 import { openExplorerFromRecord } from "@/services/explorer-routing";
@@ -68,22 +64,14 @@ function IntelligenceDetailDrawerInner() {
   const [slowLoad, setSlowLoad] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
 
-  const applyQuickSummary = useCallback((s: Record<string, unknown>) => {
-    setOverview({
-      summary: {
-        title: s.title,
-        body: typeof s.summary === "string" ? s.summary : (s.summary as Record<string, unknown>)?.body,
-      },
-      record_count: s.count,
-      record_preview: (s.top_records as Record<string, unknown>[]) ?? [],
-      risk_status: s.status ?? s.risk_status,
-      risk_score: s.risk_score,
-      top_states: s.top_states,
-      top_organisations: s.top_organisations,
-      updated_at: s.updated_at,
-    });
-    setOverviewLoading(false);
-  }, []);
+  const applyBundle = useCallback(
+    (bundle: Record<string, unknown>) => {
+      applyQuickBundleToState(bundle, { setOverview, setDetail, setActions });
+      setOverviewLoading(false);
+      setSectionsLoading(false);
+    },
+    []
+  );
 
   const entityType = target?.entityType ?? "";
   const entityId = target?.entityId ?? "";
@@ -103,16 +91,14 @@ function IntelligenceDetailDrawerInner() {
     setSectionsLoading(true);
     setError(null);
     setExecMsg(null);
-    const cached =
-      target.cachedSummary ??
-      (target.contextKey
-        ? getExplorerCache<Record<string, unknown>>(
-            summaryCacheKey({ contextKey: target.contextKey }),
-            TTL_SUMMARY_MS
-          )
-        : null);
-    if (cached) applyQuickSummary(cached);
-    else {
+    const cachedBundle = target.contextKey
+      ? readCachedQuickBundle(target.contextKey, 1) ??
+        (target.cachedSummary as Record<string, unknown> | undefined) ??
+        getExplorerCacheStale<Record<string, unknown>>(bundleCacheKey(target.contextKey, 1), TTL_BUNDLE_MS)
+      : null;
+    if (cachedBundle) {
+      applyBundle(cachedBundle);
+    } else {
       setOverview(null);
       setDetail(null);
     }
@@ -126,31 +112,11 @@ function IntelligenceDetailDrawerInner() {
 
     try {
       if (contextKey) {
-        const [sumRes, recRes, actRes] = await Promise.allSettled([
-          fetchExplorerQuickSummary(contextKey),
-          fetchExplorerQuickRecords(contextKey, 1, 25),
-          fetchExplorerQuickActions(contextKey),
-        ]);
+        const bundleRes = await hydrateQuickBundle(contextKey, 1, 25);
         if (ac.signal.aborted) return;
-
-        if (sumRes.status === "fulfilled" && sumRes.value.success && sumRes.value.data) {
-          const s = sumRes.value.data;
-          setExplorerCache(summaryCacheKey({ contextKey }), s);
-          applyQuickSummary(s);
+        if (bundleRes.success && bundleRes.data) {
+          applyBundle(bundleRes.data);
         }
-        if (recRes.status === "fulfilled" && recRes.value.success && recRes.value.data) {
-          const rec = recRes.value.data.records;
-          setExplorerCache(recordsCacheKey(contextKey, 1), recRes.value.data);
-          setDetail({ records: normalizeExplorerRecords(rec) });
-        } else if (cached && (cached.top_records as unknown[])?.length) {
-          setDetail({ records: normalizeExplorerRecords(cached.top_records) });
-        }
-        if (actRes.status === "fulfilled" && actRes.value.success) {
-          setActions((actRes.value.data as { actions?: typeof actions })?.actions ?? []);
-        }
-
-        setOverviewLoading(false);
-        setSectionsLoading(false);
 
         void Promise.allSettled([
           fetchExplorerRiskBreakdown(et, eid),
@@ -244,14 +210,14 @@ function IntelligenceDetailDrawerInner() {
         setSectionsLoading(false);
       }
     }
-  }, [target, applyQuickSummary]);
+  }, [target, applyBundle]);
 
   useEffect(() => {
     if (open && target) {
       perfMark("explorer-drawer-open");
       setSlowLoad(false);
       setShowRetry(false);
-      const tSlow = window.setTimeout(() => setSlowLoad(true), 800);
+      const tSlow = window.setTimeout(() => setSlowLoad(true), 1200);
       const tRetry = window.setTimeout(() => setShowRetry(true), 8000);
       void load();
       return () => {

@@ -51,6 +51,8 @@ LITE_SUMMARY_KEYS = frozenset(
         "status",
         "risk_score",
         "top_states",
+        "top_organisations",
+        "top_records",
         "updated_at",
         "route",
     }
@@ -119,6 +121,62 @@ def build_quick_records(*, context_key: str, request=None, page: int = 1, page_s
         }
         if isinstance(rec_block, dict)
         else {"items": slim_items, "page": page, "page_size": page_size, "total": len(slim_items), "has_more": False},
+    }
+
+
+def build_quick_bundle(*, context_key: str, request=None, page: int = 1, page_size: int = 25) -> dict:
+    """Single aggregate build — summary + records + actions in one pass (fast drawer paint)."""
+    from apps.explorer.services.context_aggregates import aggregate_id_for_context, build_context_aggregate_bundle
+
+    aggregate_id = aggregate_id_for_context(context_key)
+    bundle = build_context_aggregate_bundle(
+        aggregate_id=aggregate_id,
+        request=request,
+        record_limit=max(page_size, 25),
+    )
+    records = bundle.get("records") or []
+    if isinstance(records, dict):
+        records = records.get("items") or []
+    if not isinstance(records, list):
+        records = []
+    slim_items = [slim_record(r) for r in records if isinstance(r, dict)]
+    summary = bundle.get("summary") if isinstance(bundle.get("summary"), dict) else {}
+    states = bundle.get("state_distribution") or {}
+    orgs: list[str] = []
+    for r in slim_items:
+        o = r.get("organisation")
+        if o and o not in orgs:
+            orgs.append(str(o))
+    route = resolve_context_route(context_key=context_key, user=getattr(request, "user", None))
+    actions = list_operational_actions(route["entity_type"], route["entity_id"])
+    slim_actions = [
+        {
+            "id": a.get("id"),
+            "label": a.get("label"),
+            "workflow": a.get("workflow"),
+            "requires_confirm": bool(a.get("requires_confirm")),
+        }
+        for a in actions
+    ]
+    from apps.explorer.services.pagination import paginate_list
+
+    return {
+        "context_key": context_key,
+        "entity_type": bundle.get("entity_type") or "national_risk",
+        "entity_id": bundle.get("entity_id") or aggregate_id,
+        "title": summary.get("title") or context_key.replace("_", " ").title(),
+        "summary": summary.get("body") or summary.get("title") or "",
+        "count": bundle.get("record_count") or len(slim_items),
+        "severity_distribution": bundle.get("severity_distribution") or {},
+        "status": summary.get("severity") or summary.get("status") or bundle.get("risk_status"),
+        "risk_score": summary.get("score") or bundle.get("risk_score"),
+        "top_states": list(states.keys())[:3],
+        "top_organisations": orgs[:3],
+        "top_records": slim_items[:8],
+        "records": paginate_list(slim_items, page=page, page_size=page_size),
+        "actions": slim_actions,
+        "updated_at": bundle.get("last_updated"),
+        "route": route,
     }
 
 

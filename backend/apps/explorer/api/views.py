@@ -31,6 +31,7 @@ from apps.explorer.services.context_summary import (
 from apps.explorer.services.quick_explorer import (
     apply_lite_summary,
     build_quick_actions,
+    build_quick_bundle,
     build_quick_records,
     build_quick_summary,
 )
@@ -348,6 +349,45 @@ class ExplorerQuickSummaryView(APIView):
             else:
                 data["route"] = route
             return api_response(data=data, message="Quick summary")
+
+
+class ExplorerQuickBundleView(APIView):
+    """Summary + records + actions in one cached request (instant drawer)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        context_key = request.query_params.get("context", "").strip()
+        if not context_key:
+            return api_response(message="context required", status_code=400)
+        route = resolve_context_route(context_key=context_key, user=request.user)
+        ok, reason = _check_explorer_access(request, route["entity_type"], route["entity_id"])
+        if not ok:
+            return api_response(message=reason, status_code=403)
+        page, page_size = _page_params(request)
+        uid = _user_cache_id(request)
+
+        def _build():
+            return build_quick_bundle(
+                context_key=context_key,
+                request=request,
+                page=page,
+                page_size=page_size,
+            )
+
+        with perf_span(f"explorer.quick-bundle:{context_key}"):
+            data = cached_explorer(
+                scope=f"quick-bundle:{page}:{page_size}",
+                entity_type="context",
+                entity_id=context_key,
+                user_id=uid,
+                ttl=TTL_CONTEXT_SUMMARY,
+                org_scope=_org_scope(request),
+                builder=_build,
+            )
+            if "route" not in data:
+                data["route"] = route
+            return api_response(data=data, message="Quick bundle")
 
 
 class ExplorerQuickRecordsView(APIView):

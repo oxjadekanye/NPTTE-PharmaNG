@@ -28,7 +28,7 @@ export function IntelligenceHighlights() {
       <button
         type="button"
         className="rounded-xl border border-sovereign-800 bg-sovereign-900/60 p-4 text-left outline-none transition hover:ring-2 hover:ring-sovereign-accent/30"
-        onClick={() => void openExplorerFromContext(openDrawer, "fraud_flags", "Blacklisted batches")}
+        onClick={() => void openExplorerFromContext(openDrawer, "blacklisted_batches", "Blacklisted batches")}
         aria-label="View fraud and blacklist explorer"
       >
         <h3 className="text-sm font-semibold text-white">Blacklisted batches (DEMO)</h3>

@@ -29,7 +29,6 @@ class LiteSummaryTests(APITestCase):
         lite = apply_lite_summary(full)
         self.assertIn("count", lite)
         self.assertNotIn("recommended_actions", lite)
-        self.assertNotIn("top_organisations", lite)
 
     def test_quick_summary_lite_query_param(self):
         res = self.client.get("/api/v1/explorer/quick-summary/", {"context": "open_alerts", "lite": "1"})
@@ -37,3 +36,13 @@ class LiteSummaryTests(APITestCase):
         data = res.json().get("data") or {}
         self.assertIn("count", data)
         self.assertNotIn("recommended_actions", data)
+
+    def test_quick_bundle_includes_records(self):
+        res = self.client.get("/api/v1/explorer/quick-bundle/", {"context": "fraud_flags", "page": 1, "page_size": 10})
+        self.assertEqual(res.status_code, 200)
+        data = res.json().get("data") or {}
+        self.assertIn("count", data)
+        records = data.get("records") or {}
+        items = records.get("items") if isinstance(records, dict) else records
+        self.assertTrue(isinstance(items, list))
+        self.assertIn("actions", data)

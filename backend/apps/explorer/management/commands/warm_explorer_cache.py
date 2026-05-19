@@ -6,7 +6,7 @@ from django.core.management.base import BaseCommand
 
 from apps.explorer.services.cache import cached_explorer
 from apps.explorer.services.context_router import resolve_context_route
-from apps.explorer.services.context_summary import build_context_records, build_context_summary
+from apps.explorer.services.quick_explorer import build_quick_bundle
 from apps.explorer.services.overview import build_explorer_overview
 
 HOT_CONTEXTS = [
@@ -56,20 +56,12 @@ class Command(BaseCommand):
             route = resolve_context_route(context_key=ctx, user=user)
             et, eid = route["entity_type"], route["entity_id"]
             cached_explorer(
-                scope="context-summary",
+                scope="quick-bundle:1:25",
                 entity_type="context",
                 entity_id=ctx,
                 user_id=uid,
                 ttl=120,
-                builder=lambda c=ctx: build_context_summary(context_key=c, request=None),
-            )
-            cached_explorer(
-                scope="context-records:1:25",
-                entity_type="context",
-                entity_id=ctx,
-                user_id=uid,
-                ttl=90,
-                builder=lambda c=ctx: build_context_records(context_key=c, request=None, page=1, page_size=25),
+                builder=lambda c=ctx: build_quick_bundle(context_key=c, request=None, page=1, page_size=25),
             )
             cached_explorer(
                 scope="overview",
