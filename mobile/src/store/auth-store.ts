@@ -3,7 +3,7 @@ import type { PermissionsPayload, UserProfile } from "@/services/auth";
 import { fetchPermissions, fetchProfile, logout as apiLogout } from "@/services/auth";
 import { getAccessToken } from "@/services/auth-storage";
 import { isSessionExpired, refreshAccessToken } from "@/services/session-security";
-import { mobileHomePath, resolveMobileRole, type MobileRole } from "@/lib/role-routing";
+import { mobileHomePath, resolveMobileRole, type MobileRole } from "@/services/role-routing";
 
 type AuthState = {
   loading: boolean;

@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { mobileHomePath } from "@/lib/role-routing";
+import { mobileHomePath } from "@/services/role-routing";
 import { ProductionLandingScreen } from "@/components/landing/ProductionLandingScreen";
 import { LandingBootSplash } from "@/components/landing/LandingBootSplash";
 import { useAuthStore } from "@/store/auth-store";

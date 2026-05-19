@@ -6,7 +6,7 @@ import { login, fetchPermissions } from "@/services/auth";
 import { registerTrustedDevice, sendDeviceHeartbeat } from "@/services/device-trust";
 import { isBiometricHardwareAvailable } from "@/services/biometric";
 import { initPushOrchestration } from "@/services/push-orchestration";
-import { mobileHomePath, resolveMobileRole } from "@/lib/role-routing";
+import { mobileHomePath, resolveMobileRole } from "@/services/role-routing";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LoginScreen() {
