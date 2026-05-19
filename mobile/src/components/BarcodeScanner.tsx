@@ -1,6 +1,8 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { PERMISSION_COPY } from "@/services/permissions";
+import { NPTTEBrand } from "@/theme/branding";
 
 type Props = {
   onScan: (value: string) => void;
@@ -18,7 +20,8 @@ export function BarcodeScanner({ onScan, active = true }: Props) {
   if (!permission.granted) {
     return (
       <View style={styles.box}>
-        <Text style={styles.muted}>Camera access is required to scan QR and barcodes.</Text>
+        <Text style={styles.muted}>{PERMISSION_COPY.camera.denied}</Text>
+        <Text style={styles.rationale}>{PERMISSION_COPY.camera.rationale}</Text>
         <Pressable style={styles.btn} onPress={() => void requestPermission()}>
           <Text style={styles.btnText}>Grant permission</Text>
         </Pressable>
@@ -59,4 +62,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   btnText: { color: "#fff", fontWeight: "600" },
+  rationale: {
+    color: NPTTEBrand.colors.sovereign.muted,
+    fontSize: 11,
+    marginTop: 8,
+    lineHeight: 16,
+  },
 });

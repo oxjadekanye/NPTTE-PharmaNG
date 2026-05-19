@@ -17,7 +17,7 @@ export default function CitizenReport() {
   };
 
   return (
-    <ScreenShell title="Report counterfeit" subtitle="POST /public/report-counterfeit/">
+    <ScreenShell title="Report suspicious medicine" subtitle="National counterfeit reporting">
       <TextInput
         style={styles.input}
         placeholder="Describe what you found"

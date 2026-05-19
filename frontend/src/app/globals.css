@@ -5,6 +5,20 @@
 :root {
   --background: #020617;
   --foreground: #f8fafc;
+  /* NPTTE sovereign brand — see src/theme/branding.ts */
+  --nptte-bg: #020617;
+  --nptte-surface: #0f172a;
+  --nptte-elevated: #1e293b;
+  --nptte-border: #334155;
+  --nptte-text: #f8fafc;
+  --nptte-muted: #94a3b8;
+  --nptte-accent: #38bdf8;
+  --nptte-accent-strong: #0284c7;
+  --nptte-success: #22c55e;
+  --nptte-warning: #fbbf24;
+  --nptte-danger: #ef4444;
+  --nptte-enforcement: #b45309;
+  --nptte-intelligence: #6366f1;
 }
 
 body {

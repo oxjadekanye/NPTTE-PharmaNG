@@ -1,7 +1,7 @@
-import { Link } from "expo-router";
+import { Link, type Href } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 
-export function MenuButton({ href, label }: { href: string; label: string }) {
+export function MenuButton({ href, label }: { href: Href; label: string }) {
   return (
     <Link href={href} asChild>
       <Pressable style={styles.btn}>

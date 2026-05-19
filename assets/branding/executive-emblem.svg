@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" fill="none">
+  <rect width="160" height="160" rx="20" fill="#020617"/>
+  <path d="M80 24 L120 56 L104 136 L56 136 L40 56 Z" stroke="#fbbf24" stroke-width="2" fill="#1e293b"/>
+  <circle cx="80" cy="72" r="22" fill="#0284c7"/>
+  <text x="80" y="80" text-anchor="middle" font-family="system-ui" font-size="20" font-weight="700" fill="#f8fafc">NG</text>
+</svg>

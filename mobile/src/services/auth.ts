@@ -1,6 +1,7 @@
-import { API_BASE } from "@/config/api";
+import { resolveApiBaseUrl, API_TIMEOUT_MS } from "@/config/env";
 import { apiRequest } from "@/services/api-client";
-import { clearTokens, persistTokens } from "@/services/auth-storage";
+import { clearTokens, persistTokens, setTokenExpiry } from "@/services/auth-storage";
+import { decodeJwtExpiry, secureLogout } from "@/services/session-security";
 
 export type LoginPayload = { username: string; password: string };
 export type UserProfile = {
@@ -20,17 +21,26 @@ export type PermissionsPayload = {
 };
 
 export async function login(payload: LoginPayload) {
-  const res = await fetch(`${API_BASE}/auth/login/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(json.detail || json.message || "Login failed");
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${resolveApiBaseUrl()}/auth/login/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json.detail || json.message || "Login failed");
+    }
+    await persistTokens(json.access, json.refresh);
+    const exp = decodeJwtExpiry(json.access);
+    if (exp) await setTokenExpiry(exp);
+    return json as { access: string; refresh: string };
+  } finally {
+    clearTimeout(timeout);
   }
-  await persistTokens(json.access, json.refresh);
-  return json as { access: string; refresh: string };
 }
 
 export async function fetchProfile(): Promise<UserProfile> {
@@ -46,5 +56,5 @@ export async function fetchPermissions(): Promise<PermissionsPayload> {
 }
 
 export async function logout() {
-  await clearTokens();
+  await secureLogout();
 }

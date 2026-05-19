@@ -1,7 +1,6 @@
-import Constants from "expo-constants";
+import { resolveApiBaseUrl } from "@/config/env";
 
-/** Override via app.json extra.apiBaseUrl or EXPO_PUBLIC_API_BASE_URL */
-export const API_BASE =
-  process.env.EXPO_PUBLIC_API_BASE_URL ??
-  (Constants.expoConfig?.extra?.apiBaseUrl as string | undefined) ??
-  "http://localhost:8000/api/v1";
+/** Resolved API base for current environment */
+export const API_BASE = resolveApiBaseUrl();
+
+export { APP_ENV, IS_PRODUCTION, IS_DEV, IS_STAGING, resolveApiBaseUrl } from "@/config/env";

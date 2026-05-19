@@ -15,6 +15,7 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const hydrate = useAuthStore((s) => s.hydrate);
+  const sessionExpired = useAuthStore((s) => s.sessionExpired);
 
   const onLogin = async () => {
     setLoading(true);
@@ -57,6 +58,9 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
       />
+      {sessionExpired && (
+        <Text style={styles.warn}>Your session expired. Please sign in again.</Text>
+      )}
       {error && <Text style={styles.error}>{error}</Text>}
       <Pressable style={styles.btn} onPress={() => void onLogin()} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Sign in</Text>}
@@ -84,4 +88,5 @@ const styles = StyleSheet.create({
   },
   btnText: { color: "#fff", fontWeight: "600" },
   error: { color: "#fca5a5", marginBottom: 8 },
+  warn: { color: "#fbbf24", marginBottom: 8, fontSize: 13 },
 });

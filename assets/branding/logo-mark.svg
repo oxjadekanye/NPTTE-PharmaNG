@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <circle cx="60" cy="60" r="56" stroke="#38bdf8" stroke-width="3" fill="#0f172a"/>
+  <circle cx="60" cy="60" r="40" fill="#0284c7"/>
+  <text x="60" y="72" text-anchor="middle" font-family="system-ui,sans-serif" font-size="36" font-weight="800" fill="#f8fafc">N</text>
+  <rect x="36" y="98" width="48" height="4" rx="2" fill="#22c55e"/>
+</svg>

@@ -2,7 +2,8 @@
 
 Expo (React Native) field operations app consuming the **existing** Django REST APIs. No duplicated backend logic.
 
-See [docs/phase_22_mobile_operational_maturity.md](../docs/phase_22_mobile_operational_maturity.md) for device trust, biometrics, evidence, and realtime details.
+- Phase 22: [device trust, biometrics, evidence](../docs/phase_22_mobile_operational_maturity.md)
+- Phase 23: [release hardening, EAS builds](../docs/phase_23_release_hardening.md)
 
 ## Stack
 
@@ -41,7 +42,9 @@ Press `i` for iOS simulator or `a` for Android emulator. Use Expo Go for quick d
 |---------|---------|
 | `npm run start` | Expo dev server |
 | `npm run typecheck` | TypeScript check |
-| `npm test` | Vitest (role routing) |
+| `npm test` | Vitest (routing, branding, env) |
+| `npm run build:preview` | EAS internal Android APK |
+| `npm run build:production` | EAS production Android AAB |
 
 ## Role homes
 

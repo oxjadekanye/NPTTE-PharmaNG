@@ -11,7 +11,7 @@ export default function CitizenHome() {
       <MenuButton href="/citizen/recalls" label="Recall alerts" />
       <MenuButton href="/citizen/report" label="Report counterfeit" />
       <Pressable onPress={() => router.replace("/")}>
-        <Text style={styles.link}>← Back to welcome</Text>
+        <Text style={styles.link}>← Back to home</Text>
       </Pressable>
     </ScreenShell>
   );
