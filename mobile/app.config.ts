@@ -81,7 +81,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     appEnv: APP_ENV,
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? apiByEnv[APP_ENV] ?? apiByEnv.development,
     eas: {
-      projectId: process.env.EAS_PROJECT_ID ?? "REPLACE_WITH_EAS_PROJECT_ID",
+      projectId: "5aa01d79-7ce7-4c8c-9583-a4a2639848ca",
     },
   },
   owner: process.env.EXPO_OWNER,
