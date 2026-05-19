@@ -18,6 +18,7 @@ import {
 import { normalizeExplorerRecords, recordSearchText } from "@/services/explorer-format";
 import { contextKeyForAggregateId } from "@/services/explorer-navigation";
 import { ExplorerCopilotPlaceholder } from "@/components/explorer/ExplorerCopilotPlaceholder";
+import { EnforcementCopilotPanel } from "@/components/copilot/EnforcementCopilotPanel";
 import { ExplorerEvidencePanel } from "@/components/explorer/renderers/ExplorerEvidencePanel";
 import { ExplorerRecordsTable } from "@/components/explorer/renderers/ExplorerRecordsTable";
 import { ExplorerRiskFactors } from "@/components/explorer/renderers/ExplorerRiskFactors";
@@ -169,7 +170,11 @@ export default function ExplorerEntityDetailPage() {
               <ExplorerEvidencePanel items={evidence} />
             </div>
           </section>
-          <ExplorerCopilotPlaceholder />
+          {entityType === "enforcement_case" ? (
+            <EnforcementCopilotPanel caseId={entityId} />
+          ) : (
+            <ExplorerCopilotPlaceholder entityType={entityType} entityId={entityId} />
+          )}
         </div>
 
         <section className="mt-6 rounded-xl border border-sovereign-800 p-3">

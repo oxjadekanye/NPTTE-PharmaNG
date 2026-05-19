@@ -372,7 +372,18 @@ function IntelligenceDetailDrawerInner() {
                     </section>
                   )}
                   {execMsg && <p className="text-emerald-400">{execMsg}</p>}
-                  <ExplorerCopilotPlaceholder />
+                  <ExplorerCopilotPlaceholder
+                    entityType={target.contextKey ? undefined : entityType}
+                    entityId={target.contextKey ? undefined : entityId}
+                    contextKey={target.contextKey}
+                    onCreateTask={(suggestion) =>
+                      setModal({
+                        workflow: "task",
+                        actionId: "create_task",
+                        label: `Task: ${suggestion.slice(0, 80)}`,
+                      })
+                    }
+                  />
                 </>
               )}
             </div>

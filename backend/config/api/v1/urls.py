@@ -58,4 +58,6 @@ urlpatterns = [
     path("streambus/", include("apps.streambus.api.urls")),
     # Phase 19 — operational drill-down explorer (additive)
     path("explorer/", include("apps.explorer.api.urls")),
+    # Phase 20B — sovereign AI copilot (on-demand, additive)
+    path("copilot/", include("apps.copilot.api.urls")),
 ]

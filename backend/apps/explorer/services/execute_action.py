@@ -141,7 +141,7 @@ def execute_explorer_action(
             bundle["records"] = bundle.get("record_preview") or []
         else:
             bundle = build_explorer_bundle(request, entity_type, entity_id)
-        briefing = generate_operational_briefing(explorer_bundle=bundle)
+        briefing = generate_operational_briefing(explorer_bundle=bundle, request=request)
         return {"ok": True, "briefing": briefing, "message": "Briefing generated"}
 
     if action_id == "open_investigation":

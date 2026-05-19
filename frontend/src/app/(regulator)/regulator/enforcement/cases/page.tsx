@@ -6,6 +6,7 @@ import { CommandShell } from "@/components/shared/CommandShell";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
 import { fetchEnforcementCases } from "@/services/sovereign-intelligence";
+import { EnforcementCopilotPanel } from "@/components/copilot/EnforcementCopilotPanel";
 
 export default function EnforcementCasesPage() {
   const [cases, setCases] = useState<Record<string, unknown>[]>([]);
@@ -26,6 +27,9 @@ export default function EnforcementCasesPage() {
               <p className="text-xs text-slate-400">
                 Status {String(c.case_status)} · Severity {String(c.severity)}
               </p>
+              <div className="mt-3">
+                <EnforcementCopilotPanel caseId={String(c.id)} />
+              </div>
             </GlassPanel>
           ))}
           {cases.length === 0 && <p className="text-sm text-slate-500">No enforcement cases.</p>}

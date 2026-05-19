@@ -11,6 +11,8 @@ import type { NationalOperationsSummary } from "@/services/national-operations";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
 import { openExplorerFromContext } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
+import { ExecutiveAiBriefingPanel } from "@/components/copilot/ExecutiveAiBriefingPanel";
+import Link from "next/link";
 
 const MinisterialOverview = dynamic(
   () => import("@/components/dashboard/MinisterialOverview").then((m) => m.MinisterialOverview),
@@ -165,6 +167,12 @@ export default function ExecutiveModePage() {
               </GlassPanel>
             </div>
           )}
+          <ExecutiveAiBriefingPanel compact />
+          <p className="text-center text-xs">
+            <Link href="/executive/ai-briefing" className="text-sovereign-accent hover:underline">
+              Open full AI briefing workspace →
+            </Link>
+          </p>
           <MinisterialOverview />
         </div>
       </CommandShell>

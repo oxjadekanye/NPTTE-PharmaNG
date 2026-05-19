@@ -14,6 +14,18 @@ logger = logging.getLogger("nptte.copilot.briefing")
 
 def _deterministic_briefing(*, context: dict) -> dict:
     summary = context.get("summary") or {}
+    if isinstance(summary, str):
+        summary_title = summary
+        summary_body = summary
+        summary_severity = context.get("risk_status") or "high"
+    elif isinstance(summary, dict):
+        summary_title = summary.get("title") or "Operational briefing"
+        summary_body = summary.get("body") or summary_title
+        summary_severity = summary.get("severity") or context.get("risk_status") or "high"
+    else:
+        summary_title = "Operational briefing"
+        summary_body = str(summary)
+        summary_severity = context.get("risk_status") or "high"
     records = context.get("records") or []
     if isinstance(records, dict):
         records = records.get("items") or []
@@ -22,7 +34,7 @@ def _deterministic_briefing(*, context: dict) -> dict:
     return {
         "available": True,
         "source": "deterministic",
-        "summary": summary.get("body") or summary.get("title") or "Operational briefing",
+        "summary": summary_body or summary_title,
         "risk_reason": "; ".join((context.get("risk_explanation") or {}).get("reasons", [])[:3])
         or "Elevated national pharmaceutical risk indicators",
         "affected_states": list(states.keys())[:8] or [top_state],
@@ -34,7 +46,7 @@ def _deterministic_briefing(*, context: dict) -> dict:
             "Verify batch custody at flagged pharmacies",
             "Prepare ministerial situational update",
         ],
-        "urgency_level": summary.get("severity") or "high",
+        "urgency_level": summary_severity,
         "assigned_owner_suggestion": records[0].get("assigned_officer") if records else "Regional supervisor",
         "next_24h_priority": "Triage critical alerts and open enforcement cases in top two states",
         "confidence": 0.72,
@@ -43,61 +55,36 @@ def _deterministic_briefing(*, context: dict) -> dict:
     }
 
 
-def generate_operational_briefing(*, explorer_bundle: dict) -> dict:
+def generate_operational_briefing(*, explorer_bundle: dict, request=None) -> dict:
     """
-    Generate context-grounded briefing. Uses OpenAI when OPENAI_API_KEY is set; else deterministic fallback.
+    Generate context-grounded briefing. Uses Phase 20B reasoning when request provided;
+    otherwise legacy deterministic/OpenAI path for backward compatibility.
     """
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        return _deterministic_briefing(context=explorer_bundle)
+    if request is not None:
+        from apps.copilot.services.reasoning import run_copilot_reasoning
 
-    try:
-        from openai import OpenAI
-
-        client = OpenAI(api_key=api_key)
-        safe = {
-            "summary": explorer_bundle.get("summary"),
-            "record_count": explorer_bundle.get("record_count"),
-            "severity_distribution": explorer_bundle.get("severity_distribution"),
-            "state_distribution": explorer_bundle.get("state_distribution"),
-            "recommended_actions": explorer_bundle.get("recommended_actions"),
-            "records_preview": (explorer_bundle.get("records") or [])[:12]
-            if isinstance(explorer_bundle.get("records"), list)
-            else (explorer_bundle.get("records") or {}).get("items", [])[:12],
-        }
-        prompt = (
-            "You are a national pharmaceutical regulator copilot for Nigeria. "
-            "Return JSON only with keys: summary, risk_reason, affected_states (array), "
-            "affected_organisations (array), affected_products (array), recommended_actions (array), "
-            "urgency_level, assigned_owner_suggestion, next_24h_priority. "
-            f"Context: {json.dumps(safe)[:6000]}"
+        payload, _reason = run_copilot_reasoning(
+            request=request,
+            mode="generate_briefing",
+            entity_type=str(explorer_bundle.get("entity_type") or ""),
+            entity_id=str(explorer_bundle.get("entity_id") or ""),
+            context_key=str(explorer_bundle.get("context_key") or "") or None,
         )
-        def _call_openai():
-            return client.chat.completions.create(
-                model=os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.2,
-                max_tokens=800,
-                timeout=OPENAI_BRIEFING_TIMEOUT_SEC,
+        if payload:
+            leg = _deterministic_briefing(context=explorer_bundle)
+            leg.update(
+                {
+                    "available": True,
+                    "summary": payload.get("summary"),
+                    "risk_reason": payload.get("reasoning"),
+                    "recommended_actions": payload.get("recommended_actions"),
+                    "urgency_level": payload.get("urgency"),
+                    "confidence": payload.get("confidence"),
+                    "disclaimer": payload.get("disclaimer"),
+                    "source_records": payload.get("source_records"),
+                    "source": payload.get("source"),
+                }
             )
+            return leg
 
-        with ThreadPoolExecutor(max_workers=1) as pool:
-            future = pool.submit(_call_openai)
-            resp = future.result(timeout=OPENAI_BRIEFING_TIMEOUT_SEC + 2)
-        text = (resp.choices[0].message.content or "").strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        data = json.loads(text)
-        data["available"] = True
-        data["source"] = "openai"
-        data["confidence"] = 0.85
-        data["disclaimer"] = "AI-assisted recommendation — requires human review"
-        data["source_records"] = safe.get("records_preview", [])
-        return data
-    except (FuturesTimeout, Exception) as exc:
-        logger.warning("OpenAI briefing failed, using fallback: %s", exc)
-        out = _deterministic_briefing(context=explorer_bundle)
-        out["source"] = "deterministic_fallback"
-        return out
+    return _deterministic_briefing(context=explorer_bundle)
