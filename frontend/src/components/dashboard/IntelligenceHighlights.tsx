@@ -1,6 +1,7 @@
 "use client";
 
 import { ACTIVE_RECALLS, BLACKLISTED_BATCHES } from "@/demo/nigeria-intelligence";
+import { openExplorerFromContext } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 export function IntelligenceHighlights() {
@@ -11,9 +12,7 @@ export function IntelligenceHighlights() {
       <button
         type="button"
         className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-left outline-none transition hover:ring-2 hover:ring-red-400/30"
-        onClick={() =>
-          openDrawer({ entityType: "national_risk", entityId: "recalls-current", title: "Emergency recalls" })
-        }
+        onClick={() => void openExplorerFromContext(openDrawer, "recalls", "Emergency recalls")}
         aria-label="View emergency recalls explorer"
       >
         <h3 className="text-sm font-semibold text-red-200">Emergency recalls (DEMO)</h3>
@@ -29,13 +28,7 @@ export function IntelligenceHighlights() {
       <button
         type="button"
         className="rounded-xl border border-sovereign-800 bg-sovereign-900/60 p-4 text-left outline-none transition hover:ring-2 hover:ring-sovereign-accent/30"
-        onClick={() =>
-          openDrawer({
-            entityType: "national_risk",
-            entityId: "fraud-flags-current",
-            title: "Blacklisted batches",
-          })
-        }
+        onClick={() => void openExplorerFromContext(openDrawer, "fraud_flags", "Blacklisted batches")}
         aria-label="View fraud and blacklist explorer"
       >
         <h3 className="text-sm font-semibold text-white">Blacklisted batches (DEMO)</h3>

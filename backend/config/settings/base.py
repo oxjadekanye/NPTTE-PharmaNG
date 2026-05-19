@@ -105,6 +105,8 @@ INSTALLED_APPS = [
     "apps.enforcement",
     # Phase 19 — drill-down intelligence explorer (additive)
     "apps.explorer",
+    # Phase 20B preparation — copilot boundaries (no models, placeholders only)
+    "apps.copilot",
 ]
 
 MIDDLEWARE = [

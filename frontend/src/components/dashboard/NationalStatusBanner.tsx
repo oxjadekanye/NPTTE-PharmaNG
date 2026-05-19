@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { computeNationalStatus, NATIONAL_KPIS } from "@/demo/nigeria-intelligence";
 import type { NationalStatus } from "@/demo/types";
+import { openExplorerFromContext } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 const CONFIG: Record<
@@ -39,21 +40,11 @@ export function NationalStatusBanner({ status }: { status?: NationalStatus }) {
       role="button"
       tabIndex={0}
       aria-label="National status. View national risk explorer."
-      onClick={() =>
-        openDrawer({
-          entityType: "national_risk",
-          entityId: "national-risk-current",
-          title: "National status",
-        })
-      }
+      onClick={() => void openExplorerFromContext(openDrawer, "national_status", "National status")}
       onKeyDown={(ev) => {
         if (ev.key === "Enter" || ev.key === " ") {
           ev.preventDefault();
-          openDrawer({
-            entityType: "national_risk",
-            entityId: "national-risk-current",
-            title: "National status",
-          });
+          void openExplorerFromContext(openDrawer, "national_status", "National status");
         }
       }}
       className={clsx(

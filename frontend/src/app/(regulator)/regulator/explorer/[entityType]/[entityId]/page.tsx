@@ -14,6 +14,12 @@ import {
   fetchExplorerRiskBreakdown,
   fetchExplorerTimeline,
 } from "@/services/explorer";
+import { ExplorerCopilotPlaceholder } from "@/components/explorer/ExplorerCopilotPlaceholder";
+import { ExplorerEvidenceTable } from "@/components/explorer/ExplorerEvidenceTable";
+import { ExplorerRecordsTable } from "@/components/explorer/ExplorerRecordsTable";
+import { ExplorerRelatedCards } from "@/components/explorer/ExplorerRelatedCards";
+import { ExplorerRiskPanel } from "@/components/explorer/ExplorerRiskPanel";
+import { ExplorerTimelineList } from "@/components/explorer/ExplorerTimelineList";
 
 export default function ExplorerEntityDetailPage() {
   const params = useParams<{ entityType: string; entityId: string }>();
@@ -22,10 +28,9 @@ export default function ExplorerEntityDetailPage() {
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [risk, setRisk] = useState<Record<string, unknown> | null>(null);
   const [related, setRelated] = useState<Record<string, unknown> | null>(null);
-  const [timeline, setTimeline] = useState<unknown[]>([]);
-  const [evidence, setEvidence] = useState<unknown[]>([]);
+  const [timeline, setTimeline] = useState<Record<string, unknown>[]>([]);
+  const [evidence, setEvidence] = useState<Record<string, unknown>[]>([]);
   const [actions, setActions] = useState<{ id: string; label: string; requires_confirm?: boolean }[]>([]);
-  const [severityFilter, setSeverityFilter] = useState("");
   const [search, setSearch] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
 
@@ -43,8 +48,10 @@ export default function ExplorerEntityDetailPage() {
       if (d.success) setDetail(d.data as Record<string, unknown>);
       if (r?.success) setRisk(r.data as Record<string, unknown>);
       if (rel?.success) setRelated((rel.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null);
-      setTimeline((t?.data as { timeline?: unknown[] })?.timeline ?? []);
-      setEvidence((e?.data as { evidence?: unknown[] })?.evidence ?? []);
+      const tSlice = (t?.data as { timeline?: { items?: unknown[] } })?.timeline;
+      setTimeline((tSlice?.items ?? []) as Record<string, unknown>[]);
+      const eSlice = (e?.data as { evidence?: { items?: unknown[] } })?.evidence;
+      setEvidence((eSlice?.items ?? []) as Record<string, unknown>[]);
       setActions((a?.data as { actions?: typeof actions })?.actions ?? []);
     });
     return () => {
@@ -54,13 +61,10 @@ export default function ExplorerEntityDetailPage() {
 
   const records = useMemo(() => {
     const raw = (detail?.records as Record<string, unknown>[]) ?? [];
-    return raw.filter((row) => {
-      const blob = JSON.stringify(row).toLowerCase();
-      if (search && !blob.includes(search.toLowerCase())) return false;
-      if (severityFilter && String(row.severity ?? "").toLowerCase() !== severityFilter.toLowerCase()) return false;
-      return true;
-    });
-  }, [detail, search, severityFilter]);
+    if (!search.trim()) return raw;
+    const q = search.toLowerCase();
+    return raw.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+  }, [detail, search]);
 
   const summary = (detail?.summary as Record<string, unknown>) ?? {};
 
@@ -85,60 +89,31 @@ export default function ExplorerEntityDetailPage() {
           )}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <input
-            type="search"
-            placeholder="Search records…"
-            value={search}
-            onChange={(ev) => setSearch(ev.target.value)}
-            className="min-w-[180px] rounded border border-sovereign-700 bg-sovereign-900 px-2 py-1 text-xs text-white"
-          />
-          <input
-            type="text"
-            placeholder="Severity filter"
-            value={severityFilter}
-            onChange={(ev) => setSeverityFilter(ev.target.value)}
-            className="w-32 rounded border border-sovereign-700 bg-sovereign-900 px-2 py-1 text-xs text-white"
-          />
-        </div>
-
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="mt-6 space-y-4">
+          <ExplorerRiskPanel risk={risk ?? (detail?.risk_explanation as Record<string, unknown>) ?? null} />
+          <ExplorerRecordsTable records={records} filter={search} onFilterChange={setSearch} />
           <section className="rounded-xl border border-sovereign-800 p-3">
-            <h2 className="text-xs font-semibold uppercase text-slate-400">Risk explanation</h2>
-            <pre className="mt-2 max-h-64 overflow-auto text-[10px] text-slate-400">
-              {JSON.stringify(risk ?? detail?.risk_explanation ?? {}, null, 2)}
-            </pre>
-          </section>
-          <section className="rounded-xl border border-sovereign-800 p-3">
-            <h2 className="text-xs font-semibold uppercase text-slate-400">Relationship map (Phase 19)</h2>
-            <pre className="mt-2 max-h-64 overflow-auto text-[10px] text-slate-400">
-              {JSON.stringify(related ?? detail?.related_entities ?? {}, null, 2)}
-            </pre>
-          </section>
-          <section className="rounded-xl border border-sovereign-800 p-3 lg:col-span-2">
-            <h2 className="text-xs font-semibold uppercase text-slate-400">Records</h2>
-            <pre className="mt-2 max-h-72 overflow-auto text-[10px] text-slate-400">
-              {JSON.stringify(records.slice(0, 80), null, 2)}
-            </pre>
+            <h2 className="text-xs font-semibold uppercase text-slate-400">Related entities</h2>
+            <div className="mt-2">
+              <ExplorerRelatedCards
+                related={(related ?? (detail?.related_entities as Record<string, unknown>)) ?? null}
+              />
+            </div>
           </section>
           <section className="rounded-xl border border-sovereign-800 p-3">
             <h2 className="text-xs font-semibold uppercase text-slate-400">Timeline</h2>
-            <pre className="mt-2 max-h-48 overflow-auto text-[10px] text-slate-400">
-              {JSON.stringify(timeline.slice(0, 40), null, 2)}
-            </pre>
+            <div className="mt-2">
+              <ExplorerTimelineList items={timeline} />
+            </div>
           </section>
           <section className="rounded-xl border border-sovereign-800 p-3">
             <h2 className="text-xs font-semibold uppercase text-slate-400">Evidence</h2>
-            <pre className="mt-2 max-h-48 overflow-auto text-[10px] text-slate-400">
-              {JSON.stringify(evidence, null, 2)}
-            </pre>
+            <div className="mt-2">
+              <ExplorerEvidenceTable items={evidence} />
+            </div>
           </section>
+          <ExplorerCopilotPlaceholder />
         </div>
-
-        <section className="mt-6 rounded-xl border border-dashed border-sovereign-700 p-4 text-sm text-slate-500">
-          <h2 className="text-xs font-semibold uppercase text-slate-400">Phase 20 — Copilot</h2>
-          <p className="mt-2">Structured LLM assist and policy grounding will attach here.</p>
-        </section>
 
         <section className="mt-6 rounded-xl border border-sovereign-800 p-3">
           <h2 className="text-xs font-semibold uppercase text-slate-400">Actions</h2>

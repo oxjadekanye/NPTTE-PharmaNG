@@ -1,5 +1,44 @@
 import { apiRequest } from "./api-client";
 
+export type ExplorerContextRoute = {
+  entity_type: string;
+  entity_id: string;
+  title?: string;
+  subtitle?: string;
+  resolved?: boolean;
+};
+
+export type ExplorerOverview = {
+  entity_type: string;
+  entity_id: string;
+  summary: Record<string, unknown>;
+  confidence_score?: number;
+  tenant_visibility?: string;
+  record_count?: number;
+  record_preview?: Record<string, unknown>[];
+  recommended_actions?: string[];
+  risk_score?: number;
+  risk_status?: string;
+};
+
+export type PaginatedSlice<T = unknown> = {
+  items: T[];
+  page: number;
+  page_size: number;
+  total: number;
+  has_more: boolean;
+};
+
+export function fetchExplorerContextRoute(context: string) {
+  return apiRequest<ExplorerContextRoute>(`/explorer/context-route/?context=${encodeURIComponent(context)}`);
+}
+
+export function fetchExplorerOverview(entityType: string, entityId: string) {
+  return apiRequest<ExplorerOverview>(
+    `/explorer/overview/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/`
+  );
+}
+
 export function fetchExplorerResolve(entityType: string, entityId: string) {
   const q = `?type=${encodeURIComponent(entityType)}&id=${encodeURIComponent(entityId)}`;
   return apiRequest<Record<string, unknown>>(`/explorer/resolve/${q}`);
@@ -17,15 +56,15 @@ export function fetchExplorerRelated(entityType: string, entityId: string) {
   );
 }
 
-export function fetchExplorerTimeline(entityType: string, entityId: string) {
-  return apiRequest<{ timeline: unknown[] }>(
-    `/explorer/timeline/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/`
+export function fetchExplorerTimeline(entityType: string, entityId: string, page = 1) {
+  return apiRequest<{ timeline: PaginatedSlice }>(
+    `/explorer/timeline/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/?page=${page}`
   );
 }
 
-export function fetchExplorerEvidence(entityType: string, entityId: string) {
-  return apiRequest<{ evidence: unknown[] }>(
-    `/explorer/evidence/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/`
+export function fetchExplorerEvidence(entityType: string, entityId: string, page = 1) {
+  return apiRequest<{ evidence: PaginatedSlice }>(
+    `/explorer/evidence/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/?page=${page}`
   );
 }
 

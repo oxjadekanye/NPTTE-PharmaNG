@@ -39,8 +39,32 @@ export async function fetchNationalIntelligence() {
   return apiRequest<Record<string, unknown>>("/intelligence/national/");
 }
 
+const BRIEFING_CACHE_KEY = "nptte_executive_briefing_v1";
+const BRIEFING_TTL_MS = 90_000;
+
 export async function fetchExecutiveBriefing() {
-  return apiRequest<Record<string, unknown>>("/intelligence/executive-briefing/");
+  if (typeof window !== "undefined") {
+    try {
+      const raw = sessionStorage.getItem(BRIEFING_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { at: number; data: Record<string, unknown> };
+        if (Date.now() - parsed.at < BRIEFING_TTL_MS) {
+          return { success: true as const, data: parsed.data };
+        }
+      }
+    } catch {
+      /* ignore cache parse */
+    }
+  }
+  const res = await apiRequest<Record<string, unknown>>("/intelligence/executive-briefing/");
+  if (res.success && res.data && typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem(BRIEFING_CACHE_KEY, JSON.stringify({ at: Date.now(), data: res.data }));
+    } catch {
+      /* quota */
+    }
+  }
+  return res;
 }
 
 export async function fetchEnforcementCases() {

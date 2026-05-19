@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { useCommandStore } from "@/store/command-store";
+import { openExplorerFromContext } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 const severityColor = {
@@ -15,10 +16,11 @@ export function IntelligenceFeed() {
   const feed = useCommandStore((s) => s.feed);
   const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
 
-  const mapFeedToExplorer = (e: { type: string }) => {
-    if (e.type === "customs") return { entityType: "national_risk", entityId: "recalls-current" as const };
-    if (e.type === "shortage") return { entityType: "national_risk", entityId: "national-risk-current" as const };
-    return { entityType: "national_risk", entityId: "counterfeit-detections-current" as const };
+  const mapFeedContext = (e: { type: string }) => {
+    if (e.type === "customs") return "customs";
+    if (e.type === "shortage") return "open_alerts";
+    if (e.type === "recall") return "recalls";
+    return "counterfeit_detections";
   };
 
   return (
@@ -34,16 +36,11 @@ export function IntelligenceFeed() {
             role="button"
             tabIndex={0}
             aria-label={`Intelligence item ${e.type}. View details.`}
-            onClick={() =>
-              openDrawer({
-                ...mapFeedToExplorer(e),
-                title: e.type,
-              })
-            }
+            onClick={() => void openExplorerFromContext(openDrawer, mapFeedContext(e), e.type)}
             onKeyDown={(ev) => {
               if (ev.key === "Enter" || ev.key === " ") {
                 ev.preventDefault();
-                openDrawer({ ...mapFeedToExplorer(e), title: e.type });
+                void openExplorerFromContext(openDrawer, mapFeedContext(e), e.type);
               }
             }}
             className={clsx(

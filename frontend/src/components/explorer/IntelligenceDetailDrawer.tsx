@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import {
@@ -8,25 +8,39 @@ import {
   fetchExplorerActions,
   fetchExplorerDetail,
   fetchExplorerEvidence,
+  fetchExplorerOverview,
+  fetchExplorerRelated,
   fetchExplorerRiskBreakdown,
   fetchExplorerTimeline,
 } from "@/services/explorer";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
+import { ExplorerCopilotPlaceholder } from "./ExplorerCopilotPlaceholder";
+import { ExplorerDrawerSkeleton } from "./ExplorerDrawerSkeleton";
+import { ExplorerEvidenceTable } from "./ExplorerEvidenceTable";
+import { ExplorerRecordsTable } from "./ExplorerRecordsTable";
+import { ExplorerRelatedCards } from "./ExplorerRelatedCards";
+import { ExplorerRiskPanel } from "./ExplorerRiskPanel";
+import { ExplorerSeverityBadge } from "./ExplorerSeverityBadge";
+import { ExplorerTimelineList } from "./ExplorerTimelineList";
 
 function explorerPageHref(entityType: string, entityId: string) {
   return `/regulator/explorer/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
 }
 
-export function IntelligenceDetailDrawer() {
+function IntelligenceDetailDrawerInner() {
   const open = useExplorerDrawerStore((s) => s.open);
   const target = useExplorerDrawerStore((s) => s.target);
   const closeDrawer = useExplorerDrawerStore((s) => s.closeDrawer);
-  const [loading, setLoading] = useState(false);
+
+  const [overviewLoading, setOverviewLoading] = useState(false);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [risk, setRisk] = useState<Record<string, unknown> | null>(null);
-  const [timeline, setTimeline] = useState<unknown[]>([]);
-  const [evidence, setEvidence] = useState<unknown[]>([]);
+  const [timeline, setTimeline] = useState<Record<string, unknown>[]>([]);
+  const [evidence, setEvidence] = useState<Record<string, unknown>[]>([]);
+  const [related, setRelated] = useState<Record<string, unknown> | null>(null);
   const [actions, setActions] = useState<{ id: string; label: string; requires_confirm?: boolean }[]>([]);
   const [filter, setFilter] = useState("");
   const [execMsg, setExecMsg] = useState<string | null>(null);
@@ -36,32 +50,49 @@ export function IntelligenceDetailDrawer() {
 
   const load = useCallback(async () => {
     if (!target) return;
-    setLoading(true);
+    setOverviewLoading(true);
+    setSectionsLoading(true);
     setError(null);
     setExecMsg(null);
+    setOverview(null);
+    setDetail(null);
+
     try {
-      const [d, r, t, e, a] = await Promise.all([
+      const ovRes = await fetchExplorerOverview(target.entityType, target.entityId);
+      if (ovRes.success && ovRes.data) {
+        setOverview(ovRes.data as Record<string, unknown>);
+      }
+    } catch {
+      /* overview optional */
+    } finally {
+      setOverviewLoading(false);
+    }
+
+    try {
+      const [d, r, t, e, rel, a] = await Promise.all([
         fetchExplorerDetail(target.entityType, target.entityId),
         fetchExplorerRiskBreakdown(target.entityType, target.entityId).catch(() => null),
         fetchExplorerTimeline(target.entityType, target.entityId).catch(() => null),
         fetchExplorerEvidence(target.entityType, target.entityId).catch(() => null),
+        fetchExplorerRelated(target.entityType, target.entityId).catch(() => null),
         fetchExplorerActions(target.entityType, target.entityId).catch(() => null),
       ]);
       if (!d.success) {
         setError(d.message || "Unable to load explorer detail");
-        setDetail(null);
         return;
       }
       setDetail((d.data as Record<string, unknown>) ?? null);
       setRisk(r?.success ? (r.data as Record<string, unknown>) : null);
-      setTimeline((t?.data as { timeline?: unknown[] })?.timeline ?? []);
-      setEvidence((e?.data as { evidence?: unknown[] })?.evidence ?? []);
+      const tItems = (t?.data as { timeline?: { items?: unknown[] } })?.timeline;
+      setTimeline((tItems?.items ?? (tItems as unknown as unknown[]) ?? []) as Record<string, unknown>[]);
+      const eItems = (e?.data as { evidence?: { items?: unknown[] } })?.evidence;
+      setEvidence((eItems?.items ?? (eItems as unknown as unknown[]) ?? []) as Record<string, unknown>[]);
+      setRelated((rel?.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null);
       setActions((a?.data as { actions?: typeof actions })?.actions ?? []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Request failed");
-      setDetail(null);
     } finally {
-      setLoading(false);
+      setSectionsLoading(false);
     }
   }, [target]);
 
@@ -78,7 +109,9 @@ export function IntelligenceDetailDrawer() {
 
   if (!open || !target) return null;
 
-  const summary = (detail?.summary as Record<string, unknown>) ?? {};
+  const summary = (detail?.summary as Record<string, unknown>) ?? (overview?.summary as Record<string, unknown>) ?? {};
+  const severity = String(summary.severity ?? overview?.risk_status ?? "");
+  const loading = overviewLoading && sectionsLoading;
 
   return (
     <div className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm" role="presentation">
@@ -90,7 +123,7 @@ export function IntelligenceDetailDrawer() {
       />
       <aside
         className={clsx(
-          "flex h-full w-full max-w-lg flex-col border-l border-sovereign-800 bg-sovereign-950 shadow-2xl transition-transform duration-200"
+          "flex h-full w-full max-w-lg flex-col border-l border-sovereign-800 bg-sovereign-950 shadow-2xl"
         )}
         role="dialog"
         aria-modal="true"
@@ -101,8 +134,11 @@ export function IntelligenceDetailDrawer() {
             <p id="explorer-drawer-title" className="text-sm font-semibold text-white">
               {String(summary.title ?? target.title ?? "Operational intelligence")}
             </p>
-            <p className="mt-0.5 text-[10px] uppercase tracking-wider text-slate-500">
-              {entityType} · {entityId}
+            <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-slate-500">
+              <span>
+                {entityType} · {entityId}
+              </span>
+              {severity && <ExplorerSeverityBadge severity={severity} />}
             </p>
           </div>
           <button
@@ -115,97 +151,92 @@ export function IntelligenceDetailDrawer() {
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3">
-          {loading && <p className="text-sm text-slate-500">Loading operational picture…</p>}
+          {loading && <ExplorerDrawerSkeleton />}
           {error && (
             <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-200">
               <p>{error}</p>
-              <button type="button" className="mt-2 text-xs text-sovereign-accent hover:underline" onClick={() => void load()}>
+              <button
+                type="button"
+                className="mt-2 text-xs text-sovereign-accent hover:underline"
+                onClick={() => void load()}
+              >
                 Retry
               </button>
             </div>
           )}
-          {!loading && !error && detail && (
+          {!error && (overview || detail || overviewLoading) && (
             <div className="space-y-4 text-xs text-slate-300">
-              <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
-                <span>Visibility: {String(detail.tenant_visibility)}</span>
-                {detail.confidence_score != null && <span>Confidence: {String(detail.confidence_score)}</span>}
-              </div>
+              {(detail || overview) && (
+                <div className="flex flex-wrap gap-2 text-[10px] text-slate-500">
+                  <span>Visibility: {String(detail?.tenant_visibility ?? overview?.tenant_visibility ?? "—")}</span>
+                  {(detail?.confidence_score ?? overview?.confidence_score) != null && (
+                    <span>Confidence: {String(detail?.confidence_score ?? overview?.confidence_score)}</span>
+                  )}
+                </div>
+              )}
               {summary.body != null && String(summary.body).length > 0 && (
                 <p className="text-sm text-slate-200">{String(summary.body)}</p>
               )}
-              {risk && Object.keys(risk).length > 0 && (
-                <section>
-                  <h4 className="text-[11px] font-semibold uppercase text-slate-400">Risk breakdown</h4>
-                  <pre className="mt-1 max-h-40 overflow-auto rounded border border-sovereign-800 bg-sovereign-900/80 p-2 text-[10px]">
-                    {JSON.stringify(risk, null, 2)}
-                  </pre>
-                </section>
+              {sectionsLoading && !detail ? (
+                <ExplorerDrawerSkeleton />
+              ) : (
+                <>
+                  <ExplorerRiskPanel risk={risk} />
+                  <ExplorerRecordsTable records={records} filter={filter} onFilterChange={setFilter} />
+                  <section>
+                    <h4 className="text-[11px] font-semibold uppercase text-slate-400">Timeline</h4>
+                    <div className="mt-2">
+                      <ExplorerTimelineList items={timeline} />
+                    </div>
+                  </section>
+                  <section>
+                    <h4 className="text-[11px] font-semibold uppercase text-slate-400">Evidence</h4>
+                    <div className="mt-2">
+                      <ExplorerEvidenceTable items={evidence} />
+                    </div>
+                  </section>
+                  <section>
+                    <h4 className="text-[11px] font-semibold uppercase text-slate-400">Related entities</h4>
+                    <div className="mt-2">
+                      <ExplorerRelatedCards related={related} />
+                    </div>
+                  </section>
+                  {actions.length > 0 && (
+                    <section>
+                      <h4 className="text-[11px] font-semibold uppercase text-slate-400">Actions</h4>
+                      <ul className="mt-2 space-y-2">
+                        {actions.map((act) => (
+                          <li key={act.id}>
+                            <button
+                              type="button"
+                              className="w-full rounded border border-sovereign-700 px-2 py-1.5 text-left text-xs text-sovereign-accent hover:bg-sovereign-800"
+                              onClick={async () => {
+                                setExecMsg(null);
+                                try {
+                                  const res = await executeExplorerAction(entityType, entityId, {
+                                    action_id: act.id,
+                                    confirm: act.requires_confirm ? true : false,
+                                    title: `Explorer: ${act.label}`,
+                                  });
+                                  if (res.success) setExecMsg("Action completed.");
+                                  else setExecMsg(res.message || "Action failed");
+                                } catch {
+                                  setExecMsg("Action failed (regulator-only or confirmation required).");
+                                }
+                              }}
+                            >
+                              {act.label}
+                              {act.requires_confirm ? " (confirms)" : ""}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
+                  {execMsg && <p className="text-emerald-400">{execMsg}</p>}
+                  <ExplorerCopilotPlaceholder />
+                </>
               )}
-              <section>
-                <h4 className="text-[11px] font-semibold uppercase text-slate-400">Records</h4>
-                <input
-                  type="search"
-                  placeholder="Filter records…"
-                  value={filter}
-                  onChange={(ev) => setFilter(ev.target.value)}
-                  className="mt-1 w-full rounded border border-sovereign-700 bg-sovereign-900 px-2 py-1 text-xs text-white"
-                />
-                <pre className="mt-2 max-h-48 overflow-auto rounded border border-sovereign-800 bg-sovereign-900/80 p-2 text-[10px]">
-                  {JSON.stringify(records.slice(0, 40), null, 2)}
-                </pre>
-              </section>
-              {timeline.length > 0 && (
-                <section>
-                  <h4 className="text-[11px] font-semibold uppercase text-slate-400">Timeline</h4>
-                  <pre className="mt-1 max-h-32 overflow-auto rounded border border-sovereign-800 bg-sovereign-900/80 p-2 text-[10px]">
-                    {JSON.stringify(timeline.slice(0, 20), null, 2)}
-                  </pre>
-                </section>
-              )}
-              {evidence.length > 0 && (
-                <section>
-                  <h4 className="text-[11px] font-semibold uppercase text-slate-400">Evidence</h4>
-                  <pre className="mt-1 max-h-32 overflow-auto rounded border border-sovereign-800 bg-sovereign-900/80 p-2 text-[10px]">
-                    {JSON.stringify(evidence, null, 2)}
-                  </pre>
-                </section>
-              )}
-              {actions.length > 0 && (
-                <section>
-                  <h4 className="text-[11px] font-semibold uppercase text-slate-400">Actions</h4>
-                  <ul className="mt-2 space-y-2">
-                    {actions.map((act) => (
-                      <li key={act.id}>
-                        <button
-                          type="button"
-                          className="w-full rounded border border-sovereign-700 px-2 py-1.5 text-left text-xs text-sovereign-accent hover:bg-sovereign-800"
-                          onClick={async () => {
-                            setExecMsg(null);
-                            try {
-                              const res = await executeExplorerAction(entityType, entityId, {
-                                action_id: act.id,
-                                confirm: act.requires_confirm ? true : false,
-                                title: `Explorer: ${act.label}`,
-                              });
-                              if (res.success) setExecMsg("Action completed.");
-                              else setExecMsg(res.message || "Action failed");
-                            } catch {
-                              setExecMsg("Action failed (regulator-only or confirmation required).");
-                            }
-                          }}
-                        >
-                          {act.label}
-                          {act.requires_confirm ? " (confirms)" : ""}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-              {execMsg && <p className="text-emerald-400">{execMsg}</p>}
-              <section className="rounded border border-dashed border-sovereign-700 p-2 text-[10px] text-slate-500">
-                Phase 20 — Copilot / LLM assist placeholder (no external calls in this phase).
-              </section>
             </div>
           )}
         </div>
@@ -223,3 +254,5 @@ export function IntelligenceDetailDrawer() {
     </div>
   );
 }
+
+export const IntelligenceDetailDrawer = memo(IntelligenceDetailDrawerInner);

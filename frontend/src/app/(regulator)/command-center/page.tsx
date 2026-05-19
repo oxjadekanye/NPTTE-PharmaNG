@@ -27,34 +27,34 @@ export default function CommandCenterPage() {
             value: String(d.active_disruptions ?? "0"),
             numericValue: Number(d.active_disruptions) || 0,
             pulse: true,
-            explorer: { entityType: "national_risk", entityId: "high-risk-current" },
+            explorerContext: "national_status",
           },
           {
             label: "Interventions",
             value: String(d.active_interventions ?? "0"),
             numericValue: Number(d.active_interventions) || 0,
             severity: "warning",
-            explorer: { entityType: "national_risk", entityId: "active-investigations-current" },
+            explorerContext: "active_investigations",
           },
           {
             label: "Shortage alerts",
             value: String(e.open_shortage_alerts ?? NATIONAL_KPIS.shortageAlerts),
             numericValue: Number(e.open_shortage_alerts) || NATIONAL_KPIS.shortageAlerts,
             severity: "critical",
-            explorer: { entityType: "national_risk", entityId: "national-risk-current" },
+            explorerContext: "open_alerts",
           },
           {
             label: "National threat score",
             value: String(d.national_threat ?? "62"),
             numericValue: Number(d.national_threat) || 62,
-            explorer: { entityType: "national_risk", entityId: "national-risk-current" },
+            explorerContext: "national_status",
           },
         ]);
       })
       .catch(() =>
         setMetrics([
-          { label: "Shortage alerts", numericValue: NATIONAL_KPIS.shortageAlerts, value: NATIONAL_KPIS.shortageAlerts, severity: "critical", explorer: { entityType: "national_risk", entityId: "national-risk-current" } },
-          { label: "Fraud alerts", numericValue: NATIONAL_KPIS.fraudAlerts, value: NATIONAL_KPIS.fraudAlerts, severity: "warning", explorer: { entityType: "national_risk", entityId: "fraud-flags-current" } },
+          { label: "Shortage alerts", numericValue: NATIONAL_KPIS.shortageAlerts, value: NATIONAL_KPIS.shortageAlerts, severity: "critical", explorerContext: "open_alerts" },
+          { label: "Fraud alerts", numericValue: NATIONAL_KPIS.fraudAlerts, value: NATIONAL_KPIS.fraudAlerts, severity: "warning", explorerContext: "fraud_flags" },
         ])
       );
   }, []);

@@ -55,4 +55,10 @@ def assign_case(*, case: EnforcementCase, investigator, actor=None, notes: str =
         actor=actor,
         created_by=actor,
     )
+    try:
+        from apps.explorer.services.invalidate import on_investigation_update
+
+        on_investigation_update(case_id=str(case.id))
+    except Exception:
+        pass
     return assignment

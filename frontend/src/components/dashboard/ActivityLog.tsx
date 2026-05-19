@@ -1,6 +1,7 @@
 "use client";
 
 import { useCommandStore } from "@/store/command-store";
+import { openExplorerFromContext } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 export function ActivityLog() {
@@ -12,13 +13,7 @@ export function ActivityLog() {
       <button
         type="button"
         className="mb-3 w-full text-left"
-        onClick={() =>
-          openDrawer({
-            entityType: "task",
-            entityId: "command-activity-current",
-            title: "Command activity",
-          })
-        }
+        onClick={() => void openExplorerFromContext(openDrawer, "command_activity", "Command activity")}
       >
         <h3 className="text-sm font-semibold text-white hover:text-sovereign-accent">Command activity</h3>
         <p className="text-[10px] text-slate-500">Simulated operational log (DEMO) · click header for trace</p>
@@ -29,13 +24,7 @@ export function ActivityLog() {
             <button
               type="button"
               className="w-full rounded px-1 text-left hover:bg-sovereign-800/60 hover:text-slate-200"
-              onClick={() =>
-                openDrawer({
-                  entityType: "task",
-                  entityId: "command-activity-current",
-                  title: line.slice(0, 80),
-                })
-              }
+              onClick={() => void openExplorerFromContext(openDrawer, "command_activity", line.slice(0, 80))}
             >
               {line}
             </button>

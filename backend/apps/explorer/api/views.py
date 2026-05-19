@@ -1,4 +1,4 @@
-"""Phase 19 — explorer HTTP API."""
+"""Phase 19/20A — explorer HTTP API with caching and split payloads."""
 from __future__ import annotations
 
 from rest_framework.permissions import IsAuthenticated
@@ -6,25 +6,44 @@ from rest_framework.views import APIView
 
 from apps.core.api.responses import api_response
 from apps.core.roles import is_regulator_user
-from apps.explorer.constants import ENTITY_TYPES
+from apps.explorer.constants import AGGREGATE_IDS, ENTITY_TYPES
 from apps.explorer.services.access_control import (
     assert_explorer_access,
     assert_regional_explorer_access,
     aggregate_requires_regulator,
     is_aggregate_id,
 )
+from apps.explorer.services.cache import (
+    TTL_ENFORCEMENT,
+    TTL_NATIONAL_RISK,
+    TTL_TIMELINE,
+    cached_explorer,
+)
+from apps.explorer.services.context_router import resolve_context_route
 from apps.explorer.services.entity_resolution import resolve_entity
 from apps.explorer.services.execute_action import execute_explorer_action
+from apps.explorer.services.invalidate import on_enforcement_mutation
+from apps.explorer.services.overview import build_explorer_overview, paginate_list
 from apps.explorer.services.payloads import (
     build_evidence_entries,
     build_explorer_bundle,
+    build_graph_stub,
     build_timeline_entries,
     get_access_handles,
     list_operational_actions,
 )
 from apps.explorer.services import risk_breakdown
 from apps.operations.models import RegulatorOperationalHistory
-from apps.tenancy.services.tenant import log_tenant_access_denied
+from apps.tenancy.services.tenant import get_active_organisation_id, log_tenant_access_denied
+
+
+def _user_cache_id(request) -> str:
+    return str(request.user.pk) if request.user.is_authenticated else "anon"
+
+
+def _org_scope(request) -> str:
+    oid = get_active_organisation_id(request)
+    return str(oid) if oid else ""
 
 
 def _audit_regulator_explore(*, user, entity_type: str, entity_id: str) -> None:
@@ -96,6 +115,34 @@ def _check_explorer_access(request, entity_type: str, entity_id: str) -> tuple[b
     return ok, reason
 
 
+def _page_params(request) -> tuple[int, int]:
+    try:
+        page = int(request.query_params.get("page", 1))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        page_size = int(request.query_params.get("page_size", 25))
+    except (TypeError, ValueError):
+        page_size = 25
+    return page, page_size
+
+
+class ExplorerContextRouteView(APIView):
+    """Resolve dashboard context key to a concrete entity target."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        context_key = request.query_params.get("context", "").strip()
+        if not context_key:
+            return api_response(message="context required", status_code=400)
+        route = resolve_context_route(context_key=context_key, user=request.user)
+        ok, reason = _check_explorer_access(request, route["entity_type"], route["entity_id"])
+        if not ok:
+            return api_response(message=reason, status_code=403)
+        return api_response(data=route, message="Context routed")
+
+
 class ExplorerResolveView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -113,6 +160,29 @@ class ExplorerResolveView(APIView):
         return api_response(data=data, message="Resolved")
 
 
+class ExplorerOverviewView(APIView):
+    """Lightweight first paint — summary and preview only."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, entity_type, entity_id):
+        ok, reason = _check_explorer_access(request, entity_type, entity_id)
+        if not ok:
+            return api_response(message=reason, status_code=403 if reason != "not_found" else 404)
+        uid = _user_cache_id(request)
+        org = _org_scope(request)
+        data = cached_explorer(
+            scope="overview",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            user_id=uid,
+            ttl=TTL_NATIONAL_RISK,
+            org_scope=org,
+            builder=lambda: build_explorer_overview(request, entity_type, entity_id),
+        )
+        return api_response(data=data, message="Explorer overview")
+
+
 class ExplorerDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -120,7 +190,21 @@ class ExplorerDetailView(APIView):
         ok, reason = _check_explorer_access(request, entity_type, entity_id)
         if not ok:
             return api_response(message=reason, status_code=403 if reason != "not_found" else 404)
-        bundle = build_explorer_bundle(request, entity_type, entity_id)
+        uid = _user_cache_id(request)
+        org = _org_scope(request)
+        ttl = TTL_ENFORCEMENT if entity_type.startswith("enforcement") else TTL_NATIONAL_RISK
+        bundle = cached_explorer(
+            scope="detail",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            user_id=uid,
+            ttl=ttl,
+            org_scope=org,
+            builder=lambda: build_explorer_bundle(request, entity_type, entity_id),
+        )
+        page, page_size = _page_params(request)
+        if bundle.get("records"):
+            bundle["records"] = paginate_list(bundle["records"], page=page, page_size=page_size)
         _audit_regulator_explore(user=request.user, entity_type=entity_type, entity_id=entity_id)
         return api_response(data=bundle, message="Explorer detail")
 
@@ -132,8 +216,18 @@ class ExplorerRelatedView(APIView):
         ok, reason = _check_explorer_access(request, entity_type, entity_id)
         if not ok:
             return api_response(message=reason, status_code=403 if reason != "not_found" else 404)
-        bundle = build_explorer_bundle(request, entity_type, entity_id)
-        return api_response(data={"related_entities": bundle.get("related_entities")}, message="Related")
+        uid = _user_cache_id(request)
+        related = cached_explorer(
+            scope="related",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            user_id=uid,
+            ttl=TTL_NATIONAL_RISK,
+            org_scope=_org_scope(request),
+            builder=lambda: build_explorer_bundle(request, entity_type, entity_id).get("related_entities")
+            or build_graph_stub(entity_type=entity_type, entity_id=entity_id, summary_row=None),
+        )
+        return api_response(data={"related_entities": related}, message="Related")
 
 
 class ExplorerTimelineView(APIView):
@@ -143,9 +237,23 @@ class ExplorerTimelineView(APIView):
         ok, reason = _check_explorer_access(request, entity_type, entity_id)
         if not ok:
             return api_response(message=reason, status_code=403 if reason != "not_found" else 404)
-        bundle = build_explorer_bundle(request, entity_type, entity_id)
-        tl = bundle.get("timeline") or build_timeline_entries(entity_type, entity_id)
-        return api_response(data={"timeline": tl}, message="Timeline")
+        page, page_size = _page_params(request)
+
+        def _build():
+            bundle = build_explorer_bundle(request, entity_type, entity_id)
+            tl = bundle.get("timeline") or build_timeline_entries(entity_type, entity_id)
+            return paginate_list(tl if isinstance(tl, list) else [], page=page, page_size=page_size)
+
+        data = cached_explorer(
+            scope=f"timeline:{page}:{page_size}",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            user_id=_user_cache_id(request),
+            ttl=TTL_TIMELINE,
+            org_scope=_org_scope(request),
+            builder=_build,
+        )
+        return api_response(data={"timeline": data}, message="Timeline")
 
 
 class ExplorerEvidenceView(APIView):
@@ -155,9 +263,22 @@ class ExplorerEvidenceView(APIView):
         ok, reason = _check_explorer_access(request, entity_type, entity_id)
         if not ok:
             return api_response(message=reason, status_code=403 if reason != "not_found" else 404)
-        bundle = build_explorer_bundle(request, entity_type, entity_id)
-        ev = bundle.get("evidence") or build_evidence_entries(entity_type, entity_id)
-        return api_response(data={"evidence": ev}, message="Evidence")
+        page, page_size = _page_params(request)
+
+        def _build():
+            ev = build_evidence_entries(entity_type, entity_id)
+            return paginate_list(ev if isinstance(ev, list) else [], page=page, page_size=page_size)
+
+        data = cached_explorer(
+            scope=f"evidence:{page}:{page_size}",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            user_id=_user_cache_id(request),
+            ttl=TTL_TIMELINE,
+            org_scope=_org_scope(request),
+            builder=_build,
+        )
+        return api_response(data={"evidence": data}, message="Evidence")
 
 
 class ExplorerActionsView(APIView):
@@ -178,15 +299,25 @@ class ExplorerRiskBreakdownView(APIView):
         ok, reason = _check_explorer_access(request, entity_type, entity_id)
         if not ok:
             return api_response(message=reason, status_code=403 if reason != "not_found" else 404)
-        if is_aggregate_id(entity_id) and entity_id == "national-risk-current":
-            return api_response(data=risk_breakdown.national_risk_breakdown(), message="Risk breakdown")
-        if entity_type == "regional_risk":
-            return api_response(
-                data=risk_breakdown.regional_risk_breakdown(entity_id),
-                message="Risk breakdown",
-            )
-        bundle = build_explorer_bundle(request, entity_type, entity_id)
-        return api_response(data=bundle.get("risk_explanation") or {}, message="Risk breakdown")
+
+        def _build():
+            if is_aggregate_id(entity_id) and entity_id == "national-risk-current":
+                return risk_breakdown.national_risk_breakdown()
+            if entity_type == "regional_risk":
+                return risk_breakdown.regional_risk_breakdown(entity_id)
+            bundle = build_explorer_bundle(request, entity_type, entity_id)
+            return bundle.get("risk_explanation") or {}
+
+        data = cached_explorer(
+            scope="risk",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            user_id=_user_cache_id(request),
+            ttl=TTL_NATIONAL_RISK,
+            org_scope=_org_scope(request),
+            builder=_build,
+        )
+        return api_response(data=data, message="Risk breakdown")
 
 
 class ExplorerExecuteActionView(APIView):
@@ -206,6 +337,8 @@ class ExplorerExecuteActionView(APIView):
             action_id=action_id,
             payload=request.data,
         )
+        if result.get("ok"):
+            on_enforcement_mutation(entity_type=entity_type, entity_id=entity_id)
         if not result.get("ok"):
             return api_response(data=result, message=result.get("error", "failed"), status_code=400)
         return api_response(data=result, message="Action executed", status_code=201)

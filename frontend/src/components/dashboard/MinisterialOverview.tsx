@@ -15,6 +15,7 @@ import {
   NATIONAL_KPIS,
   computeNationalStatus,
 } from "@/demo/nigeria-intelligence";
+import { openExplorerFromContext } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import { NationalStatusBanner } from "./NationalStatusBanner";
 
@@ -39,21 +40,21 @@ export function MinisterialOverview() {
           label="National verifications (24h)"
           numericValue={kpis.verificationsToday}
           pulse
-          explorer={{ entityType: "national_risk", entityId: "national-risk-current" }}
+          explorerContext="verifications_24h"
         />
         <AnimatedMetricCard
           label="Compliance rate"
           numericValue={kpis.complianceRate}
           decimals={1}
           suffix="%"
-          explorer={{ entityType: "national_risk", entityId: "national-risk-current" }}
+          explorerContext="national_status"
         />
         <AnimatedMetricCard
           label="Scan success rate"
           numericValue={kpis.scanSuccessRate}
           decimals={1}
           suffix="%"
-          explorer={{ entityType: "national_risk", entityId: "national-risk-current" }}
+          explorerContext="verifications_24h"
         />
         <AnimatedMetricCard
           label="Counterfeit reduction (YoY)"
@@ -61,7 +62,7 @@ export function MinisterialOverview() {
           decimals={1}
           suffix="%"
           severity="normal"
-          explorer={{ entityType: "national_risk", entityId: "counterfeit-detections-current" }}
+          explorerContext="counterfeit_detections"
         />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
@@ -72,9 +73,7 @@ export function MinisterialOverview() {
               <button
                 type="button"
                 className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
-                onClick={() =>
-                  openDrawer({ entityType: "national_risk", entityId: "recalls-current", title: "Active recalls" })
-                }
+                onClick={() => void openExplorerFromContext(openDrawer, "recalls", "Active recalls")}
               >
                 Active recalls: {kpis.recallsActive} (DEMO)
               </button>
@@ -83,13 +82,7 @@ export function MinisterialOverview() {
               <button
                 type="button"
                 className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
-                onClick={() =>
-                  openDrawer({
-                    entityType: "national_risk",
-                    entityId: "national-risk-current",
-                    title: "Shortage alerts",
-                  })
-                }
+                onClick={() => void openExplorerFromContext(openDrawer, "open_alerts", "Shortage alerts")}
               >
                 Regional shortage alerts: {kpis.shortageAlerts}
               </button>
@@ -98,13 +91,7 @@ export function MinisterialOverview() {
               <button
                 type="button"
                 className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
-                onClick={() =>
-                  openDrawer({
-                    entityType: "national_risk",
-                    entityId: "active-investigations-current",
-                    title: "Investigations",
-                  })
-                }
+                onClick={() => void openExplorerFromContext(openDrawer, "active_investigations", "Investigations")}
               >
                 Active investigations: {kpis.activeInvestigations}
               </button>
@@ -114,11 +101,7 @@ export function MinisterialOverview() {
                 type="button"
                 className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
                 onClick={() =>
-                  openDrawer({
-                    entityType: "national_risk",
-                    entityId: "counterfeit-detections-current",
-                    title: "Counterfeit detections",
-                  })
+                  void openExplorerFromContext(openDrawer, "counterfeit_detections", "Counterfeit detections")
                 }
               >
                 Counterfeit detections (30d): {kpis.counterfeitDetections}
@@ -134,9 +117,7 @@ export function MinisterialOverview() {
                 <button
                   type="button"
                   className="text-left hover:text-sovereign-accent"
-                  onClick={() =>
-                    openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: a })
-                  }
+                  onClick={() => void openExplorerFromContext(openDrawer, "enforcement_recommendation", a)}
                 >
                   {a}
                 </button>

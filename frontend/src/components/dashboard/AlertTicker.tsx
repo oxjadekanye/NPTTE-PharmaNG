@@ -1,6 +1,7 @@
 "use client";
 
 import { useCommandStore } from "@/store/command-store";
+import { openExplorerFromContext } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 export function AlertTicker() {
@@ -11,13 +12,7 @@ export function AlertTicker() {
     <button
       type="button"
       className="w-full overflow-hidden rounded-lg border border-red-500/30 bg-red-950/40 text-left outline-none transition hover:ring-2 hover:ring-red-400/40"
-      onClick={() =>
-        openDrawer({
-          entityType: "alert",
-          entityId: "open-alerts-current",
-          title: "Open alerts",
-        })
-      }
+      onClick={() => void openExplorerFromContext(openDrawer, "open_alerts", "Open alerts")}
       aria-label="Open alerts explorer"
     >
       <div className="flex items-center gap-3 px-4 py-2">

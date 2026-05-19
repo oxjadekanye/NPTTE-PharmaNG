@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useRealtime } from "@/hooks/useRealtime";
 import { fetchCommandCenterLive } from "@/services/streambus";
+import { openExplorerFromContext, openExplorerFromStreamEvent } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 type LiveEvent = {
@@ -59,9 +60,7 @@ export function LiveEventFeed({ useSse = true }: { useSse?: boolean }) {
           <button
             type="button"
             className="rounded-lg border border-sovereign-700/60 py-2 outline-none transition hover:bg-sovereign-800/50"
-            onClick={() =>
-              openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: "Scan throughput" })
-            }
+            onClick={() => void openExplorerFromContext(openDrawer, "verifications_24h", "Scan throughput")}
           >
             <p className="text-slate-500">Scans/hr</p>
             <p className="text-lg font-semibold text-white">{telemetry.scan_throughput ?? "—"}</p>
@@ -69,9 +68,7 @@ export function LiveEventFeed({ useSse = true }: { useSse?: boolean }) {
           <button
             type="button"
             className="rounded-lg border border-sovereign-700/60 py-2 outline-none transition hover:bg-sovereign-800/50"
-            onClick={() =>
-              openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: "Event throughput" })
-            }
+            onClick={() => void openExplorerFromContext(openDrawer, "command_activity", "Event throughput")}
           >
             <p className="text-slate-500">Events/hr</p>
             <p className="text-lg font-semibold text-white">{telemetry.event_throughput ?? "—"}</p>
@@ -79,13 +76,7 @@ export function LiveEventFeed({ useSse = true }: { useSse?: boolean }) {
           <button
             type="button"
             className="rounded-lg border border-amber-500/30 py-2 outline-none transition hover:bg-amber-500/10"
-            onClick={() =>
-              openDrawer({
-                entityType: "national_risk",
-                entityId: "counterfeit-detections-current",
-                title: "Suspicious rate",
-              })
-            }
+            onClick={() => void openExplorerFromContext(openDrawer, "counterfeit_detections", "Suspicious rate")}
           >
             <p className="text-amber-400/80">Suspicious %</p>
             <p className="text-lg font-semibold text-amber-300">
@@ -103,13 +94,16 @@ export function LiveEventFeed({ useSse = true }: { useSse?: boolean }) {
               <button
                 type="button"
                 className="w-full text-left outline-none transition hover:text-sovereign-accent"
-                onClick={() =>
-                  openDrawer({
-                    entityType: "national_risk",
-                    entityId: "national-risk-current",
-                    title: String(ev.event_type ?? "stream event"),
-                  })
-                }
+                onClick={() => {
+                  const payload = (ev.payload ?? {}) as Record<string, unknown>;
+                  if (!openExplorerFromStreamEvent(openDrawer, payload, String(ev.event_type ?? "stream event"))) {
+                    void openExplorerFromContext(
+                      openDrawer,
+                      "command_activity",
+                      String(ev.event_type ?? "stream event")
+                    );
+                  }
+                }}
               >
                 <p className="font-medium text-slate-200">{ev.event_type ?? "event"}</p>
                 <p className="text-slate-500">#{ev.sequence_number ?? "—"}</p>

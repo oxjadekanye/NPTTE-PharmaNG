@@ -14,6 +14,7 @@ import {
   fetchRegionalRisk,
   runCorrelation,
 } from "@/services/sovereign-intelligence";
+import { openExplorerFromContext } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 type RiskRow = {
@@ -67,17 +68,11 @@ export default function IntelligenceDashboardPage() {
               role="button"
               tabIndex={0}
               className="cursor-pointer rounded-lg outline-none transition hover:bg-sovereign-800/30"
-              onClick={() =>
-                openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: "National risk" })
-              }
+              onClick={() => void openExplorerFromContext(openDrawer, "national_status", "National risk")}
               onKeyDown={(ev) => {
                 if (ev.key === "Enter" || ev.key === " ") {
                   ev.preventDefault();
-                  openDrawer({
-                    entityType: "national_risk",
-                    entityId: "national-risk-current",
-                    title: "National risk",
-                  });
+                  void openExplorerFromContext(openDrawer, "national_status", "National risk");
                 }
               }}
             >

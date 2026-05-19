@@ -2,6 +2,7 @@
 
 import clsx from "clsx";
 import { useAnimatedCounter, formatMetricValue } from "@/hooks/useAnimatedCounter";
+import { openExplorerTarget } from "@/lib/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import type { MetricCard } from "@/shared/types";
 
@@ -20,6 +21,7 @@ export function AnimatedMetricCard({
   pulse = false,
   suffix = "",
   explorer,
+  explorerContext,
 }: MetricCard & { numericValue?: number; decimals?: number; pulse?: boolean; suffix?: string }) {
   const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
   const target = numericValue ?? (typeof value === "number" ? value : parseFloat(String(value).replace(/,/g, "")));
@@ -29,9 +31,9 @@ export function AnimatedMetricCard({
     ? `${formatMetricValue(animated, decimals)}${suffix}`
     : String(value ?? "—");
 
-  const interactive = Boolean(explorer);
+  const interactive = Boolean(explorer || explorerContext);
   const activate = () => {
-    if (explorer) openDrawer({ entityType: explorer.entityType, entityId: explorer.entityId, title: label });
+    void openExplorerTarget(openDrawer, { title: label, explorer, context: explorerContext });
   };
 
   return (

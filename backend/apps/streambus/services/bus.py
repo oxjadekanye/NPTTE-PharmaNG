@@ -94,13 +94,37 @@ def publish_operational_event(
 ) -> dict:
     correlation_id = correlation_id or uuid.uuid4()
     category = _map_category(event_type)
+    explorer_entity_type = payload.get("explorer_entity_type", "")
+    explorer_entity_id = payload.get("explorer_entity_id", "")
+    if not explorer_entity_type:
+        if event_type.startswith("enforcement.case"):
+            explorer_entity_type = "enforcement_case"
+            explorer_entity_id = payload.get("case_id", "")
+        elif event_type.startswith("intelligence."):
+            explorer_entity_type = "intelligence_signal"
+            explorer_entity_id = payload.get("signal_id", "")
+        elif event_type.startswith("scan"):
+            explorer_entity_type = "scan_event"
+            explorer_entity_id = payload.get("scan_id", payload.get("serial_number", ""))
     enriched = {
         **payload,
         "correlation_id": str(correlation_id),
         "source": source,
         "severity": severity,
         "event_type": event_type,
+        "explorer_entity_type": explorer_entity_type,
+        "explorer_entity_id": str(explorer_entity_id) if explorer_entity_id else "",
+        "explorer_target": {
+            "entity_type": explorer_entity_type,
+            "entity_id": str(explorer_entity_id) if explorer_entity_id else "",
+        },
     }
+    try:
+        from apps.explorer.services.invalidate import on_streambus_event
+
+        on_streambus_event(event_type=event_type, payload=enriched)
+    except Exception:
+        pass
     event = EventStreamService.publish_event(
         category=category,
         event_type=event_type,

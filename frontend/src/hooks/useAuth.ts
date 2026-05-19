@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  clearTokens,
-  fetchPermissions,
-  fetchProfile,
-  login as apiLogin,
-  persistTokens,
-  type LoginPayload,
-} from "@/services/auth";
+import { clearTokens, fetchPermissions, fetchProfile, login as apiLogin, persistTokens, type LoginPayload } from "@/services/auth";
+import { ensureAuthBootstrap, resetAuthBootstrap } from "@/services/auth-bootstrap";
 import { useAuthStore } from "@/store/auth-store";
 import { useTenantStore } from "@/store/tenant-store";
 
@@ -25,21 +19,14 @@ export function useAuth() {
       return;
     }
     try {
-      const profile = await fetchProfile();
-      const permsPayload = await fetchPermissions();
-      setUser(profile);
-      setPermissions(permsPayload.permissions ?? []);
-      useTenantStore.getState().setContext(
-        permsPayload.organisation_id ? String(permsPayload.organisation_id) : null,
-        (permsPayload.membership_organisation_ids ?? []).map(String)
-      );
+      await ensureAuthBootstrap();
     } catch {
       clearTokens();
       storeLogout();
     } finally {
       setLoading(false);
     }
-  }, [setUser, setPermissions, storeLogout]);
+  }, [storeLogout]);
 
   useEffect(() => {
     bootstrap();
@@ -47,10 +34,10 @@ export function useAuth() {
 
   const login = async (payload: LoginPayload) => {
     setError(null);
+    resetAuthBootstrap();
     const tokens = await apiLogin(payload);
     persistTokens(tokens);
-    const profile = await fetchProfile();
-    const permsPayload = await fetchPermissions();
+    const [profile, permsPayload] = await Promise.all([fetchProfile(), fetchPermissions()]);
     setUser(profile);
     setPermissions(permsPayload.permissions ?? []);
     useTenantStore.getState().setContext(
@@ -61,6 +48,7 @@ export function useAuth() {
 
   const logout = () => {
     clearTokens();
+    resetAuthBootstrap();
     storeLogout();
   };
 

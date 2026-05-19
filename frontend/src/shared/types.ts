@@ -7,8 +7,10 @@ export type MetricCard = {
   pulse?: boolean;
   trend?: "up" | "down" | "neutral";
   severity?: "normal" | "warning" | "critical";
-  /** Phase 19 — open intelligence drawer when set (regulator shell). */
+  /** Phase 19 — direct entity drill-down. */
   explorer?: { entityType: string; entityId: string };
+  /** Phase 20A — resolve true entity via context-route API. */
+  explorerContext?: string;
 };
 
 export type IncidentRow = {

@@ -29,7 +29,12 @@ def create_recommendation(
     )
     publish_enforcement_event(
         "enforcement.recommendation.created",
-        {"recommendation_id": str(rec.id), "type": recommendation_type},
+        {
+            "recommendation_id": str(rec.id),
+            "type": recommendation_type,
+            "explorer_entity_type": "enforcement_recommendation",
+            "explorer_entity_id": str(rec.id),
+        },
     )
     return rec
 
@@ -37,6 +42,12 @@ def create_recommendation(
 def accept_recommendation(*, recommendation: EnforcementRecommendation, actor=None) -> EnforcementRecommendation:
     recommendation.recommendation_status = EnforcementRecommendation.STATUS_ACCEPTED
     recommendation.save(update_fields=["recommendation_status", "updated_at"])
+    try:
+        from apps.explorer.services.invalidate import on_recommendation_change
+
+        on_recommendation_change(recommendation_id=str(recommendation.id))
+    except Exception:
+        pass
     if recommendation.case:
         EnforcementTimelineEntry.objects.create(
             case=recommendation.case,
@@ -51,4 +62,10 @@ def accept_recommendation(*, recommendation: EnforcementRecommendation, actor=No
 def dismiss_recommendation(*, recommendation: EnforcementRecommendation, actor=None) -> EnforcementRecommendation:
     recommendation.recommendation_status = EnforcementRecommendation.STATUS_DISMISSED
     recommendation.save(update_fields=["recommendation_status", "updated_at"])
+    try:
+        from apps.explorer.services.invalidate import on_recommendation_change
+
+        on_recommendation_change(recommendation_id=str(recommendation.id))
+    except Exception:
+        pass
     return recommendation

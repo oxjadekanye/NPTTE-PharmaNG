@@ -24,15 +24,13 @@ function buildMetrics(api: Record<string, unknown>): MetricCard[] {
   const fraud = Number(api.unresolved_fraud_flags) || NATIONAL_KPIS.fraudAlerts;
   const scans = Number(api.verification_scans_24h) || NATIONAL_KPIS.verificationsToday;
   const incidents = Number(api.open_incidents) || NATIONAL_KPIS.activeInvestigations;
-  const ex = (t: string, id: string) => ({ entityType: t, entityId: id });
-
   return [
     {
       label: "Verifications (24h)",
       value: scans,
       numericValue: scans,
       pulse: true,
-      explorer: ex("national_risk", "national-risk-current"),
+      explorerContext: "verifications_24h",
     },
     {
       label: "Counterfeit detections",
@@ -40,34 +38,34 @@ function buildMetrics(api: Record<string, unknown>): MetricCard[] {
       numericValue: NATIONAL_KPIS.counterfeitDetections,
       severity: "critical",
       pulse: true,
-      explorer: ex("national_risk", "counterfeit-detections-current"),
+      explorerContext: "counterfeit_detections",
     },
     {
       label: "Open alerts",
       value: openAlerts || "—",
       numericValue: openAlerts || undefined,
       severity: "warning",
-      explorer: ex("alert", "open-alerts-current"),
+      explorerContext: "open_alerts",
     },
     {
       label: "Fraud flags",
       value: fraud,
       numericValue: fraud,
       severity: "critical",
-      explorer: ex("national_risk", "fraud-flags-current"),
+      explorerContext: "fraud_flags",
     },
     {
       label: "Active investigations",
       value: incidents,
       numericValue: incidents,
       severity: "warning",
-      explorer: ex("national_risk", "active-investigations-current"),
+      explorerContext: "active_investigations",
     },
     {
       label: "Products tracked",
       value: String(inv?.total_products ?? "12,400+"),
       numericValue: Number(inv?.total_products) || 12400,
-      explorer: ex("product", "products-tracked-current"),
+      explorerContext: "products_tracked",
     },
   ];
 }
