@@ -273,6 +273,28 @@ REDIS_URL = env.str("REDIS_URL", default="")
 CELERY_BROKER_URL = env.str("CELERY_BROKER_URL", default=REDIS_URL)
 CELERY_RESULT_BACKEND = env.str("CELERY_RESULT_BACKEND", default=REDIS_URL)
 
+# Django cache — Redis when REDIS_URL is set (Render); LocMem for local dev only
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                # Do not take down requests when Redis is briefly unavailable
+                "IGNORE_EXCEPTIONS": True,
+            },
+            "KEY_PREFIX": "nptte",
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "nptte-dev",
+        }
+    }
+
 NPTTE_VERIFY_BASE_URL = env.str("NPTTE_VERIFY_BASE_URL", default="https://verify.nptte.gov.ng/v1")
 NPTTE_VERIFICATION_HMAC_SECRET = env.str("NPTTE_VERIFICATION_HMAC_SECRET", default="")
 

@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Callable
 
-from django.core.cache import cache
+from apps.core.redis_cache import cache_delete_pattern, cache_get_safe, cache_set_safe
 
 logger = logging.getLogger("nptte.explorer.cache")
 
@@ -28,18 +28,11 @@ def _cache_key(*, scope: str, entity_type: str, entity_id: str, user_id: str, or
 
 
 def get_cached(key: str) -> Any | None:
-    try:
-        return cache.get(key)
-    except Exception as exc:
-        logger.debug("explorer cache get failed: %s", exc)
-        return None
+    return cache_get_safe(key)
 
 
 def set_cached(key: str, value: Any, ttl: int) -> None:
-    try:
-        cache.set(key, value, ttl)
-    except Exception as exc:
-        logger.debug("explorer cache set failed: %s", exc)
+    cache_set_safe(key, value, ttl)
 
 
 def cached_explorer(
@@ -68,22 +61,12 @@ def cached_explorer(
 
 
 def invalidate_entity(entity_type: str, entity_id: str) -> None:
-    """Best-effort pattern invalidation (django-redis supports delete_pattern)."""
-    try:
-        if hasattr(cache, "delete_pattern"):
-            cache.delete_pattern(f"{PREFIX}*{entity_type}*{entity_id}*")
-        else:
-            cache.delete_many([])
-    except Exception as exc:
-        logger.debug("explorer cache invalidate: %s", exc)
+    """Best-effort pattern invalidation (django-redis only)."""
+    cache_delete_pattern(f"{PREFIX}*{entity_type}*{entity_id}*")
 
 
 def invalidate_scope(scope: str) -> None:
-    try:
-        if hasattr(cache, "delete_pattern"):
-            cache.delete_pattern(f"{PREFIX}{scope}:*")
-    except Exception:
-        pass
+    cache_delete_pattern(f"{PREFIX}{scope}:*")
 
 
 def invalidate_national() -> None:
