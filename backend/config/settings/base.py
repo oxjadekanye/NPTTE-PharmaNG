@@ -103,6 +103,8 @@ INSTALLED_APPS = [
     # Phase 18 — sovereign intelligence & enforcement (additive)
     "apps.intelligence",
     "apps.enforcement",
+    # Phase 19 — drill-down intelligence explorer (additive)
+    "apps.explorer",
 ]
 
 MIDDLEWARE = [

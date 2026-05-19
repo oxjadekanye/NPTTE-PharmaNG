@@ -3,6 +3,7 @@
 import clsx from "clsx";
 import { computeNationalStatus, NATIONAL_KPIS } from "@/demo/nigeria-intelligence";
 import type { NationalStatus } from "@/demo/types";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 const CONFIG: Record<
   NationalStatus,
@@ -31,12 +32,34 @@ const CONFIG: Record<
 export function NationalStatusBanner({ status }: { status?: NationalStatus }) {
   const resolved = status ?? computeNationalStatus(NATIONAL_KPIS);
   const cfg = CONFIG[resolved];
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
 
   return (
     <div
-      className={clsx("mb-6 flex flex-col gap-2 rounded-xl border px-5 py-4 md:flex-row md:items-center md:justify-between", cfg.className)}
-      role="status"
-      aria-live="polite"
+      role="button"
+      tabIndex={0}
+      aria-label="National status. View national risk explorer."
+      onClick={() =>
+        openDrawer({
+          entityType: "national_risk",
+          entityId: "national-risk-current",
+          title: "National status",
+        })
+      }
+      onKeyDown={(ev) => {
+        if (ev.key === "Enter" || ev.key === " ") {
+          ev.preventDefault();
+          openDrawer({
+            entityType: "national_risk",
+            entityId: "national-risk-current",
+            title: "National status",
+          });
+        }
+      }}
+      className={clsx(
+        "mb-6 flex cursor-pointer flex-col gap-2 rounded-xl border px-5 py-4 outline-none transition hover:ring-2 hover:ring-sovereign-accent/30 md:flex-row md:items-center md:justify-between",
+        cfg.className
+      )}
     >
       <div className="flex items-center gap-3">
         <span className={clsx("h-3 w-3 rounded-full", cfg.dot)} aria-hidden />

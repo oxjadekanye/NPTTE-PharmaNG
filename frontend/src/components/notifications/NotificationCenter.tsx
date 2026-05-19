@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import clsx from "clsx";
 import { fetchNotificationCenter, markNotificationRead } from "@/services/notifications";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 type NotificationRow = {
   id: string;
@@ -120,6 +121,7 @@ function NotificationList({
   onMarkRead: (id: string) => void;
   onClose?: () => void;
 }) {
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
   if (loading && rows.length === 0) {
     return <p className="text-xs text-slate-500">Loading notifications…</p>;
   }
@@ -138,15 +140,26 @@ function NotificationList({
           )}
         >
           <div className="flex items-start justify-between gap-2">
-            <div>
+            <button
+              type="button"
+              className="min-w-0 flex-1 text-left outline-none transition hover:text-sovereign-accent"
+              onClick={() =>
+                openDrawer({
+                  entityType: "notification",
+                  entityId: n.id,
+                  title: n.title,
+                })
+              }
+            >
               <p className="font-medium text-slate-100">{n.title}</p>
               {n.body && <p className="mt-1 text-slate-400">{n.body}</p>}
               <p className="mt-1 text-[10px] text-slate-500">{new Date(n.created_at).toLocaleString()}</p>
-            </div>
+            </button>
             {!n.is_read && (
               <button
                 type="button"
-                onClick={() => {
+                onClick={(ev) => {
+                  ev.stopPropagation();
                   onMarkRead(n.id);
                   onClose?.();
                 }}

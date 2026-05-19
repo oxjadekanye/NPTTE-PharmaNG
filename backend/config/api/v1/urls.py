@@ -56,4 +56,6 @@ urlpatterns = [
     path("integrations/", include("apps.integrations.api.urls")),
     # Phase 17 — realtime event bus & operational intelligence (additive)
     path("streambus/", include("apps.streambus.api.urls")),
+    # Phase 19 — operational drill-down explorer (additive)
+    path("explorer/", include("apps.explorer.api.urls")),
 ]

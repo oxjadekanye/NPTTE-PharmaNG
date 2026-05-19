@@ -1,11 +1,21 @@
 "use client";
 
 import { ACTIVE_RECALLS, BLACKLISTED_BATCHES } from "@/demo/nigeria-intelligence";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 export function IntelligenceHighlights() {
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-4">
+      <button
+        type="button"
+        className="rounded-xl border border-red-500/30 bg-red-950/20 p-4 text-left outline-none transition hover:ring-2 hover:ring-red-400/30"
+        onClick={() =>
+          openDrawer({ entityType: "national_risk", entityId: "recalls-current", title: "Emergency recalls" })
+        }
+        aria-label="View emergency recalls explorer"
+      >
         <h3 className="text-sm font-semibold text-red-200">Emergency recalls (DEMO)</h3>
         <ul className="mt-3 space-y-2 text-sm text-slate-300">
           {ACTIVE_RECALLS.map((r) => (
@@ -15,8 +25,19 @@ export function IntelligenceHighlights() {
             </li>
           ))}
         </ul>
-      </div>
-      <div className="rounded-xl border border-sovereign-800 bg-sovereign-900/60 p-4">
+      </button>
+      <button
+        type="button"
+        className="rounded-xl border border-sovereign-800 bg-sovereign-900/60 p-4 text-left outline-none transition hover:ring-2 hover:ring-sovereign-accent/30"
+        onClick={() =>
+          openDrawer({
+            entityType: "national_risk",
+            entityId: "fraud-flags-current",
+            title: "Blacklisted batches",
+          })
+        }
+        aria-label="View fraud and blacklist explorer"
+      >
         <h3 className="text-sm font-semibold text-white">Blacklisted batches (DEMO)</h3>
         <ul className="mt-3 space-y-2 text-sm text-slate-300">
           {BLACKLISTED_BATCHES.map((b) => (
@@ -26,7 +47,7 @@ export function IntelligenceHighlights() {
             </li>
           ))}
         </ul>
-      </div>
+      </button>
     </div>
   );
 }

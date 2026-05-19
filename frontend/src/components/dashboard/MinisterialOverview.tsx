@@ -15,6 +15,7 @@ import {
   NATIONAL_KPIS,
   computeNationalStatus,
 } from "@/demo/nigeria-intelligence";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import { NationalStatusBanner } from "./NationalStatusBanner";
 
 const URGENT_ACTIONS = [
@@ -28,23 +29,31 @@ const URGENT_ACTIONS = [
 export function MinisterialOverview() {
   const kpis = NATIONAL_KPIS;
   const status = computeNationalStatus(kpis);
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
 
   return (
     <div className="space-y-6">
       <NationalStatusBanner status={status} />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <AnimatedMetricCard label="National verifications (24h)" numericValue={kpis.verificationsToday} pulse />
+        <AnimatedMetricCard
+          label="National verifications (24h)"
+          numericValue={kpis.verificationsToday}
+          pulse
+          explorer={{ entityType: "national_risk", entityId: "national-risk-current" }}
+        />
         <AnimatedMetricCard
           label="Compliance rate"
           numericValue={kpis.complianceRate}
           decimals={1}
           suffix="%"
+          explorer={{ entityType: "national_risk", entityId: "national-risk-current" }}
         />
         <AnimatedMetricCard
           label="Scan success rate"
           numericValue={kpis.scanSuccessRate}
           decimals={1}
           suffix="%"
+          explorer={{ entityType: "national_risk", entityId: "national-risk-current" }}
         />
         <AnimatedMetricCard
           label="Counterfeit reduction (YoY)"
@@ -52,23 +61,86 @@ export function MinisterialOverview() {
           decimals={1}
           suffix="%"
           severity="normal"
+          explorer={{ entityType: "national_risk", entityId: "counterfeit-detections-current" }}
         />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-sovereign-800 bg-sovereign-900/60 p-5">
           <h3 className="text-sm font-semibold text-white">Public health risk indicators</h3>
           <ul className="mt-4 space-y-2 text-sm text-slate-300">
-            <li>Active recalls: {kpis.recallsActive} (DEMO)</li>
-            <li>Regional shortage alerts: {kpis.shortageAlerts}</li>
-            <li>Active investigations: {kpis.activeInvestigations}</li>
-            <li>Counterfeit detections (30d): {kpis.counterfeitDetections}</li>
+            <li>
+              <button
+                type="button"
+                className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
+                onClick={() =>
+                  openDrawer({ entityType: "national_risk", entityId: "recalls-current", title: "Active recalls" })
+                }
+              >
+                Active recalls: {kpis.recallsActive} (DEMO)
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
+                onClick={() =>
+                  openDrawer({
+                    entityType: "national_risk",
+                    entityId: "national-risk-current",
+                    title: "Shortage alerts",
+                  })
+                }
+              >
+                Regional shortage alerts: {kpis.shortageAlerts}
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
+                onClick={() =>
+                  openDrawer({
+                    entityType: "national_risk",
+                    entityId: "active-investigations-current",
+                    title: "Investigations",
+                  })
+                }
+              >
+                Active investigations: {kpis.activeInvestigations}
+              </button>
+            </li>
+            <li>
+              <button
+                type="button"
+                className="w-full rounded px-1 text-left hover:bg-sovereign-800/50 hover:text-sovereign-accent"
+                onClick={() =>
+                  openDrawer({
+                    entityType: "national_risk",
+                    entityId: "counterfeit-detections-current",
+                    title: "Counterfeit detections",
+                  })
+                }
+              >
+                Counterfeit detections (30d): {kpis.counterfeitDetections}
+              </button>
+            </li>
           </ul>
         </div>
         <div className="rounded-xl border border-sovereign-800 bg-sovereign-900/60 p-5">
           <h3 className="text-sm font-semibold text-white">Top 5 urgent actions</h3>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-300">
             {URGENT_ACTIONS.map((a) => (
-              <li key={a}>{a}</li>
+              <li key={a}>
+                <button
+                  type="button"
+                  className="text-left hover:text-sovereign-accent"
+                  onClick={() =>
+                    openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: a })
+                  }
+                >
+                  {a}
+                </button>
+              </li>
             ))}
           </ol>
         </div>

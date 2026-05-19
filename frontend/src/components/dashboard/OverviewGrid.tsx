@@ -8,10 +8,10 @@ export function OverviewGrid({ metrics, animate = true }: { metrics: MetricCard[
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       {metrics.map((m, i) =>
         animate && m.numericValue !== undefined ? (
-          <AnimatedMetricCard key={m.label} {...m} pulse={i < 3} />
+          <AnimatedMetricCard key={`${m.label}-${i}`} {...m} pulse={i < 3} />
         ) : (
           <AnimatedMetricCard
-            key={m.label}
+            key={`${m.label}-${i}`}
             {...m}
             numericValue={
               typeof m.value === "number"

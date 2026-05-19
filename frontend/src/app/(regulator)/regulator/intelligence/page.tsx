@@ -14,6 +14,7 @@ import {
   fetchRegionalRisk,
   runCorrelation,
 } from "@/services/sovereign-intelligence";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 type RiskRow = {
   score?: number;
@@ -30,6 +31,7 @@ function statusColor(status?: string) {
 }
 
 export default function IntelligenceDashboardPage() {
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
   const [risk, setRisk] = useState<RiskRow | null>(null);
   const [regions, setRegions] = useState<RiskRow[]>([]);
   const [products, setProducts] = useState<Record<string, unknown>[]>([]);
@@ -61,42 +63,74 @@ export default function IntelligenceDashboardPage() {
         </div>
         <div className="grid gap-4 lg:grid-cols-3">
           <GlassPanel title="National risk" subtitle="GET /intelligence/national-risk/" accent="rose" className="lg:col-span-2">
-            <div className="flex flex-wrap items-center gap-4">
-              <p className="text-4xl font-semibold tabular-nums text-white">{risk?.score ?? "—"}</p>
-              <span className={clsx("rounded-full px-3 py-1 text-xs uppercase", statusColor(risk?.status))}>
-                {risk?.status ?? "—"}
-              </span>
-              <span className="text-xs text-slate-500">Confidence {risk?.confidence ?? "—"}%</span>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => {
-                  setBusy(true);
-                  runCorrelation().finally(() => {
-                    setBusy(false);
-                    window.location.reload();
+            <div
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer rounded-lg outline-none transition hover:bg-sovereign-800/30"
+              onClick={() =>
+                openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: "National risk" })
+              }
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  openDrawer({
+                    entityType: "national_risk",
+                    entityId: "national-risk-current",
+                    title: "National risk",
                   });
-                }}
-                className="ml-auto rounded-lg border border-sovereign-700 px-3 py-1 text-xs text-sovereign-accent disabled:opacity-50"
-              >
-                Run correlation
-              </button>
+                }
+              }}
+            >
+              <div className="flex flex-wrap items-center gap-4">
+                <p className="text-4xl font-semibold tabular-nums text-white">{risk?.score ?? "—"}</p>
+                <span className={clsx("rounded-full px-3 py-1 text-xs uppercase", statusColor(risk?.status))}>
+                  {risk?.status ?? "—"}
+                </span>
+                <span className="text-xs text-slate-500">Confidence {risk?.confidence ?? "—"}%</span>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    setBusy(true);
+                    runCorrelation().finally(() => {
+                      setBusy(false);
+                      window.location.reload();
+                    });
+                  }}
+                  className="ml-auto rounded-lg border border-sovereign-700 px-3 py-1 text-xs text-sovereign-accent disabled:opacity-50"
+                >
+                  Run correlation
+                </button>
+              </div>
+              <ul className="mt-4 space-y-1 text-xs text-slate-400">
+                {(risk?.reasons ?? []).map((reason, i) => (
+                  <li key={i}>• {reason}</li>
+                ))}
+              </ul>
             </div>
-            <ul className="mt-4 space-y-1 text-xs text-slate-400">
-              {(risk?.reasons ?? []).map((reason, i) => (
-                <li key={i}>• {reason}</li>
-              ))}
-            </ul>
           </GlassPanel>
           <GlassPanel title="Live signals" subtitle="Streambus + DB">
             <ul className="max-h-48 space-y-2 overflow-y-auto text-xs">
               {signals.length === 0 && <li className="text-slate-500">No active signals</li>}
               {signals.map((s) => (
-                <li key={String(s.id)} className="rounded border border-sovereign-700/50 px-2 py-1">
-                  <p className="font-medium text-slate-200">{String(s.title)}</p>
-                  <p className="text-slate-500">
-                    {String(s.severity)} · {String(s.signal_type)}
-                  </p>
+                <li key={String(s.id)}>
+                  <button
+                    type="button"
+                    className="w-full rounded border border-sovereign-700/50 px-2 py-1 text-left outline-none transition hover:border-sovereign-accent/50 hover:bg-sovereign-800/40"
+                    onClick={() =>
+                      openDrawer({
+                        entityType: "intelligence_signal",
+                        entityId: String(s.id),
+                        title: String(s.title),
+                      })
+                    }
+                  >
+                    <p className="font-medium text-slate-200">{String(s.title)}</p>
+                    <p className="text-slate-500">
+                      {String(s.severity)} · {String(s.signal_type)}
+                    </p>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -104,15 +138,23 @@ export default function IntelligenceDashboardPage() {
           <GlassPanel title="Regional heat" className="lg:col-span-2">
             <div className="grid gap-2 sm:grid-cols-2">
               {regions.map((region) => (
-                <div
+                <button
                   key={region.region_state ?? region.score}
-                  className="rounded-lg border border-sovereign-700/50 px-3 py-2 text-xs"
+                  type="button"
+                  className="rounded-lg border border-sovereign-700/50 px-3 py-2 text-left text-xs outline-none transition hover:border-sovereign-accent/50 hover:bg-sovereign-800/40"
+                  onClick={() =>
+                    openDrawer({
+                      entityType: "regional_risk",
+                      entityId: String(region.region_state ?? ""),
+                      title: `Regional · ${region.region_state}`,
+                    })
+                  }
                 >
                   <p className="font-medium text-white">{region.region_state}</p>
                   <p className="text-slate-400">
                     Score {region.score} · <span className={statusColor(region.status)}>{region.status}</span>
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           </GlassPanel>
@@ -137,7 +179,29 @@ export default function IntelligenceDashboardPage() {
                 </thead>
                 <tbody>
                   {products.map((p) => (
-                    <tr key={String(p.product_id)} className="border-t border-sovereign-800">
+                    <tr
+                      key={String(p.product_id)}
+                      className="cursor-pointer border-t border-sovereign-800 hover:bg-sovereign-800/40"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() =>
+                        openDrawer({
+                          entityType: "product",
+                          entityId: String(p.product_id),
+                          title: String(p.name),
+                        })
+                      }
+                      onKeyDown={(ev) => {
+                        if (ev.key === "Enter" || ev.key === " ") {
+                          ev.preventDefault();
+                          openDrawer({
+                            entityType: "product",
+                            entityId: String(p.product_id),
+                            title: String(p.name),
+                          });
+                        }
+                      }}
+                    >
                       <td className="py-2 text-slate-200">{String(p.name)}</td>
                       <td>{String(p.score)}</td>
                       <td>{String(p.status)}</td>

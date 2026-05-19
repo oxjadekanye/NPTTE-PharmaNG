@@ -9,6 +9,7 @@ import { fetchNationalOperationsSummary } from "@/services/national-operations";
 import { fetchExecutiveBriefing, fetchNationalIntelligence } from "@/services/sovereign-intelligence";
 import type { NationalOperationsSummary } from "@/services/national-operations";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
+import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 const MinisterialOverview = dynamic(
   () => import("@/components/dashboard/MinisterialOverview").then((m) => m.MinisterialOverview),
@@ -24,6 +25,7 @@ const MinisterialOverview = dynamic(
 
 export default function ExecutiveModePage() {
   const nationalThreatIndex = useIntelligenceBusStore((s) => s.nationalThreatIndex);
+  const openDrawer = useExplorerDrawerStore((s) => s.openDrawer);
   const [summary, setSummary] = useState<NationalOperationsSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [aiIntel, setAiIntel] = useState<Record<string, unknown> | null>(null);
@@ -54,6 +56,28 @@ export default function ExecutiveModePage() {
       <CommandShell title="Executive · Ministerial Command">
         <div className="space-y-6">
           <div className="grid gap-4 lg:grid-cols-3">
+            <div
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer rounded-xl outline-none ring-offset-2 ring-offset-sovereign-950 transition hover:ring-2 hover:ring-sovereign-accent/30"
+              onClick={() =>
+                openDrawer({
+                  entityType: "national_risk",
+                  entityId: "national-risk-current",
+                  title: "National threat composite",
+                })
+              }
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  openDrawer({
+                    entityType: "national_risk",
+                    entityId: "national-risk-current",
+                    title: "National threat composite",
+                  });
+                }
+              }}
+            >
             <GlassPanel title="Live national threat composite" subtitle="Intelligence bus (client simulation)">
               <p className="text-4xl font-semibold tabular-nums text-white">{nationalThreatIndex}</p>
               <p className="mt-2 text-xs text-slate-500">
@@ -61,6 +85,29 @@ export default function ExecutiveModePage() {
                 leadership briefings.
               </p>
             </GlassPanel>
+            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer rounded-xl outline-none ring-offset-2 ring-offset-sovereign-950 transition hover:ring-2 hover:ring-sovereign-accent/30"
+              onClick={() =>
+                openDrawer({
+                  entityType: "national_risk",
+                  entityId: "national-risk-current",
+                  title: "National operations snapshot",
+                })
+              }
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  openDrawer({
+                    entityType: "national_risk",
+                    entityId: "national-risk-current",
+                    title: "National operations snapshot",
+                  });
+                }
+              }}
+            >
             <GlassPanel title="API snapshot" subtitle="GET /api/v1/events/national-summary/" accent="emerald">
               {summaryError && <p className="text-sm text-amber-300">{summaryError}</p>}
               {summary && (
@@ -74,6 +121,21 @@ export default function ExecutiveModePage() {
               )}
               {!summary && !summaryError && <p className="text-sm text-slate-500">Loading…</p>}
             </GlassPanel>
+            </div>
+            <div
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer rounded-xl outline-none ring-offset-2 ring-offset-sovereign-950 transition hover:ring-2 hover:ring-sovereign-accent/30"
+              onClick={() =>
+                openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: "National AI" })
+              }
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  openDrawer({ entityType: "national_risk", entityId: "national-risk-current", title: "National AI" });
+                }
+              }}
+            >
             <GlassPanel title="National AI intelligence (Phase 10)" accent="amber">
               {aiIntel ? (
                 <ul className="space-y-1 text-xs text-slate-300">
@@ -86,8 +148,31 @@ export default function ExecutiveModePage() {
                 <p className="text-sm text-slate-400">Loading /intelligence/national/ …</p>
               )}
             </GlassPanel>
+            </div>
           </div>
           {briefing && (
+            <div
+              role="button"
+              tabIndex={0}
+              className="cursor-pointer rounded-xl outline-none ring-offset-2 ring-offset-sovereign-950 transition hover:ring-2 hover:ring-rose-400/30"
+              onClick={() =>
+                openDrawer({
+                  entityType: "national_risk",
+                  entityId: "national-risk-current",
+                  title: "Sovereign briefing",
+                })
+              }
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
+                  openDrawer({
+                    entityType: "national_risk",
+                    entityId: "national-risk-current",
+                    title: "Sovereign briefing",
+                  });
+                }
+              }}
+            >
             <GlassPanel title="Phase 18 sovereign briefing" subtitle="Deterministic ministerial narrative" accent="rose">
               <div className="grid gap-3 text-xs text-slate-300 md:grid-cols-3">
                 <p>Medicine stability index: {String(briefing.medicine_stability_index)}</p>
@@ -98,6 +183,7 @@ export default function ExecutiveModePage() {
               </div>
               <p className="mt-4 text-sm text-slate-200 whitespace-pre-wrap">{String(briefing.ministerial_briefing)}</p>
             </GlassPanel>
+            </div>
           )}
           <MinisterialOverview />
         </div>

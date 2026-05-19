@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useAuth } from "@/hooks/useAuth";
 import { CommandModeToggle } from "@/components/command/CommandModeToggle";
 import { DemoBadge } from "@/components/command/DemoBadge";
+import { IntelligenceDetailDrawer } from "@/components/explorer/IntelligenceDetailDrawer";
 import { COMMAND_NAV_SECTIONS } from "@/config/navigation";
 
 export function CommandShell({ children, title }: { children: React.ReactNode; title: string }) {
@@ -36,7 +37,10 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
                     className={clsx(
                       "block rounded-lg px-3 py-2 text-sm font-medium transition duration-200",
                       pathname === item.href ||
-                        (item.href !== "/regulator" && pathname.startsWith(item.href + "/"))
+                        (item.href !== "/regulator" &&
+                          item.href !== "/regulator/explorer" &&
+                          pathname.startsWith(item.href + "/")) ||
+                        (item.href === "/regulator/explorer" && pathname.startsWith("/regulator/explorer"))
                         ? "bg-sovereign-accent/20 text-sovereign-accent shadow-inner"
                         : "text-slate-400 hover:bg-sovereign-800 hover:text-white"
                     )}
@@ -72,6 +76,7 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
           </div>
         </header>
         <div className="flex-1 overflow-auto p-6 lg:p-8">{children}</div>
+        <IntelligenceDetailDrawer />
       </main>
     </div>
   );
