@@ -2,7 +2,9 @@ from django.urls import path
 
 from apps.explorer.api.views import (
     ExplorerActionsView,
+    ExplorerContextBundleView,
     ExplorerContextRouteView,
+    ExplorerStaffView,
     ExplorerDetailView,
     ExplorerEvidenceView,
     ExplorerExecuteActionView,
@@ -15,6 +17,8 @@ from apps.explorer.api.views import (
 
 urlpatterns = [
     path("context-route/", ExplorerContextRouteView.as_view(), name="explorer-context-route"),
+    path("context-bundle/", ExplorerContextBundleView.as_view(), name="explorer-context-bundle"),
+    path("staff/", ExplorerStaffView.as_view(), name="explorer-staff"),
     path("resolve/", ExplorerResolveView.as_view(), name="explorer-resolve"),
     path("overview/<str:entity_type>/<str:entity_id>/", ExplorerOverviewView.as_view(), name="explorer-overview"),
     path("detail/<str:entity_type>/<str:entity_id>/", ExplorerDetailView.as_view(), name="explorer-detail"),

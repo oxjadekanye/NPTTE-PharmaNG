@@ -19,7 +19,9 @@ from apps.explorer.services.cache import (
     TTL_TIMELINE,
     cached_explorer,
 )
+from apps.explorer.services.context_aggregates import build_context_aggregate_bundle
 from apps.explorer.services.context_router import resolve_context_route
+from apps.explorer.services.staff import list_assignable_staff
 from apps.explorer.services.entity_resolution import resolve_entity
 from apps.explorer.services.execute_action import execute_explorer_action
 from apps.explorer.services.invalidate import on_enforcement_mutation
@@ -125,6 +127,54 @@ def _page_params(request) -> tuple[int, int]:
     except (TypeError, ValueError):
         page_size = 25
     return page, page_size
+
+
+class ExplorerStaffView(APIView):
+    """Assignable regulator staff for explorer workflows."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not (is_regulator_user(request.user) or request.user.is_superuser):
+            return api_response(message="Regulator access required", status_code=403)
+        return api_response(data={"staff": list_assignable_staff()}, message="Assignable staff")
+
+
+class ExplorerContextBundleView(APIView):
+    """Rich context-specific bundle for dashboard cards (cached)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        context_key = request.query_params.get("context", "").strip()
+        if not context_key:
+            return api_response(message="context required", status_code=400)
+        route = resolve_context_route(context_key=context_key, user=request.user)
+        ok, reason = _check_explorer_access(request, route["entity_type"], route["entity_id"])
+        if not ok:
+            return api_response(message=reason, status_code=403)
+        uid = _user_cache_id(request)
+        org = _org_scope(request)
+
+        def _build():
+            if route["entity_id"] in AGGREGATE_IDS:
+                return build_context_aggregate_bundle(aggregate_id=route["entity_id"], request=request)
+            return build_explorer_bundle(request, route["entity_type"], route["entity_id"])
+
+        data = cached_explorer(
+            scope=f"context:{context_key}",
+            entity_type=route["entity_type"],
+            entity_id=route["entity_id"],
+            user_id=uid,
+            ttl=TTL_NATIONAL_RISK,
+            org_scope=org,
+            builder=_build,
+        )
+        data["route"] = route
+        page, page_size = _page_params(request)
+        if isinstance(data.get("records"), list):
+            data["records"] = paginate_list(data["records"], page=page, page_size=page_size)
+        return api_response(data=data, message="Context bundle")
 
 
 class ExplorerContextRouteView(APIView):

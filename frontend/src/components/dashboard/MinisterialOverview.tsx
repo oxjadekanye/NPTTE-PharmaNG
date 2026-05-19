@@ -40,21 +40,21 @@ export function MinisterialOverview() {
           label="National verifications (24h)"
           numericValue={kpis.verificationsToday}
           pulse
-          explorerContext="verifications_24h"
+          explorerContext="national_verifications"
         />
         <AnimatedMetricCard
           label="Compliance rate"
           numericValue={kpis.complianceRate}
           decimals={1}
           suffix="%"
-          explorerContext="national_status"
+          explorerContext="compliance_rate"
         />
         <AnimatedMetricCard
           label="Scan success rate"
           numericValue={kpis.scanSuccessRate}
           decimals={1}
           suffix="%"
-          explorerContext="verifications_24h"
+          explorerContext="scan_success_rate"
         />
         <AnimatedMetricCard
           label="Counterfeit reduction (YoY)"
@@ -62,7 +62,7 @@ export function MinisterialOverview() {
           decimals={1}
           suffix="%"
           severity="normal"
-          explorerContext="counterfeit_detections"
+          explorerContext="counterfeit_reduction"
         />
       </div>
       <div className="grid gap-6 lg:grid-cols-2">

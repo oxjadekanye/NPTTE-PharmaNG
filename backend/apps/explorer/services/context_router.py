@@ -1,7 +1,8 @@
-"""Phase 20A — resolve dashboard contexts to concrete explorer entities."""
+"""Phase 20A/20A.2 — resolve dashboard contexts to explorer targets."""
 from __future__ import annotations
 
 from apps.alerts.models import NationalAlert
+from apps.explorer.services.context_aggregates import CONTEXT_TO_AGGREGATE, aggregate_id_for_context
 from apps.command_center.models import NationalIncident
 from apps.enforcement.models import EnforcementCase, EnforcementRecommendation
 from apps.intelligence.models import CounterfeitCluster, IntelligenceSignal, NationalRiskSnapshot
@@ -29,6 +30,27 @@ def resolve_context_route(*, context_key: str, user=None) -> dict:
   Falls back to list aggregate only when no rows exist.
     """
     key = (context_key or "").strip().lower().replace("-", "_")
+
+    if key in CONTEXT_TO_AGGREGATE:
+        agg = aggregate_id_for_context(key)
+        titles = {
+            "counterfeit_detections": "Counterfeit detections",
+            "open_alerts": "Open alerts",
+            "fraud_flags": "Fraud flags",
+            "active_investigations": "Active investigations",
+            "national_status": "National status",
+            "live_national_threat_composite": "National threat composite",
+            "medicine_stability": "Medicine stability index",
+            "counterfeit_risk_forecast": "Counterfeit risk forecast",
+            "api_health": "API health snapshot",
+            "urgent_actions": "Urgent actions",
+        }
+        return _route(
+            "national_risk",
+            agg,
+            title=titles.get(key, key.replace("_", " ").title()),
+            subtitle="context_aggregate",
+        )
 
     if key in ("counterfeit_detections", "counterfeit_detection", "counterfeit"):
         cluster = CounterfeitCluster.objects.filter(status="open").order_by("-suspicious_count").first()

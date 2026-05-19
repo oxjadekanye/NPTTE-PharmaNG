@@ -33,6 +33,18 @@ export function fetchExplorerContextRoute(context: string) {
   return apiRequest<ExplorerContextRoute>(`/explorer/context-route/?context=${encodeURIComponent(context)}`);
 }
 
+export function fetchExplorerContextBundle(context: string, page = 1, pageSize = 25) {
+  return apiRequest<Record<string, unknown>>(
+    `/explorer/context-bundle/?context=${encodeURIComponent(context)}&page=${page}&page_size=${pageSize}`
+  );
+}
+
+export function fetchExplorerStaff() {
+  return apiRequest<{ staff: { id: string; full_name: string; role_title?: string; team?: string }[] }>(
+    "/explorer/staff/"
+  );
+}
+
 export function fetchExplorerOverview(entityType: string, entityId: string) {
   return apiRequest<ExplorerOverview>(
     `/explorer/overview/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}/`

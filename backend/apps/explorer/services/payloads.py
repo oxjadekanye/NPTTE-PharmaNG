@@ -446,6 +446,14 @@ def build_explorer_bundle(request, entity_type: str, entity_id: str) -> dict[str
 
 
 def _aggregate_bundle(request, entity_type: str, entity_id: str, base: dict) -> dict:
+    from apps.explorer.services.context_aggregates import build_context_aggregate_bundle
+
+    if entity_id in AGGREGATE_IDS and entity_id not in (
+        "high-risk-current",
+        "command-activity-current",
+    ):
+        return build_context_aggregate_bundle(aggregate_id=entity_id, request=request)
+
     base["summary"] = {"title": f"Aggregate · {entity_id}", "aggregate": True}
     base["confidence_score"] = 72.0
     if entity_id == "national-risk-current":
@@ -550,14 +558,16 @@ def _aggregate_bundle(request, entity_type: str, entity_id: str, base: dict) -> 
 
 def list_operational_actions(entity_type: str, entity_id: str) -> list[dict]:
     actions = [
-        {"id": "create_task", "label": "Create operational task", "requires_confirm": True},
-        {"id": "record_acknowledgement", "label": "Acknowledge reviewed", "requires_confirm": False},
-        {"id": "generate_briefing", "label": "Generate intelligence briefing", "requires_confirm": False},
+        {"id": "create_task", "label": "Create operational task", "requires_confirm": True, "workflow": "task"},
+        {"id": "record_acknowledgement", "label": "Acknowledge reviewed", "requires_confirm": False, "workflow": "ack"},
+        {"id": "generate_briefing", "label": "Generate intelligence briefing", "requires_confirm": False, "workflow": "briefing"},
     ]
-    if entity_type in ("enforcement_recommendation", "national_risk") or entity_id in AGGREGATE_IDS:
-        actions.append({"id": "open_investigation", "label": "Open investigation case", "requires_confirm": True})
+    if entity_type in ("enforcement_recommendation", "national_risk", "alert", "intelligence_signal") or entity_id in AGGREGATE_IDS:
+        actions.append({"id": "open_investigation", "label": "Open investigation case", "requires_confirm": True, "workflow": "investigation"})
+    if entity_type == "alert":
+        actions.append({"id": "escalate_alert", "label": "Escalate alert", "requires_confirm": True, "workflow": "escalation"})
     if entity_type == "enforcement_recommendation":
         actions.append(
-            {"id": "mark_false_positive", "label": "Mark recommendation as dismissed", "requires_confirm": True}
+            {"id": "mark_false_positive", "label": "Mark recommendation as dismissed", "requires_confirm": True, "workflow": "dismiss"}
         )
     return actions

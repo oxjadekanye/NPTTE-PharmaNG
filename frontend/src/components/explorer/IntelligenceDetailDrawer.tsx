@@ -4,7 +4,6 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import {
-  executeExplorerAction,
   fetchExplorerActions,
   fetchExplorerDetail,
   fetchExplorerEvidence,
@@ -14,6 +13,7 @@ import {
   fetchExplorerTimeline,
 } from "@/services/explorer";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
+import { ExplorerActionModal, type ExplorerWorkflow } from "./ExplorerActionModal";
 import { ExplorerCopilotPlaceholder } from "./ExplorerCopilotPlaceholder";
 import { ExplorerDrawerSkeleton } from "./ExplorerDrawerSkeleton";
 import { ExplorerEvidenceTable } from "./ExplorerEvidenceTable";
@@ -41,9 +41,16 @@ function IntelligenceDetailDrawerInner() {
   const [timeline, setTimeline] = useState<Record<string, unknown>[]>([]);
   const [evidence, setEvidence] = useState<Record<string, unknown>[]>([]);
   const [related, setRelated] = useState<Record<string, unknown> | null>(null);
-  const [actions, setActions] = useState<{ id: string; label: string; requires_confirm?: boolean }[]>([]);
+  const [actions, setActions] = useState<
+    { id: string; label: string; requires_confirm?: boolean; workflow?: string }[]
+  >([]);
   const [filter, setFilter] = useState("");
   const [execMsg, setExecMsg] = useState<string | null>(null);
+  const [modal, setModal] = useState<{
+    workflow: ExplorerWorkflow;
+    actionId: string;
+    label: string;
+  } | null>(null);
 
   const entityType = target?.entityType ?? "";
   const entityId = target?.entityId ?? "";
@@ -210,23 +217,15 @@ function IntelligenceDetailDrawerInner() {
                             <button
                               type="button"
                               className="w-full rounded border border-sovereign-700 px-2 py-1.5 text-left text-xs text-sovereign-accent hover:bg-sovereign-800"
-                              onClick={async () => {
-                                setExecMsg(null);
-                                try {
-                                  const res = await executeExplorerAction(entityType, entityId, {
-                                    action_id: act.id,
-                                    confirm: act.requires_confirm ? true : false,
-                                    title: `Explorer: ${act.label}`,
-                                  });
-                                  if (res.success) setExecMsg("Action completed.");
-                                  else setExecMsg(res.message || "Action failed");
-                                } catch {
-                                  setExecMsg("Action failed (regulator-only or confirmation required).");
-                                }
-                              }}
+                              onClick={() =>
+                                setModal({
+                                  workflow: (act.workflow as ExplorerWorkflow) || "task",
+                                  actionId: act.id,
+                                  label: act.label,
+                                })
+                              }
                             >
                               {act.label}
-                              {act.requires_confirm ? " (confirms)" : ""}
                             </button>
                           </li>
                         ))}
@@ -251,6 +250,19 @@ function IntelligenceDetailDrawerInner() {
           </Link>
         </div>
       </aside>
+      <ExplorerActionModal
+        open={Boolean(modal)}
+        workflow={modal?.workflow ?? null}
+        entityType={entityType}
+        entityId={entityId}
+        actionId={modal?.actionId ?? ""}
+        actionLabel={modal?.label ?? ""}
+        onClose={() => setModal(null)}
+        onSuccess={(m) => {
+          setExecMsg(m);
+          void load();
+        }}
+      />
     </div>
   );
 }
