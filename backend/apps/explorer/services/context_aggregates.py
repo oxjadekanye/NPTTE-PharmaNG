@@ -191,7 +191,7 @@ def build_context_aggregate_bundle(
         "active-investigations-current": lambda: _fill_cases(base),
         "national-verifications-current": lambda: _fill_scans(
             base,
-            ScanEvent.objects.filter(metadata__demo_type=DEMO_TYPE).order_by("-created_at")[:200],
+            ScanEvent.objects.filter(metadata__demo_type=DEMO_TYPE),
             title="National verifications (24h roll)",
         ),
         "compliance-rate-current": lambda: _fill_compliance(base),
@@ -278,11 +278,14 @@ def _record_limit(base: dict, default: int = 100) -> int:
 
 def _fill_alerts(base: dict, qs, *, title: str, body: str = "") -> None:
     limit = _record_limit(base, 100)
-    rows = list(
-        qs.select_related("organisation", "organisation__organisation_type", "product").order_by(
-            "-created_at"
-        )[:limit]
-    )
+    if isinstance(qs, list):
+        rows = qs[:limit]
+    else:
+        rows = list(
+            qs.select_related("organisation", "organisation__organisation_type", "product").order_by(
+                "-created_at"
+            )[:limit]
+        )
     base["summary"] = {
         "title": title,
         "body": body or f"{len(rows)} operational records in national demo dataset",
@@ -299,20 +302,26 @@ def _fill_alerts(base: dict, qs, *, title: str, body: str = "") -> None:
 
 def _fill_scans(base: dict, qs, *, title: str) -> None:
     limit = _record_limit(base, 100)
-    rows = list(
-        qs.select_related("organisation", "organisation__organisation_type").order_by("-created_at")[:limit]
-    )
+    if isinstance(qs, list):
+        rows = qs[:limit]
+    else:
+        rows = list(
+            qs.select_related("organisation", "organisation__organisation_type")
+            .order_by("-created_at")[:limit]
+        )
     base["summary"] = {"title": title, "count": len(rows), "body": f"{len(rows)} verification events"}
     base["records"] = [_record_from_scan(s) for s in rows]
 
 
 def _fill_cases(base: dict) -> None:
+    limit = _record_limit(base, 80)
     qs = (
         EnforcementCase.objects.exclude(case_status="closed")
         .select_related("organisation", "assigned_regulator")
-        .order_by("-created_at")[:80]
+        .order_by("-created_at")
     )
-    base["summary"] = {"title": "Active investigations", "count": qs.count()}
+    rows = list(qs[:limit])
+    base["summary"] = {"title": "Active investigations", "count": len(rows)}
     base["records"] = [
         {
             "id": str(c.id),
@@ -326,15 +335,19 @@ def _fill_cases(base: dict) -> None:
             "recommended_action": "Continue investigation",
             "detected_at": c.created_at.isoformat(),
         }
-        for c in qs
+        for c in rows
     ]
 
 
 def _fill_products(base: dict) -> None:
-    qs = Product.objects.filter(metadata__demo_type=DEMO_TYPE).order_by("-created_at")[:120]
+    limit = _record_limit(base, 120)
+    qs = Product.objects.filter(metadata__demo_type=DEMO_TYPE).select_related("manufacturer").order_by(
+        "-created_at"
+    )
     if not qs.exists():
-        qs = Product.objects.order_by("-created_at")[:120]
-    base["summary"] = {"title": "Products tracked nationally", "count": qs.count()}
+        qs = Product.objects.select_related("manufacturer").order_by("-created_at")
+    rows = list(qs[:limit])
+    base["summary"] = {"title": "Products tracked nationally", "count": len(rows)}
     base["records"] = [
         {
             "id": str(p.id),
@@ -344,7 +357,7 @@ def _fill_products(base: dict) -> None:
             "product": p.name,
             "organisation": p.manufacturer.legal_name if p.manufacturer_id else "",
         }
-        for p in qs
+        for p in rows
     ]
 
 
@@ -361,7 +374,12 @@ def _fill_national_composite(base: dict) -> None:
     }
     base["risk_explanation"] = {"reasons": (snap.reasons if snap else [])[:6]}
     base["recommended_actions"] = (snap.recommended_actions if snap else [])[:5]
-    rec = list(_demo_alert_qs(resolved_at__isnull=True).order_by("-risk_score")[:15])
+    limit = _record_limit(base, 15)
+    rec = list(
+        _demo_alert_qs(resolved_at__isnull=True)
+        .select_related("organisation", "organisation__organisation_type", "product")
+        .order_by("-risk_score")[:limit]
+    )
     base["records"] = [_record_from_alert(a) for a in rec]
 
 
@@ -381,11 +399,16 @@ def _fill_scan_success(base: dict) -> None:
 
 
 def _fill_forecast(base: dict) -> None:
-    clusters = CounterfeitCluster.objects.filter(status="open").order_by("-suspicious_count")[:12]
+    limit = _record_limit(base, 12)
+    clusters = list(
+        CounterfeitCluster.objects.filter(status="open")
+        .select_related("product")
+        .order_by("-suspicious_count")[:limit]
+    )
     base["summary"] = {
         "title": "Counterfeit risk forecast",
         "body": "High-risk products and states from open clusters",
-        "count": clusters.count(),
+        "count": len(clusters),
     }
     base["records"] = [
         {
@@ -410,7 +433,13 @@ def _fill_stability(base: dict) -> None:
         "score": max(0, 100 - shortage * 2 - recall),
         "body": f"{shortage} shortage signals · {recall} recall-related alerts",
     }
-    base["records"] = [_record_from_alert(a) for a in _demo_alert_qs(alert_type__icontains="shortage")[:40]]
+    limit = _record_limit(base, 40)
+    shortage_rows = list(
+        _demo_alert_qs(alert_type__icontains="shortage")
+        .select_related("organisation", "organisation__organisation_type", "product")
+        .order_by("-created_at")[:limit]
+    )
+    base["records"] = [_record_from_alert(a) for a in shortage_rows]
 
 
 def _fill_enforcement_readiness(base: dict) -> None:
@@ -423,6 +452,12 @@ def _fill_enforcement_readiness(base: dict) -> None:
         "count": pending + cases,
         "body": f"{pending} pending recommendations · {cases} open cases",
     }
+    rec_limit = _record_limit(base, 30)
+    recs = list(
+        EnforcementRecommendation.objects.filter(
+            recommendation_status=EnforcementRecommendation.STATUS_PENDING
+        ).order_by("-created_at")[:rec_limit]
+    )
     base["records"] = [
         {
             "id": str(r.id),
@@ -432,9 +467,7 @@ def _fill_enforcement_readiness(base: dict) -> None:
             "status": r.recommendation_status,
             "recommended_action": r.recommendation_type,
         }
-        for r in EnforcementRecommendation.objects.filter(
-            recommendation_status=EnforcementRecommendation.STATUS_PENDING
-        )[:30]
+        for r in recs
     ]
 
 
@@ -456,11 +489,12 @@ def _fill_api_health(base: dict) -> None:
 
 
 def _fill_ai_intel(base: dict) -> None:
-    sig = _demo_signal_qs(is_active=True).order_by("-confidence")[:25]
+    limit = _record_limit(base, 25)
+    sig = list(_demo_signal_qs(is_active=True).order_by("-confidence")[:limit])
     base["summary"] = {
         "title": "National AI intelligence snapshot",
         "body": "Top confidence signals from national demo corpus",
-        "count": sig.count(),
+        "count": len(sig),
     }
     base["records"] = [
         {
@@ -477,8 +511,13 @@ def _fill_ai_intel(base: dict) -> None:
 
 
 def _fill_urgent(base: dict) -> None:
-    crit = _demo_alert_qs(severity="critical", resolved_at__isnull=True).order_by("-risk_score")[:25]
-    base["summary"] = {"title": "Urgent actions queue", "count": crit.count(), "severity": "critical"}
+    limit = _record_limit(base, 25)
+    crit = list(
+        _demo_alert_qs(severity="critical", resolved_at__isnull=True)
+        .select_related("organisation", "organisation__organisation_type", "product")
+        .order_by("-risk_score")[:limit]
+    )
+    base["summary"] = {"title": "Urgent actions queue", "count": len(crit), "severity": "critical"}
     base["records"] = [_record_from_alert(a) for a in crit]
 
 
@@ -487,8 +526,13 @@ def _fill_public_health(base: dict) -> None:
     q = Q()
     for k in keys:
         q |= Q(alert_type__icontains=k)
-    rows = _demo_alert_qs(q).order_by("-created_at")[:60]
-    base["summary"] = {"title": "Public health risk indicators", "count": rows.count()}
+    limit = _record_limit(base, 60)
+    rows = list(
+        _demo_alert_qs(q)
+        .select_related("organisation", "organisation__organisation_type", "product")
+        .order_by("-created_at")[:limit]
+    )
+    base["summary"] = {"title": "Public health risk indicators", "count": len(rows)}
     base["records"] = [_record_from_alert(a) for a in rows]
 
 
@@ -498,4 +542,10 @@ def _fill_counterfeit_reduction(base: dict) -> None:
         "score": 18.4,
         "body": "Demo trend: reduction driven by verification uptake in Lagos & Kano",
     }
-    base["records"] = [_record_from_alert(a) for a in _demo_alert_qs(alert_type__icontains="counterfeit")[:20]]
+    limit = _record_limit(base, 20)
+    rows = list(
+        _demo_alert_qs(alert_type__icontains="counterfeit")
+        .select_related("organisation", "organisation__organisation_type", "product")
+        .order_by("-created_at")[:limit]
+    )
+    base["records"] = [_record_from_alert(a) for a in rows]
