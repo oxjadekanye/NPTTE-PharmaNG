@@ -13,6 +13,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   name: "NPTTE PharmaNG",
   slug: "nptte-pharmang",
   version: "1.0.0",
+  runtimeVersion: {
+    policy: "appVersion",
+  },
+  updates: {
+    url: "https://u.expo.dev/5aa01d79-7ce7-4c8c-9583-a4a2639848ca",
+  },
   orientation: "portrait",
   scheme: "nptte",
   userInterfaceStyle: "dark",
