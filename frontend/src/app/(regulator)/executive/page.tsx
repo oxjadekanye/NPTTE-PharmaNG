@@ -9,7 +9,7 @@ import { fetchNationalOperationsSummary } from "@/services/national-operations";
 import { fetchExecutiveBriefing, fetchNationalIntelligence } from "@/services/sovereign-intelligence";
 import type { NationalOperationsSummary } from "@/services/national-operations";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
-import { openExplorerFromContext } from "@/lib/explorer-routing";
+import { openExplorerFromContext } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 const MinisterialOverview = dynamic(

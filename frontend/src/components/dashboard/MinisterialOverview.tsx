@@ -15,7 +15,7 @@ import {
   NATIONAL_KPIS,
   computeNationalStatus,
 } from "@/demo/nigeria-intelligence";
-import { openExplorerFromContext } from "@/lib/explorer-routing";
+import { openExplorerFromContext } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import { NationalStatusBanner } from "./NationalStatusBanner";
 

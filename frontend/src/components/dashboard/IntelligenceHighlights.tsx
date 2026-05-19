@@ -1,7 +1,7 @@
 "use client";
 
 import { ACTIVE_RECALLS, BLACKLISTED_BATCHES } from "@/demo/nigeria-intelligence";
-import { openExplorerFromContext } from "@/lib/explorer-routing";
+import { openExplorerFromContext } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 export function IntelligenceHighlights() {

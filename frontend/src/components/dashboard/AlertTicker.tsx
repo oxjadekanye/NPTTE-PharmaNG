@@ -1,7 +1,7 @@
 "use client";
 
 import { useCommandStore } from "@/store/command-store";
-import { openExplorerFromContext } from "@/lib/explorer-routing";
+import { openExplorerFromContext } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 export function AlertTicker() {

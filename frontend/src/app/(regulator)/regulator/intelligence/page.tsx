@@ -14,7 +14,7 @@ import {
   fetchRegionalRisk,
   runCorrelation,
 } from "@/services/sovereign-intelligence";
-import { openExplorerFromContext } from "@/lib/explorer-routing";
+import { openExplorerFromContext } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 type RiskRow = {

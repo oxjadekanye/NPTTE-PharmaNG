@@ -2,7 +2,7 @@
 
 import clsx from "clsx";
 import { useAnimatedCounter, formatMetricValue } from "@/hooks/useAnimatedCounter";
-import { openExplorerTarget } from "@/lib/explorer-routing";
+import { openExplorerTarget } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import type { MetricCard } from "@/shared/types";
 

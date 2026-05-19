@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { useRealtime } from "@/hooks/useRealtime";
 import { fetchCommandCenterLive } from "@/services/streambus";
-import { openExplorerFromContext, openExplorerFromStreamEvent } from "@/lib/explorer-routing";
+import { openExplorerFromContext, openExplorerFromStreamEvent } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 type LiveEvent = {

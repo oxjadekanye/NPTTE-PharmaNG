@@ -3,7 +3,7 @@
 import clsx from "clsx";
 import { computeNationalStatus, NATIONAL_KPIS } from "@/demo/nigeria-intelligence";
 import type { NationalStatus } from "@/demo/types";
-import { openExplorerFromContext } from "@/lib/explorer-routing";
+import { openExplorerFromContext } from "@/services/explorer-routing";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 
 const CONFIG: Record<
