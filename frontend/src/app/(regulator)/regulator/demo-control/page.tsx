@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CommandShell } from "@/components/shared/CommandShell";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
+import { OperationalKeyValuePanel } from "@/components/shared/OperationalDisplay";
 import { INITIAL_FEED } from "@/demo/nigeria-intelligence";
 import { useCommandStore } from "@/store/command-store";
 import { useIntelligenceBusStore } from "@/store/intelligence-bus-store";
@@ -40,7 +41,7 @@ export default function DemoControlPage() {
           <code className="text-amber-100">DEMO-</code> incidents.
         </p>
         <GlassPanel title="Demo inventory" className="mb-6">
-          <pre className="text-xs text-slate-400">{JSON.stringify(inventory, null, 2)}</pre>
+          <OperationalKeyValuePanel data={inventory} emptyMessage="Loading demo inventory…" />
         </GlassPanel>
         <div className="flex flex-wrap gap-2">
           {[

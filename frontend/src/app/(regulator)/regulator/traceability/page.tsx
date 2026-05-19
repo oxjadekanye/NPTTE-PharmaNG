@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CommandShell } from "@/components/shared/CommandShell";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
 import { DemoBadge } from "@/components/command/DemoBadge";
+import { OperationalKeyValuePanel, OperationalListPanel } from "@/components/shared/OperationalDisplay";
 import {
   approveBatch,
   fetchBatchAuditTrail,
@@ -139,9 +140,16 @@ export default function RegulatorTraceabilityPage() {
             </div>
             <div className="rounded-xl border border-sovereign-800 bg-sovereign-900/50 p-4">
               <h3 className="text-sm font-semibold text-white">Audit trail</h3>
-              <pre className="mt-2 max-h-80 overflow-auto text-xs text-slate-400">
-                {JSON.stringify(audit, null, 2)}
-              </pre>
+              <OperationalListPanel
+                items={audit as Record<string, unknown>[]}
+                emptyMessage="Select a batch to view audit events."
+                renderItem={(row) => (
+                  <>
+                    <p className="font-medium text-slate-200">{String(row.action ?? row.event_type ?? "Event")}</p>
+                    <p className="text-slate-500">{String(row.created_at ?? row.timestamp ?? "")}</p>
+                  </>
+                )}
+              />
             </div>
           </div>
         )}
@@ -181,9 +189,17 @@ export default function RegulatorTraceabilityPage() {
               Issue national recall
             </button>
             <p className="text-xs text-slate-500">Affected pharmacy organisation IDs (stock on hand):</p>
-            <pre className="rounded border border-sovereign-800 bg-sovereign-950 p-3 text-xs text-slate-400">
-              {JSON.stringify(affected, null, 2)}
-            </pre>
+            {affected.length === 0 ? (
+              <p className="text-xs text-slate-500">No affected pharmacies identified.</p>
+            ) : (
+              <ul className="rounded border border-sovereign-800 bg-sovereign-950 p-3 text-xs text-slate-300">
+                {affected.map((id) => (
+                  <li key={id} className="font-mono">
+                    {id}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         )}
 
@@ -204,18 +220,24 @@ export default function RegulatorTraceabilityPage() {
             >
               Regulator lookup
             </button>
-            {lookupResult && (
-              <pre className="rounded border border-sovereign-800 bg-sovereign-950 p-3 text-xs text-slate-300">
-                {JSON.stringify(lookupResult, null, 2)}
-              </pre>
-            )}
+            {lookupResult && <OperationalKeyValuePanel data={lookupResult} title="Verification result" />}
           </div>
         )}
 
         {tab === "timeline" && (
-          <pre className="max-h-[480px] overflow-auto rounded-xl border border-sovereign-800 bg-sovereign-950 p-4 text-xs text-slate-400">
-            {JSON.stringify(timeline, null, 2)}
-          </pre>
+          <OperationalListPanel
+            items={timeline as Record<string, unknown>[]}
+            title="Movement timeline"
+            emptyMessage="No transactions loaded."
+            renderItem={(row) => (
+              <>
+                <p className="font-medium text-slate-200">{String(row.transaction_type ?? row.type ?? "Movement")}</p>
+                <p className="text-slate-500">
+                  {String(row.serial_number ?? row.batch_number ?? "")} · {String(row.created_at ?? "")}
+                </p>
+              </>
+            )}
+          />
         )}
       </CommandShell>
     </RegulatorGuard>

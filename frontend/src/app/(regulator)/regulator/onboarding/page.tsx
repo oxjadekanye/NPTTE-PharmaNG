@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CommandShell } from "@/components/shared/CommandShell";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
+import { OperationalKeyValuePanel } from "@/components/shared/OperationalDisplay";
 import { fetchOnboardingWorkflows } from "@/services/pilot-readiness";
 
 export default function OnboardingWorkflowsPage() {
@@ -24,7 +25,7 @@ export default function OnboardingWorkflowsPage() {
         <div className="grid gap-4 xl:grid-cols-2">
           {workflows.map((w, i) => (
             <GlassPanel key={i} title={String((w as { label?: string }).label ?? "Workflow")}>
-              <pre className="max-h-64 overflow-auto text-[10px] text-slate-400">{JSON.stringify(w, null, 2)}</pre>
+              <OperationalKeyValuePanel data={w as Record<string, unknown>} />
             </GlassPanel>
           ))}
         </div>

@@ -71,21 +71,24 @@ function buildMetrics(api: Record<string, unknown>): MetricCard[] {
 }
 
 export default function RegulatorOverviewPage() {
-  const [metrics, setMetrics] = useState<MetricCard[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<MetricCard[]>(() => buildMetrics({}));
+  const [refreshing, setRefreshing] = useState(false);
   const mode = useCommandStore((s) => s.mode);
   const { connected } = useRealtime(true);
   useSimulatedRealtime(true);
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([fetchLiveOverview(), fetchDashboardOverview()])
-      .then(([live, dash]) => {
-        const d = { ...dash.data, ...live.data } as Record<string, unknown>;
-        setMetrics(buildMetrics(d));
-      })
-      .catch(() => setMetrics(buildMetrics({})))
-      .finally(() => setLoading(false));
+    setRefreshing(true);
+    Promise.allSettled([fetchLiveOverview(), fetchDashboardOverview()]).then((results) => {
+      const live = results[0].status === "fulfilled" ? results[0].value : null;
+      const dash = results[1].status === "fulfilled" ? results[1].value : null;
+      const d = {
+        ...(dash?.data ?? {}),
+        ...(live?.data ?? {}),
+      } as Record<string, unknown>;
+      setMetrics(buildMetrics(d));
+      setRefreshing(false);
+    });
   }, []);
 
   return (
@@ -102,10 +105,9 @@ export default function RegulatorOverviewPage() {
           <div className="space-y-6">
             <NationalStatusBanner />
             <AlertTicker />
-            {loading ? (
-              <p className="text-sm text-slate-500">Loading national metrics…</p>
-            ) : (
-              <OverviewGrid metrics={metrics} />
+            <OverviewGrid metrics={metrics} />
+            {refreshing && (
+              <p className="text-[10px] text-slate-600">Refreshing national metrics…</p>
             )}
             <IntelligenceHighlights />
             <div className="grid gap-6 xl:grid-cols-3">

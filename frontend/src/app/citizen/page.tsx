@@ -254,10 +254,31 @@ export default function CitizenPortalPage() {
             Trusted pharmacies
           </button>
         </section>
-        {(recalls.length > 0 || pharmacies.length > 0) && (
-          <pre className="mt-4 max-h-64 overflow-auto rounded-xl bg-sovereign-950 p-3 text-[10px] text-slate-400">
-            {JSON.stringify({ recalls, pharmacies }, null, 2)}
-          </pre>
+        {recalls.length > 0 && (
+          <ul className="mt-4 max-h-64 space-y-2 overflow-auto rounded-xl bg-sovereign-950 p-3 text-[10px] text-slate-300">
+            {recalls.map((raw, i) => {
+              const r = raw as { id?: string; product_name?: string; reason?: string };
+              return (
+                <li key={r.id ?? i}>
+                  <span className="font-medium">{r.product_name ?? "Recall"}</span>
+                  {r.reason ? <span className="text-slate-500"> — {r.reason}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        {pharmacies.length > 0 && (
+          <ul className="mt-4 max-h-64 space-y-2 overflow-auto rounded-xl bg-sovereign-950 p-3 text-[10px] text-slate-300">
+            {pharmacies.map((raw, i) => {
+              const p = raw as { id?: string; name?: string; state?: string };
+              return (
+                <li key={p.id ?? i}>
+                  {p.name ?? "Pharmacy"}
+                  {p.state ? <span className="text-slate-500"> · {p.state}</span> : null}
+                </li>
+              );
+            })}
+          </ul>
         )}
       </main>
     </div>

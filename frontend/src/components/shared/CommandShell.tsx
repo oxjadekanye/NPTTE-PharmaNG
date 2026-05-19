@@ -6,8 +6,10 @@ import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useAuth } from "@/hooks/useAuth";
 import { prefetchHotExplorerContexts } from "@/services/explorer-prefetch";
+import { prefetchRouteOnHover } from "@/services/predictive-prefetch";
 import { fetchExplorerStaff } from "@/services/explorer";
 import { readStaffCache, writeStaffCache } from "@/services/auth-session-cache";
+import { enqueueHydration, HydrationPriority } from "@/services/hydration-queue";
 import { CommandModeToggle } from "@/components/command/CommandModeToggle";
 import { DemoBadge } from "@/components/command/DemoBadge";
 import { IntelligenceDetailDrawer } from "@/components/explorer/IntelligenceDetailDrawer";
@@ -18,13 +20,23 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
   const { user, logout } = useAuth();
 
   useEffect(() => {
-    prefetchHotExplorerContexts();
+    const idle =
+      typeof window !== "undefined" && "requestIdleCallback" in window
+        ? (window as Window & { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback
+        : (cb: () => void) => setTimeout(cb, 400);
+    idle(() => prefetchHotExplorerContexts());
     if (!readStaffCache()) {
-      void fetchExplorerStaff().then((r) => {
-        if (r.success && r.data) {
-          writeStaffCache((r.data as { staff: { id: string; full_name: string }[] }).staff ?? []);
-        }
-      });
+      enqueueHydration(
+        "shell:staff",
+        async (signal) => {
+          if (signal.aborted) return;
+          const r = await fetchExplorerStaff();
+          if (r.success && r.data) {
+            writeStaffCache((r.data as { staff: { id: string; full_name: string }[] }).staff ?? []);
+          }
+        },
+        HydrationPriority.BACKGROUND
+      );
     }
   }, []);
 
@@ -49,6 +61,7 @@ export function CommandShell({ children, title }: { children: React.ReactNode; t
                   <Link
                     key={item.href}
                     href={item.href}
+                    onMouseEnter={() => prefetchRouteOnHover(item.href)}
                     className={clsx(
                       "block rounded-lg px-3 py-2 text-sm font-medium transition duration-200",
                       pathname === item.href ||

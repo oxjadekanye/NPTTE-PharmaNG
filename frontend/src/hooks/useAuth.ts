@@ -1,29 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { clearTokens, login as apiLogin, persistTokens, type LoginPayload } from "@/services/auth";
+import { clearAuthSession } from "@/services/auth-session-cache";
+import { clearFastSession, writeFastSession } from "@/services/auth-fast-session";
 import {
-  clearTokens,
-  fetchPermissions,
-  fetchProfile,
-  login as apiLogin,
-  persistTokens,
-  type LoginPayload,
-  type UserProfile,
-} from "@/services/auth";
-import { clearAuthSession, readAuthSession, writeAuthSession } from "@/services/auth-session-cache";
-import { clearFastSession, readFastSession, writeFastSession } from "@/services/auth-fast-session";
-import { ensureAuthBootstrap, resetAuthBootstrap } from "@/services/auth-bootstrap";
+  applyShellFromCache,
+  hydrateAuthInBackground,
+  onAuthHydrationFailed,
+  resetAuthShellBootstrap,
+} from "@/services/auth-shell-bootstrap";
+import { resetAuthBootstrap } from "@/services/auth-bootstrap";
 import { useAuthStore } from "@/store/auth-store";
-import { useTenantStore } from "@/store/tenant-store";
-
-function stubUser(username: string): UserProfile {
-  return {
-    id: "pending",
-    username,
-    email: "",
-    role_code: readFastSession()?.roleCode,
-  };
-}
 
 export function useAuth() {
   const { user, permissions, isAuthenticated, setUser, setPermissions, logout: storeLogout } =
@@ -31,60 +19,34 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const bootstrap = useCallback(async () => {
+  const bootstrap = useCallback(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("nptte_access_token") : null;
     if (!token) {
       setLoading(false);
       return;
     }
-    const fast = readFastSession();
-    const cached = readAuthSession();
-    if (fast || cached) {
-      if (cached) {
-        setUser(cached.user);
-        setPermissions(cached.permissions);
-        useTenantStore.getState().setContext(
-          cached.organisationId,
-          cached.membershipOrganisationIds
-        );
-      } else if (fast) {
-        setUser(stubUser(fast.username));
-        setPermissions(fast.permissions.length ? fast.permissions : ["regulatory.read"]);
-      }
-      setLoading(false);
-    }
-    try {
-      await ensureAuthBootstrap();
-    } catch {
-      clearTokens();
-      clearAuthSession();
-      clearFastSession();
-      storeLogout();
-    } finally {
-      setLoading(false);
-    }
-  }, [setUser, setPermissions, storeLogout]);
+    applyShellFromCache();
+    setLoading(false);
+    hydrateAuthInBackground();
+  }, []);
 
   useEffect(() => {
-    void bootstrap();
+    bootstrap();
   }, [bootstrap]);
 
-  const login = async (payload: LoginPayload) => {
+  /** Token only — navigate immediately; profile hydrates in background. */
+  const login = async (payload: LoginPayload): Promise<void> => {
     setError(null);
     resetAuthBootstrap();
+    resetAuthShellBootstrap();
     const tokens = await apiLogin(payload);
     persistTokens(tokens);
-    setUser(stubUser(payload.username));
-    setPermissions(["regulatory.read"]);
-    const [profile, permsPayload] = await Promise.all([fetchProfile(), fetchPermissions()]);
-    setUser(profile);
-    setPermissions(permsPayload.permissions ?? []);
-    writeAuthSession(profile, permsPayload);
-    writeFastSession(profile, permsPayload);
-    useTenantStore.getState().setContext(
-      permsPayload.organisation_id ? String(permsPayload.organisation_id) : null,
-      (permsPayload.membership_organisation_ids ?? []).map(String)
+    applyShellFromCache();
+    writeFastSession(
+      { id: "shell", username: payload.username, email: "", role_code: "regulator" },
+      { permissions: ["regulatory.read"], role_code: "regulator", is_regulator: true }
     );
+    hydrateAuthInBackground(true);
   };
 
   const logout = () => {
@@ -92,6 +54,7 @@ export function useAuth() {
     clearAuthSession();
     clearFastSession();
     resetAuthBootstrap();
+    resetAuthShellBootstrap();
     storeLogout();
   };
 

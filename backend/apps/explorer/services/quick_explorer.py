@@ -36,7 +36,30 @@ def slim_record(row: dict) -> dict:
     return out
 
 
-def build_quick_summary(*, context_key: str, request=None) -> dict:
+LITE_SUMMARY_KEYS = frozenset(
+    {
+        "context_key",
+        "entity_type",
+        "entity_id",
+        "title",
+        "summary",
+        "count",
+        "severity_distribution",
+        "status",
+        "risk_score",
+        "top_states",
+        "updated_at",
+        "route",
+    }
+)
+
+
+def apply_lite_summary(data: dict) -> dict:
+    """Strip optional fields for first-paint payloads (?lite=1)."""
+    return {k: v for k, v in data.items() if k in LITE_SUMMARY_KEYS}
+
+
+def build_quick_summary(*, context_key: str, request=None, lite: bool = False) -> dict:
     base = build_context_summary(context_key=context_key, request=request)
     summary = base.get("summary") if isinstance(base.get("summary"), dict) else {}
     states = base.get("state_distribution") or {}
@@ -48,7 +71,7 @@ def build_quick_summary(*, context_key: str, request=None) -> dict:
             if o and o not in orgs:
                 orgs.append(str(o))
     top_states = list(states.keys())[:3]
-    return {
+    out = {
         "context_key": context_key,
         "entity_type": base.get("entity_type"),
         "entity_id": base.get("entity_id"),
@@ -64,6 +87,9 @@ def build_quick_summary(*, context_key: str, request=None) -> dict:
         "updated_at": base.get("updated_at"),
         "recommended_actions": base.get("recommended_actions") or [],
     }
+    if lite:
+        return apply_lite_summary(out)
+    return out
 
 
 def build_quick_records(*, context_key: str, request=None, page: int = 1, page_size: int = 25) -> dict:

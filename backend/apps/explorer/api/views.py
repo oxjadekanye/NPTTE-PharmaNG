@@ -29,6 +29,7 @@ from apps.explorer.services.context_summary import (
     build_context_summary,
 )
 from apps.explorer.services.quick_explorer import (
+    apply_lite_summary,
     build_quick_actions,
     build_quick_records,
     build_quick_summary,
@@ -326,13 +327,15 @@ class ExplorerQuickSummaryView(APIView):
         if not ok:
             return api_response(message=reason, status_code=403)
         uid = _user_cache_id(request)
+        lite = request.query_params.get("lite", "").lower() in ("1", "true", "yes")
 
         def _build():
-            return build_quick_summary(context_key=context_key, request=request)
+            return build_quick_summary(context_key=context_key, request=request, lite=lite)
 
-        with perf_span(f"explorer.quick-summary:{context_key}"):
+        scope = "quick-summary:lite" if lite else "quick-summary"
+        with perf_span(f"explorer.{scope}:{context_key}"):
             data = cached_explorer(
-                scope="quick-summary",
+                scope=scope,
                 entity_type="context",
                 entity_id=context_key,
                 user_id=uid,
@@ -340,7 +343,10 @@ class ExplorerQuickSummaryView(APIView):
                 org_scope=_org_scope(request),
                 builder=_build,
             )
-            data["route"] = route
+            if lite and "route" not in data:
+                data = apply_lite_summary({**data, "route": route})
+            else:
+                data["route"] = route
             return api_response(data=data, message="Quick summary")
 
 

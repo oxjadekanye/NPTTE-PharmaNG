@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CommandShell } from "@/components/shared/CommandShell";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
+import { OperationalKeyValuePanel } from "@/components/shared/OperationalDisplay";
 import { fetchNotificationCenter } from "@/services/notifications";
 
 export default function NotificationCenterPage() {
@@ -27,7 +28,7 @@ export default function NotificationCenterPage() {
         <ul className="space-y-2">
           {items.map((n, i) => (
             <li key={i} className="glass-panel rounded-lg border border-sovereign-800 px-4 py-3 text-sm">
-              <pre className="text-xs text-slate-400">{JSON.stringify(n, null, 2)}</pre>
+              <OperationalKeyValuePanel data={n as Record<string, unknown>} />
             </li>
           ))}
           {items.length === 0 && <li className="text-slate-600">No notifications — sign in as regulator.</li>}

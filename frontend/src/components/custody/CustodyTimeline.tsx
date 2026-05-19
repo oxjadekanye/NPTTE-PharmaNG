@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { humanLabel, formatTimestamp } from "@/services/explorer-format";
 import { fetchCustodyTimeline } from "@/services/custody";
 
 export function CustodyTimeline() {
@@ -37,14 +38,20 @@ export function CustodyTimeline() {
       </div>
       {error && <p className="text-sm text-rose-300">{error}</p>}
       <ol className="space-y-3 border-l border-sovereign-700 pl-4">
-        {timeline.map((t, i) => (
-          <li key={i} className="relative text-sm text-slate-300">
-            <span className="absolute -left-[1.15rem] top-1 h-2 w-2 rounded-full bg-emerald-400 scan-pulse" />
-            <pre className="whitespace-pre-wrap font-mono text-[10px] text-slate-500">
-              {JSON.stringify(t, null, 2)}
-            </pre>
-          </li>
-        ))}
+        {timeline.map((t, i) => {
+          const row = (t && typeof t === "object" ? t : {}) as Record<string, unknown>;
+          return (
+            <li key={i} className="relative text-sm text-slate-300">
+              <span className="absolute -left-[1.15rem] top-1 h-2 w-2 rounded-full bg-emerald-400 scan-pulse" />
+              <p className="font-medium text-slate-200">{String(row.event_type ?? row.status ?? "Custody event")}</p>
+              <p className="text-[10px] text-slate-500">
+                {row.timestamp ? formatTimestamp(String(row.timestamp)) : ""}
+                {row.location ? ` · ${String(row.location)}` : ""}
+              </p>
+              {row.actor ? <p className="text-[10px] text-slate-600">{humanLabel("actor")}: {String(row.actor)}</p> : null}
+            </li>
+          );
+        })}
         {timeline.length === 0 && (
           <li className="text-slate-600">Enter a serial to view sovereign custody chain.</li>
         )}

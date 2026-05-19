@@ -1,6 +1,7 @@
 import { fetchExplorerQuickSummary } from "./explorer";
 import { writeExplorerCache, explorerCacheKey } from "./explorer-cache";
-import { HOT_PREFETCH_CONTEXTS, resolveContextTarget } from "./explorer-context-map";
+import { HOT_PREFETCH_CONTEXTS } from "./explorer-context-map";
+import { enqueueHydration, HydrationPriority } from "./hydration-queue";
 
 let prefetchStarted = false;
 
@@ -10,11 +11,17 @@ export function prefetchHotExplorerContexts(): void {
   prefetchStarted = true;
   const run = () => {
     for (const ctx of HOT_PREFETCH_CONTEXTS) {
-      void fetchExplorerQuickSummary(ctx).then((res) => {
-        if (res.success && res.data) {
-          writeExplorerCache(explorerCacheKey(["quick-summary", ctx]), res.data);
-        }
-      });
+      enqueueHydration(
+        `prefetch:hot:${ctx}`,
+        async (signal) => {
+          if (signal.aborted) return;
+          const res = await fetchExplorerQuickSummary(ctx, { lite: true });
+          if (res.success && res.data) {
+            writeExplorerCache(explorerCacheKey(["quick-summary", ctx]), res.data);
+          }
+        },
+        HydrationPriority.PREFETCH
+      );
     }
   };
   if ("requestIdleCallback" in window) {

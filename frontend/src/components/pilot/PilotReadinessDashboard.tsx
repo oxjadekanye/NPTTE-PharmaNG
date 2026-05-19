@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { GlassPanel } from "@/components/enterprise/GlassPanel";
+import { OperationalKeyValuePanel, OperationalListPanel } from "@/components/shared/OperationalDisplay";
 import {
   fetchApiReadiness,
   fetchPerformanceReadiness,
@@ -67,15 +68,19 @@ export function PilotReadinessDashboard() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <GlassPanel title="Security (no secrets)" subtitle="Posture display only">
-          <pre className="max-h-48 overflow-auto text-[10px] text-slate-500">{JSON.stringify(security, null, 2)}</pre>
+          <OperationalKeyValuePanel data={security} emptyMessage="Security posture loading…" />
         </GlassPanel>
         <GlassPanel title="Performance readiness">
-          <pre className="max-h-48 overflow-auto text-[10px] text-slate-500">{JSON.stringify(performance, null, 2)}</pre>
+          <OperationalKeyValuePanel data={performance} emptyMessage="Performance metrics loading…" />
         </GlassPanel>
         <GlassPanel title="API groups">
-          <pre className="max-h-48 overflow-auto text-[10px] text-slate-500">
-            {JSON.stringify((api?.groups as unknown[])?.slice(0, 6), null, 2)}
-          </pre>
+          <OperationalListPanel
+            items={((api?.groups as unknown[]) ?? []).slice(0, 6) as Record<string, unknown>[]}
+            emptyMessage="API readiness loading…"
+            renderItem={(row) => (
+              <p className="font-medium text-slate-300">{String(row.name ?? row.group ?? row.path ?? "Group")}</p>
+            )}
+          />
         </GlassPanel>
       </div>
     </div>

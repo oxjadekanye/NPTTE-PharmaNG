@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { hasPermission } from "@/store/auth-store";
+import { applyShellFromCache } from "@/services/auth-shell-bootstrap";
 
 export function RegulatorGuard({
   children,
@@ -12,25 +13,43 @@ export function RegulatorGuard({
   children: React.ReactNode;
   permission?: string;
 }) {
-  const { isAuthenticated, loading, permissions } = useAuth();
+  const { isAuthenticated, permissions } = useAuth();
   const router = useRouter();
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) router.replace("/login");
-    if (!loading && isAuthenticated && !hasPermission(permissions, permission)) {
+    const token = typeof window !== "undefined" ? localStorage.getItem("nptte_access_token") : null;
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    applyShellFromCache();
+    setReady(true);
+  }, [router]);
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!isAuthenticated) {
+      const token = localStorage.getItem("nptte_access_token");
+      if (!token) router.replace("/login");
+      return;
+    }
+    if (!hasPermission(permissions, permission)) {
       router.replace("/login?error=unauthorized");
     }
-  }, [loading, isAuthenticated, permissions, permission, router]);
+  }, [ready, isAuthenticated, permissions, permission, router]);
 
-  if (loading && !isAuthenticated) {
+  if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center gap-2 bg-sovereign-950 text-sm text-slate-400">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-sovereign-accent" />
-        Loading…
+      <div className="flex min-h-screen bg-sovereign-950">
+        <aside className="w-64 shrink-0 border-r border-sovereign-800 bg-sovereign-900/95" />
+        <main className="flex flex-1 flex-col">
+          <header className="h-16 border-b border-sovereign-800 bg-sovereign-900/60" />
+          <div className="flex-1 animate-pulse bg-sovereign-900/30 p-6" aria-hidden="true" />
+        </main>
       </div>
     );
   }
 
-  if (!isAuthenticated) return null;
   return <>{children}</>;
 }

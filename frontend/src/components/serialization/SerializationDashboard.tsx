@@ -50,11 +50,15 @@ export function SerializationDashboard() {
       <GlassPanel title="Recent scan history" subtitle="Live from /serialization/scan-history/">
         <ul className="max-h-64 space-y-2 overflow-y-auto text-xs">
           {scans.length === 0 && <li className="text-slate-600">No scans or connect with regulator JWT.</li>}
-          {scans.map((s, i) => (
-            <li key={i} className="rounded border border-sovereign-800 px-2 py-1 font-mono text-slate-300">
-              {JSON.stringify(s)}
-            </li>
-          ))}
+          {scans.map((s, i) => {
+            const row = (s && typeof s === "object" ? s : {}) as Record<string, unknown>;
+            return (
+              <li key={i} className="rounded border border-sovereign-800 px-2 py-1 text-slate-300">
+                <span className="font-mono text-[11px]">{String(row.serial_number ?? row.raw_scan ?? "—")}</span>
+                <span className="ml-2 text-slate-500">{String(row.result ?? row.status ?? "")}</span>
+              </li>
+            );
+          })}
         </ul>
       </GlassPanel>
     </div>

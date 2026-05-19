@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { RegulatorGuard } from "@/components/shared/RegulatorGuard";
+import { OperationalKeyValuePanel } from "@/components/shared/OperationalDisplay";
 import { fetchDeveloperOverview } from "@/services/developer";
 
 export default function DeveloperPortalPage() {
@@ -24,9 +25,13 @@ export default function DeveloperPortalPage() {
           <h1 className="mt-2 text-2xl font-semibold">Public API · Developer Portal</h1>
         </header>
         <main className="mx-auto max-w-3xl p-6">
-          <pre className="glass-panel overflow-auto rounded-xl border border-sovereign-800 p-4 text-xs text-slate-400">
-            {overview ? JSON.stringify(overview, null, 2) : "Loading developer overview…"}
-          </pre>
+          <div className="glass-panel rounded-xl border border-sovereign-800 p-4">
+            {overview ? (
+              <OperationalKeyValuePanel data={overview} title="Developer overview" />
+            ) : (
+              <p className="text-xs text-slate-500">Loading developer overview…</p>
+            )}
+          </div>
           <p className="mt-4 text-sm text-slate-500">
             API keys, scopes, and audit logs — foundation for GS1 and government integrations.
           </p>

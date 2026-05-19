@@ -1,8 +1,10 @@
 "use client";
 
+import { memo, useCallback } from "react";
 import clsx from "clsx";
 import { useAnimatedCounter, formatMetricValue } from "@/hooks/useAnimatedCounter";
 import { openExplorerTarget } from "@/services/explorer-routing";
+import { prefetchContextOnHover } from "@/services/predictive-prefetch";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import type { MetricCard } from "@/shared/types";
 
@@ -12,7 +14,7 @@ const severityStyles = {
   critical: "border-red-500/50 bg-red-500/10",
 };
 
-export function AnimatedMetricCard({
+function AnimatedMetricCardInner({
   label,
   value,
   numericValue,
@@ -32,9 +34,13 @@ export function AnimatedMetricCard({
     : String(value ?? "—");
 
   const interactive = Boolean(explorer || explorerContext);
-  const activate = () => {
+  const activate = useCallback(() => {
     void openExplorerTarget(openDrawer, { title: label, explorer, context: explorerContext });
-  };
+  }, [openDrawer, label, explorer, explorerContext]);
+
+  const onHover = useCallback(() => {
+    if (explorerContext) prefetchContextOnHover(explorerContext);
+  }, [explorerContext]);
 
   return (
     <div
@@ -42,6 +48,7 @@ export function AnimatedMetricCard({
       tabIndex={interactive ? 0 : undefined}
       aria-label={interactive ? `${label}. View operational details.` : undefined}
       onClick={interactive ? activate : undefined}
+      onMouseEnter={interactive ? onHover : undefined}
       onKeyDown={
         interactive
           ? (ev) => {
@@ -76,3 +83,5 @@ export function AnimatedMetricCard({
     </div>
   );
 }
+
+export const AnimatedMetricCard = memo(AnimatedMetricCardInner);

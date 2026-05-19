@@ -37,9 +37,10 @@ export function fetchExplorerContextRoute(context: string) {
   return apiRequest<ExplorerContextRoute>(`/explorer/context-route/?context=${encodeURIComponent(context)}`);
 }
 
-export function fetchExplorerQuickSummary(context: string) {
+export function fetchExplorerQuickSummary(context: string, opts?: { lite?: boolean }) {
+  const lite = opts?.lite ? "&lite=1" : "";
   return apiRequest<Record<string, unknown>>(
-    `/explorer/quick-summary/?context=${encodeURIComponent(context)}`
+    `/explorer/quick-summary/?context=${encodeURIComponent(context)}${lite}`
   );
 }
 
