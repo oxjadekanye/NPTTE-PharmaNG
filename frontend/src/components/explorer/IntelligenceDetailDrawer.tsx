@@ -5,26 +5,37 @@ import Link from "next/link";
 import clsx from "clsx";
 import {
   fetchExplorerActions,
-  fetchExplorerContextRecords,
-  fetchExplorerContextSummaryCached,
   fetchExplorerDetail,
   fetchExplorerEvidence,
   fetchExplorerOverviewCached,
+  fetchExplorerQuickActions,
+  fetchExplorerQuickRecords,
+  fetchExplorerQuickSummary,
   fetchExplorerRelated,
   fetchExplorerRiskBreakdown,
   fetchExplorerTimeline,
 } from "@/services/explorer";
+import {
+  getExplorerCache,
+  recordsCacheKey,
+  setExplorerCache,
+  summaryCacheKey,
+  TTL_SUMMARY_MS,
+} from "@/services/explorer-memory-cache";
+import { recordSearchText } from "@/services/explorer-format";
 import { perfMark, perfMeasure } from "@/services/perf";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
 import { ExplorerActionModal, type ExplorerWorkflow } from "./ExplorerActionModal";
 import { ExplorerCopilotPlaceholder } from "./ExplorerCopilotPlaceholder";
 import { ExplorerDrawerSkeleton } from "./ExplorerDrawerSkeleton";
-import { ExplorerEvidenceTable } from "./ExplorerEvidenceTable";
-import { ExplorerRecordsTable } from "./ExplorerRecordsTable";
-import { ExplorerRelatedCards } from "./ExplorerRelatedCards";
-import { ExplorerRiskPanel } from "./ExplorerRiskPanel";
 import { ExplorerSeverityBadge } from "./ExplorerSeverityBadge";
-import { ExplorerTimelineList } from "./ExplorerTimelineList";
+import { ExplorerActionSummary } from "./renderers/ExplorerActionSummary";
+import { ExplorerEvidencePanel } from "./renderers/ExplorerEvidencePanel";
+import { ExplorerOperationalSummary } from "./renderers/ExplorerOperationalSummary";
+import { ExplorerRecordsTable } from "./renderers/ExplorerRecordsTable";
+import { ExplorerRiskFactors } from "./renderers/ExplorerRiskFactors";
+import { ExplorerTimelineCard } from "./renderers/ExplorerTimelineCard";
+import { ExplorerRelatedCards } from "./ExplorerRelatedCards";
 
 function explorerPageHref(entityType: string, entityId: string) {
   return `/regulator/explorer/${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`;
@@ -56,6 +67,25 @@ function IntelligenceDetailDrawerInner() {
   } | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const [slowLoad, setSlowLoad] = useState(false);
+  const [showRetry, setShowRetry] = useState(false);
+
+  const applyQuickSummary = useCallback((s: Record<string, unknown>) => {
+    setOverview({
+      summary: {
+        title: s.title,
+        body: typeof s.summary === "string" ? s.summary : (s.summary as Record<string, unknown>)?.body,
+      },
+      record_count: s.count,
+      record_preview: s.top_records,
+      risk_status: s.status ?? s.risk_status,
+      risk_score: s.risk_score,
+      top_states: s.top_states,
+      top_organisations: s.top_organisations,
+      updated_at: s.updated_at,
+    });
+    setOverviewLoading(false);
+  }, []);
 
   const entityType = target?.entityType ?? "";
   const entityId = target?.entityId ?? "";
@@ -75,8 +105,19 @@ function IntelligenceDetailDrawerInner() {
     setSectionsLoading(true);
     setError(null);
     setExecMsg(null);
-    setOverview(null);
-    setDetail(null);
+    const cached =
+      target.cachedSummary ??
+      (target.contextKey
+        ? getExplorerCache<Record<string, unknown>>(
+            summaryCacheKey({ contextKey: target.contextKey }),
+            TTL_SUMMARY_MS
+          )
+        : null);
+    if (cached) applyQuickSummary(cached);
+    else {
+      setOverview(null);
+      setDetail(null);
+    }
     setRisk(null);
     setTimeline([]);
     setEvidence([]);
@@ -88,37 +129,25 @@ function IntelligenceDetailDrawerInner() {
     try {
       if (contextKey) {
         const [sumRes, recRes, actRes] = await Promise.allSettled([
-          fetchExplorerContextSummaryCached(contextKey),
-          fetchExplorerContextRecords(contextKey, 1, 25),
-          fetchExplorerActions(et, eid),
+          fetchExplorerQuickSummary(contextKey),
+          fetchExplorerQuickRecords(contextKey, 1, 25),
+          fetchExplorerQuickActions(contextKey),
         ]);
         if (ac.signal.aborted) return;
 
         if (sumRes.status === "fulfilled" && sumRes.value.success && sumRes.value.data) {
           const s = sumRes.value.data;
-          const sumObj = (s.summary && typeof s.summary === "object" ? s.summary : {}) as Record<string, unknown>;
-          setOverview({
-            summary: sumObj.title ? sumObj : { title: s.title, body: sumObj.body },
-            record_count: s.count,
-            record_preview: s.top_records,
-            risk_status: s.risk_status,
-            risk_score: s.risk_score,
-          });
+          setExplorerCache(summaryCacheKey({ contextKey }), s);
+          applyQuickSummary(s);
         }
         if (recRes.status === "fulfilled" && recRes.value.success && recRes.value.data) {
           const rec = recRes.value.data.records as { items?: Record<string, unknown>[] };
-          setDetail({
-            records: rec?.items ?? [],
-            summary:
-              sumRes.status === "fulfilled" && sumRes.value.success
-                ? (sumRes.value.data as Record<string, unknown>)?.summary
-                : undefined,
-          });
+          setExplorerCache(recordsCacheKey(contextKey, 1), recRes.value.data);
+          setDetail({ records: rec?.items ?? [] });
         }
         if (actRes.status === "fulfilled" && actRes.value.success) {
           setActions((actRes.value.data as { actions?: typeof actions })?.actions ?? []);
         }
-        setOverviewLoading(false);
 
         const [r, t, e, rel] = await Promise.allSettled([
           fetchExplorerRiskBreakdown(et, eid),
@@ -200,12 +229,21 @@ function IntelligenceDetailDrawerInner() {
         setSectionsLoading(false);
       }
     }
-  }, [target]);
+  }, [target, applyQuickSummary]);
 
   useEffect(() => {
     if (open && target) {
       perfMark("explorer-drawer-open");
+      setSlowLoad(false);
+      setShowRetry(false);
+      const tSlow = window.setTimeout(() => setSlowLoad(true), 800);
+      const tRetry = window.setTimeout(() => setShowRetry(true), 8000);
       void load();
+      return () => {
+        clearTimeout(tSlow);
+        clearTimeout(tRetry);
+        abortRef.current?.abort();
+      };
     }
     return () => abortRef.current?.abort();
   }, [open, target, load]);
@@ -216,7 +254,7 @@ function IntelligenceDetailDrawerInner() {
     const list = raw.length ? raw : fromPreview;
     if (!filter.trim()) return list;
     const q = filter.toLowerCase();
-    return list.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+    return list.filter((row) => recordSearchText(row).includes(q));
   }, [detail, overview, filter]);
 
   if (!open || !target) return null;
@@ -268,14 +306,29 @@ function IntelligenceDetailDrawerInner() {
           )}
           {!error && (
             <div className="space-y-4 text-xs text-slate-300">
-              {summary.body != null && String(summary.body).length > 0 && (
-                <p className="text-sm text-slate-200">{String(summary.body)}</p>
-              )}
+              <ExplorerOperationalSummary
+                title={displayTitle}
+                summary={String(summary.body ?? "")}
+                count={Number(overview?.record_count ?? records.length)}
+                status={severity}
+                riskScore={overview?.risk_score as string | number | undefined}
+                topStates={(overview?.top_states as string[]) ?? []}
+                topOrganisations={(overview?.top_organisations as string[]) ?? []}
+                updatedAt={String(overview?.updated_at ?? "")}
+              />
+              {slowLoad && sectionsLoading ? (
+                <p className="text-[11px] text-amber-300/90">Still loading records…</p>
+              ) : null}
+              {showRetry && sectionsLoading ? (
+                <button type="button" className="text-xs text-sovereign-accent hover:underline" onClick={() => void load()}>
+                  Retry loading
+                </button>
+              ) : null}
               {sectionsLoading && !detail && !overview ? (
                 <ExplorerDrawerSkeleton />
               ) : (
                 <>
-                  <ExplorerRiskPanel risk={risk} />
+                  <ExplorerRiskFactors risk={risk} />
                   <ExplorerRecordsTable records={records} filter={filter} onFilterChange={setFilter} />
                   <section>
                     <h4 className="text-[11px] font-semibold uppercase text-slate-400">Timeline</h4>
@@ -283,14 +336,14 @@ function IntelligenceDetailDrawerInner() {
                       {sectionsLoading && timeline.length === 0 ? (
                         <p className="text-slate-500">Loading…</p>
                       ) : (
-                        <ExplorerTimelineList items={timeline} />
+                        <ExplorerTimelineCard items={timeline} />
                       )}
                     </div>
                   </section>
                   <section>
                     <h4 className="text-[11px] font-semibold uppercase text-slate-400">Evidence</h4>
                     <div className="mt-2">
-                      <ExplorerEvidenceTable items={evidence} />
+                      <ExplorerEvidencePanel items={evidence} />
                     </div>
                   </section>
                   <section>
@@ -349,7 +402,6 @@ function IntelligenceDetailDrawerInner() {
         onClose={() => setModal(null)}
         onSuccess={(m) => {
           setExecMsg(m);
-          void load();
         }}
       />
     </div>

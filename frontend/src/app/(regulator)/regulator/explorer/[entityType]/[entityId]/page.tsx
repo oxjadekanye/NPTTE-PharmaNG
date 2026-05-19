@@ -10,21 +10,25 @@ import {
   fetchExplorerActions,
   fetchExplorerDetail,
   fetchExplorerEvidence,
+  fetchExplorerOverviewCached,
   fetchExplorerRelated,
   fetchExplorerRiskBreakdown,
   fetchExplorerTimeline,
 } from "@/services/explorer";
+import { recordSearchText } from "@/services/explorer-format";
 import { ExplorerCopilotPlaceholder } from "@/components/explorer/ExplorerCopilotPlaceholder";
-import { ExplorerEvidenceTable } from "@/components/explorer/ExplorerEvidenceTable";
-import { ExplorerRecordsTable } from "@/components/explorer/ExplorerRecordsTable";
+import { ExplorerEvidencePanel } from "@/components/explorer/renderers/ExplorerEvidencePanel";
+import { ExplorerOperationalSummary } from "@/components/explorer/renderers/ExplorerOperationalSummary";
+import { ExplorerRecordsTable } from "@/components/explorer/renderers/ExplorerRecordsTable";
+import { ExplorerRiskFactors } from "@/components/explorer/renderers/ExplorerRiskFactors";
+import { ExplorerTimelineCard } from "@/components/explorer/renderers/ExplorerTimelineCard";
 import { ExplorerRelatedCards } from "@/components/explorer/ExplorerRelatedCards";
-import { ExplorerRiskPanel } from "@/components/explorer/ExplorerRiskPanel";
-import { ExplorerTimelineList } from "@/components/explorer/ExplorerTimelineList";
 
 export default function ExplorerEntityDetailPage() {
   const params = useParams<{ entityType: string; entityId: string }>();
   const entityType = decodeURIComponent(params.entityType ?? "");
   const entityId = decodeURIComponent(params.entityId ?? "");
+  const [overview, setOverview] = useState<Record<string, unknown> | null>(null);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [risk, setRisk] = useState<Record<string, unknown> | null>(null);
   const [related, setRelated] = useState<Record<string, unknown> | null>(null);
@@ -36,16 +40,20 @@ export default function ExplorerEntityDetailPage() {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([
-      fetchExplorerDetail(entityType, entityId),
+    void fetchExplorerOverviewCached(entityType, entityId).then((ov) => {
+      if (!cancelled && ov.success && ov.data) setOverview(ov.data as Record<string, unknown>);
+    });
+    void fetchExplorerDetail(entityType, entityId, 1, 25).then((d) => {
+      if (!cancelled && d.success) setDetail(d.data as Record<string, unknown>);
+    });
+    void Promise.all([
       fetchExplorerRiskBreakdown(entityType, entityId).catch(() => null),
       fetchExplorerRelated(entityType, entityId).catch(() => null),
       fetchExplorerTimeline(entityType, entityId).catch(() => null),
       fetchExplorerEvidence(entityType, entityId).catch(() => null),
       fetchExplorerActions(entityType, entityId).catch(() => null),
-    ]).then(([d, r, rel, t, e, a]) => {
+    ]).then(([r, rel, t, e, a]) => {
       if (cancelled) return;
-      if (d.success) setDetail(d.data as Record<string, unknown>);
       if (r?.success) setRisk(r.data as Record<string, unknown>);
       if (rel?.success) setRelated((rel.data as { related_entities?: Record<string, unknown> })?.related_entities ?? null);
       const tSlice = (t?.data as { timeline?: { items?: unknown[] } })?.timeline;
@@ -63,10 +71,10 @@ export default function ExplorerEntityDetailPage() {
     const raw = (detail?.records as Record<string, unknown>[]) ?? [];
     if (!search.trim()) return raw;
     const q = search.toLowerCase();
-    return raw.filter((row) => JSON.stringify(row).toLowerCase().includes(q));
+    return raw.filter((row) => recordSearchText(row).includes(q));
   }, [detail, search]);
 
-  const summary = (detail?.summary as Record<string, unknown>) ?? {};
+  const summary = (detail?.summary as Record<string, unknown>) ?? (overview?.summary as Record<string, unknown>) ?? {};
 
   return (
     <RegulatorGuard>
@@ -90,7 +98,7 @@ export default function ExplorerEntityDetailPage() {
         </div>
 
         <div className="mt-6 space-y-4">
-          <ExplorerRiskPanel risk={risk ?? (detail?.risk_explanation as Record<string, unknown>) ?? null} />
+          <ExplorerRiskFactors risk={risk ?? (detail?.risk_explanation as Record<string, unknown>) ?? null} />
           <ExplorerRecordsTable records={records} filter={search} onFilterChange={setSearch} />
           <section className="rounded-xl border border-sovereign-800 p-3">
             <h2 className="text-xs font-semibold uppercase text-slate-400">Related entities</h2>
@@ -103,13 +111,13 @@ export default function ExplorerEntityDetailPage() {
           <section className="rounded-xl border border-sovereign-800 p-3">
             <h2 className="text-xs font-semibold uppercase text-slate-400">Timeline</h2>
             <div className="mt-2">
-              <ExplorerTimelineList items={timeline} />
+              <ExplorerTimelineCard items={timeline} />
             </div>
           </section>
           <section className="rounded-xl border border-sovereign-800 p-3">
             <h2 className="text-xs font-semibold uppercase text-slate-400">Evidence</h2>
             <div className="mt-2">
-              <ExplorerEvidenceTable items={evidence} />
+              <ExplorerEvidencePanel items={evidence} />
             </div>
           </section>
           <ExplorerCopilotPlaceholder />

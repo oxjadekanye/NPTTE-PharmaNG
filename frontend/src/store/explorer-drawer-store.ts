@@ -5,6 +5,7 @@ export type ExplorerOpenPayload = {
   entityId: string;
   title?: string;
   contextKey?: string;
+  cachedSummary?: Record<string, unknown>;
 };
 
 type ExplorerDrawerState = {

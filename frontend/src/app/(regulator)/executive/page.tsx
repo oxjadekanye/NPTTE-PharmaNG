@@ -53,11 +53,13 @@ export default function ExecutiveModePage() {
     };
   }, []);
 
-  const openNational = () =>
-    void openExplorerFromContext(openDrawer, "live_national_threat_composite", "National threat composite");
-  const openOps = () => void openExplorerFromContext(openDrawer, "api_health", "API snapshot");
-  const openAi = () => void openExplorerFromContext(openDrawer, "national_ai_intelligence", "National AI");
-  const openBriefing = () => void openExplorerFromContext(openDrawer, "medicine_stability", "Sovereign briefing");
+  const openCtx = (key: string, label: string) => {
+    void openExplorerFromContext(openDrawer, key, label);
+  };
+  const openNational = () => openCtx("live_national_threat_composite", "National threat composite");
+  const openOps = () => openCtx("api_health", "API snapshot");
+  const openAi = () => openCtx("national_ai_intelligence", "National AI intelligence");
+  const openBriefing = () => openCtx("medicine_stability", "Medicine stability");
 
   return (
     <RegulatorGuard>

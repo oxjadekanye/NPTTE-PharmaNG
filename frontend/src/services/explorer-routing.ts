@@ -1,5 +1,11 @@
-import { fetchExplorerContextRoute } from "@/services/explorer";
+import { fetchExplorerContextRoute, fetchExplorerQuickSummary } from "@/services/explorer";
 import { resolveContextTarget } from "@/services/explorer-context-map";
+import {
+  getExplorerCache,
+  setExplorerCache,
+  summaryCacheKey,
+  TTL_SUMMARY_MS,
+} from "@/services/explorer-memory-cache";
 import { perfMark, perfMeasure } from "@/services/perf";
 import type { ExplorerOpenPayload } from "@/store/explorer-drawer-store";
 import { useExplorerDrawerStore } from "@/store/explorer-drawer-store";
@@ -12,11 +18,13 @@ export function openExplorerFromContext(
 ) {
   perfMark("explorer-drawer-open");
   const hint = resolveContextTarget(contextKey, title);
+  const cached = getExplorerCache<Record<string, unknown>>(summaryCacheKey({ contextKey }), TTL_SUMMARY_MS);
   openDrawer({
-    entityType: hint.entityType,
-    entityId: hint.entityId,
-    title: hint.title ?? title,
+    entityType: (cached?.entity_type as string) ?? hint.entityType,
+    entityId: (cached?.entity_id as string) ?? hint.entityId,
+    title: (cached?.title as string) ?? hint.title ?? title,
     contextKey,
+    cachedSummary: cached ?? undefined,
   });
   void fetchExplorerContextRoute(contextKey).then((res) => {
     if (!res.success || !res.data) return;
@@ -32,8 +40,14 @@ export function openExplorerFromContext(
       entityId: d.entity_id,
       title: title ?? d.title,
       contextKey,
+      cachedSummary: current.cachedSummary,
     });
     perfMeasure("explorer-context-route", "explorer-drawer-open");
+  });
+  void fetchExplorerQuickSummary(contextKey).then((res) => {
+    if (res.success && res.data) {
+      setExplorerCache(summaryCacheKey({ contextKey }), res.data);
+    }
   });
 }
 

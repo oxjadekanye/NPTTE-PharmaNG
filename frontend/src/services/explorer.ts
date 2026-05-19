@@ -37,6 +37,24 @@ export function fetchExplorerContextRoute(context: string) {
   return apiRequest<ExplorerContextRoute>(`/explorer/context-route/?context=${encodeURIComponent(context)}`);
 }
 
+export function fetchExplorerQuickSummary(context: string) {
+  return apiRequest<Record<string, unknown>>(
+    `/explorer/quick-summary/?context=${encodeURIComponent(context)}`
+  );
+}
+
+export function fetchExplorerQuickRecords(context: string, page = 1, pageSize = 25) {
+  return apiRequest<Record<string, unknown>>(
+    `/explorer/quick-records/?context=${encodeURIComponent(context)}&page=${page}&page_size=${pageSize}`
+  );
+}
+
+export function fetchExplorerQuickActions(context: string) {
+  return apiRequest<{ route: ExplorerContextRoute; actions: { id: string; label: string; workflow?: string }[] }>(
+    `/explorer/quick-actions/?context=${encodeURIComponent(context)}`
+  );
+}
+
 export function fetchExplorerContextSummary(context: string) {
   return apiRequest<Record<string, unknown>>(
     `/explorer/context-summary/?context=${encodeURIComponent(context)}`

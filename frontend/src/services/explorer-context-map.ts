@@ -20,10 +20,16 @@ const MAP: Record<string, ContextTarget> = {
   counterfeit_risk_forecast: { entityType: "national_risk", entityId: "counterfeit-risk-forecast-current" },
   shortage_pressure: { entityType: "national_risk", entityId: "shortage-pressure-current" },
   enforcement_readiness: { entityType: "national_risk", entityId: "enforcement-readiness-current" },
-  urgent_actions: { entityType: "national_risk", entityId: "urgent-actions-current" },
-  national_ai_intelligence: { entityType: "national_risk", entityId: "national-ai-intelligence-current" },
+  urgent_actions: { entityType: "national_risk", entityId: "urgent-actions-current", title: "Urgent actions" },
+  national_ai_intelligence: { entityType: "national_risk", entityId: "national-ai-intelligence-current", title: "National AI intelligence" },
   command_activity: { entityType: "national_risk", entityId: "command-activity-current" },
   shortage_alerts: { entityType: "national_risk", entityId: "shortage-alerts-current" },
+  import_disruption: { entityType: "national_risk", entityId: "import-disruption-current", title: "Import disruption" },
+  public_health_risk: { entityType: "national_risk", entityId: "public-health-risk-current", title: "Public health risk" },
+  compliance_rate: { entityType: "national_risk", entityId: "compliance-rate-current", title: "Compliance rate" },
+  scan_success_rate: { entityType: "national_risk", entityId: "scan-success-rate-current", title: "Scan success rate" },
+  counterfeit_reduction: { entityType: "national_risk", entityId: "counterfeit-reduction-current", title: "Counterfeit reduction" },
+  national_verifications: { entityType: "national_risk", entityId: "national-verifications-current", title: "National verifications" },
 };
 
 export function resolveContextTarget(contextKey: string, fallbackTitle?: string): ContextTarget {

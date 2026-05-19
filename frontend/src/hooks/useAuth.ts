@@ -8,11 +8,22 @@ import {
   login as apiLogin,
   persistTokens,
   type LoginPayload,
+  type UserProfile,
 } from "@/services/auth";
 import { clearAuthSession, readAuthSession, writeAuthSession } from "@/services/auth-session-cache";
+import { clearFastSession, readFastSession, writeFastSession } from "@/services/auth-fast-session";
 import { ensureAuthBootstrap, resetAuthBootstrap } from "@/services/auth-bootstrap";
 import { useAuthStore } from "@/store/auth-store";
 import { useTenantStore } from "@/store/tenant-store";
+
+function stubUser(username: string): UserProfile {
+  return {
+    id: "pending",
+    username,
+    email: "",
+    role_code: readFastSession()?.roleCode,
+  };
+}
 
 export function useAuth() {
   const { user, permissions, isAuthenticated, setUser, setPermissions, logout: storeLogout } =
@@ -26,14 +37,20 @@ export function useAuth() {
       setLoading(false);
       return;
     }
+    const fast = readFastSession();
     const cached = readAuthSession();
-    if (cached) {
-      setUser(cached.user);
-      setPermissions(cached.permissions);
-      useTenantStore.getState().setContext(
-        cached.organisationId,
-        cached.membershipOrganisationIds
-      );
+    if (fast || cached) {
+      if (cached) {
+        setUser(cached.user);
+        setPermissions(cached.permissions);
+        useTenantStore.getState().setContext(
+          cached.organisationId,
+          cached.membershipOrganisationIds
+        );
+      } else if (fast) {
+        setUser(stubUser(fast.username));
+        setPermissions(fast.permissions.length ? fast.permissions : ["regulatory.read"]);
+      }
       setLoading(false);
     }
     try {
@@ -41,6 +58,7 @@ export function useAuth() {
     } catch {
       clearTokens();
       clearAuthSession();
+      clearFastSession();
       storeLogout();
     } finally {
       setLoading(false);
@@ -56,10 +74,13 @@ export function useAuth() {
     resetAuthBootstrap();
     const tokens = await apiLogin(payload);
     persistTokens(tokens);
+    setUser(stubUser(payload.username));
+    setPermissions(["regulatory.read"]);
     const [profile, permsPayload] = await Promise.all([fetchProfile(), fetchPermissions()]);
     setUser(profile);
     setPermissions(permsPayload.permissions ?? []);
     writeAuthSession(profile, permsPayload);
+    writeFastSession(profile, permsPayload);
     useTenantStore.getState().setContext(
       permsPayload.organisation_id ? String(permsPayload.organisation_id) : null,
       (permsPayload.membership_organisation_ids ?? []).map(String)
@@ -69,6 +90,7 @@ export function useAuth() {
   const logout = () => {
     clearTokens();
     clearAuthSession();
+    clearFastSession();
     resetAuthBootstrap();
     storeLogout();
   };
