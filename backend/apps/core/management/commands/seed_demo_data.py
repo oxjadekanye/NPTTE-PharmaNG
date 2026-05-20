@@ -11,6 +11,7 @@ from django.core.management import call_command
 
 from apps.accounts.models import Role
 from apps.core.constants import AvailabilityStatus, RoleCode
+from apps.core.roles import sync_regulator_flag
 from apps.inventory.models import InventoryItem
 from apps.organisations.models import Organisation, OrganisationType
 from apps.patients.models import PatientProfile
@@ -193,6 +194,26 @@ class Command(BaseCommand):
                 self.style.WARNING("No demo pharmacies created — demo_pharmacy_admin skipped.")
             )
 
+        admin_role = Role.objects.get(code=RoleCode.NAFDAC_ADMIN)
+        admin_user, _ = User.objects.get_or_create(
+            username="nptte_admin",
+            defaults={
+                "email": "admin@nptte.gov.ng",
+                "role": admin_role,
+                "is_staff": True,
+                "is_superuser": True,
+                "is_active": True,
+            },
+        )
+        admin_user.role = admin_role
+        admin_user.is_staff = True
+        admin_user.is_superuser = True
+        admin_user.is_active = True
+        admin_user.set_password("NptteAdmin2026!")
+        sync_regulator_flag(admin_user)
+        admin_user.save()
+
         self.stdout.write(self.style.SUCCESS("Demo data seeded successfully."))
+        self.stdout.write("  nptte_admin / NptteAdmin2026!")
         self.stdout.write("  demo_patient / DemoPatient2026!")
         self.stdout.write("  demo_pharmacy_admin / DemoPharmacy2026!")

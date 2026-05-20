@@ -17,7 +17,15 @@ export function useMobileRealtime(channel = "officer_tasks", enabled = true) {
     const maxSeq = Math.max(...incoming.map((e) => e.sequence_number ?? 0), sinceRef.current);
     sinceRef.current = maxSeq;
     setEvents((prev) => {
-      const merged = [...incoming, ...prev].slice(0, 40);
+      const seen = new Set<number>();
+      const merged: MobileFeedEvent[] = [];
+      for (const e of [...incoming, ...prev]) {
+        const seq = e.sequence_number ?? 0;
+        if (seq && seen.has(seq)) continue;
+        if (seq) seen.add(seq);
+        merged.push(e);
+        if (merged.length >= 40) break;
+      }
       return merged;
     });
     const top = incoming[0];

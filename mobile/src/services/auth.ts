@@ -24,7 +24,9 @@ export function parseLoginError(json: unknown, status: number): string {
       return String(nonField[0]);
     }
   }
-  if (status === 401) return "Invalid username or password";
+  if (status === 401) {
+    return "Invalid username or password. Try nptte_admin / NptteAdmin2026! on demo environments.";
+  }
   return "Login failed";
 }
 export type UserProfile = {

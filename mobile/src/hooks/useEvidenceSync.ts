@@ -9,13 +9,22 @@ export function useEvidenceSync() {
   const queue = useEvidenceQueue((s) => s.queue);
   const markSynced = useEvidenceQueue((s) => s.markSynced);
   const markFailed = useEvidenceQueue((s) => s.markFailed);
+  const markSyncing = useEvidenceQueue((s) => s.markSyncing);
+  const nextBackoffMs = useEvidenceQueue((s) => s.nextBackoffMs);
   const setLastSync = useEvidenceQueue((s) => s.setLastSync);
   const ensureDeviceId = useOfflineQueue((s) => s.ensureDeviceId);
 
   const syncPending = useCallback(async () => {
     if (!online) return;
-    const pending = queue.filter((q) => q.client_sync_status === "pending");
+    const now = Date.now();
+    const pending = queue.filter((q) => {
+      if (q.client_sync_status !== "pending" && q.client_sync_status !== "failed") return false;
+      const backoff = nextBackoffMs(q.attempts);
+      const queuedMs = new Date(q.queued_at).getTime();
+      return now - queuedMs >= backoff;
+    });
     for (const item of pending) {
+      markSyncing(item.id);
       const res = await uploadFieldEvidence({
         device_id: ensureDeviceId(),
         evidence_type: item.evidence_type,
@@ -30,7 +39,7 @@ export function useEvidenceSync() {
       void syncEvidenceQueue(ensureDeviceId());
       setLastSync(new Date().toISOString());
     }
-  }, [online, queue, markSynced, markFailed, setLastSync, ensureDeviceId]);
+  }, [online, queue, markSynced, markFailed, markSyncing, nextBackoffMs, setLastSync, ensureDeviceId]);
 
   useEffect(() => {
     void syncPending();

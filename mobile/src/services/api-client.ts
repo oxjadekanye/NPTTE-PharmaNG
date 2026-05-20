@@ -1,10 +1,19 @@
 import { resolveApiBaseUrl, API_TIMEOUT_MS } from "@/config/env";
 import { getAccessToken } from "@/services/auth-storage";
+import { CrashReporting } from "@/services/crash-reporting";
+import { recordApiLatency } from "@/services/performance-monitor";
 import {
   handleSessionExpiry,
   isSessionExpired,
   refreshAccessToken,
 } from "@/services/session-security";
+import { useOperationalToast } from "@/store/operational-toast-store";
+
+let networkOnline = true;
+
+export function setApiNetworkOnline(online: boolean) {
+  networkOnline = online;
+}
 
 export type ApiEnvelope<T> = {
   success: boolean;
@@ -45,6 +54,12 @@ export async function apiRequest<T>(
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
+  if (!networkOnline && init.method && init.method !== "GET") {
+    useOperationalToast.getState().show("Offline — request queued or deferred", "warning");
+    return { success: false, message: "Device offline", data: undefined as T };
+  }
+
+  const started = Date.now();
   let res = await fetchWithTimeout(`${base}${path}`, { ...init, headers });
   if (auth && res.status === 401 && !skipRefresh) {
     const refreshed = await refreshAccessToken();
@@ -59,13 +74,25 @@ export async function apiRequest<T>(
   }
 
   const json = (await res.json().catch(() => ({}))) as ApiEnvelope<T> & { detail?: string };
+  recordApiLatency(path, Date.now() - started, res.ok);
+
   if (!res.ok) {
+    const message = json.message || json.detail || res.statusText;
+    CrashReporting.capture("warning", `API ${path}: ${message}`, { status: res.status });
+    if (res.status >= 500 || res.status === 429) {
+      useOperationalToast.getState().show(message, "error");
+    }
     return {
       success: false,
-      message: json.message || json.detail || res.statusText,
+      message,
       data: json.data,
     };
   }
-  if (typeof json.success === "boolean") return json;
+  if (typeof json.success === "boolean") {
+    if (!json.success) {
+      useOperationalToast.getState().show(json.message || "Request failed", "warning");
+    }
+    return json;
+  }
   return { success: true, message: "OK", data: json as T };
 }

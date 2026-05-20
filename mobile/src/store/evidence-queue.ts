@@ -19,9 +19,11 @@ type EvidenceQueueState = {
   queue: QueuedEvidence[];
   lastSyncAt: string | null;
   enqueue: (item: Omit<QueuedEvidence, "id" | "queued_at" | "attempts" | "client_sync_status">) => void;
+  markSyncing: (id: string) => void;
   markSynced: (id: string) => void;
   markFailed: (id: string, error: string) => void;
   setLastSync: (iso: string) => void;
+  nextBackoffMs: (attempts: number) => number;
 };
 
 function newId() {
@@ -33,6 +35,13 @@ export const useEvidenceQueue = create<EvidenceQueueState>()(
     (set) => ({
       queue: [],
       lastSyncAt: null,
+      nextBackoffMs: (attempts) => Math.min(120_000, 3000 * 2 ** attempts),
+      markSyncing: (id) =>
+        set((s) => ({
+          queue: s.queue.map((q) =>
+            q.id === id ? { ...q, client_sync_status: "syncing" as const } : q
+          ),
+        })),
       enqueue: (item) =>
         set((s) => ({
           queue: [

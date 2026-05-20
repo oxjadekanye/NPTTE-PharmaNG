@@ -1,5 +1,6 @@
-import { Link, type Href } from "expo-router";
+import { Link, router, type Href } from "expo-router";
 import { useEffect, useRef } from "react";
+import { useQaMode } from "@/store/qa-mode-store";
 import {
   Animated,
   Dimensions,
@@ -63,6 +64,7 @@ function LandingAction({ href, label, variant, delay, slide }: ActionProps) {
 }
 
 export function ProductionLandingScreen() {
+  const unlockQa = useQaMode((s) => s.unlock);
   const insets = useSafeAreaInsets();
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(24)).current;
@@ -104,7 +106,15 @@ export function ProductionLandingScreen() {
             alignItems: "center",
           }}
         >
-          <NptteLogoMark width={isCompact ? 220 : 260} />
+          <Pressable
+            onLongPress={() => {
+              unlockQa();
+              router.push("/qa-dashboard" as Href);
+            }}
+            delayLongPress={2800}
+          >
+            <NptteLogoMark width={isCompact ? 220 : 260} />
+          </Pressable>
           <Text style={styles.subtitle}>
             National Pharmaceutical Traceability &{"\n"}Enforcement Platform
           </Text>

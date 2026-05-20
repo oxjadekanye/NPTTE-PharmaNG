@@ -1,5 +1,5 @@
-import { router } from "expo-router";
 import { useState } from "react";
+import { useSafeNavigation } from "@/hooks/useSafeNavigation";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { PasswordInput } from "@/components/PasswordInput";
 import { ScreenShell } from "@/components/ScreenShell";
@@ -12,6 +12,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { NPTTEBrand } from "@/theme/branding";
 
 export default function LoginScreen() {
+  const { safeReplace } = useSafeNavigation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,10 +39,15 @@ export default function LoginScreen() {
         );
       }
       const bio = await isBiometricHardwareAvailable();
-      await registerTrustedDevice(bio);
-      await initPushOrchestration(role === "executive" ? "executive" : "officer_tasks");
+      const trust = await registerTrustedDevice(bio);
+      if (!trust.success) {
+        console.warn("Device trust registration skipped:", trust.message);
+      }
+      const pushChannel =
+        role === "executive" ? "executive" : role === "regulator" ? "officer_tasks" : "officer_tasks";
+      await initPushOrchestration(pushChannel);
       void sendDeviceHeartbeat();
-      router.replace(mobileHomePath(role));
+      safeReplace(mobileHomePath(role));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Login failed");
     } finally {
@@ -77,8 +83,10 @@ export default function LoginScreen() {
       </Pressable>
       <View style={styles.hint}>
         <Text style={styles.hintTitle}>Demo accounts</Text>
+        <Text style={styles.hintText}>Admin: nptte_admin</Text>
         <Text style={styles.hintText}>Pharmacy: demo_pharmacy_admin</Text>
-        <Text style={styles.hintText}>Patient (citizen app): demo_patient</Text>
+        <Text style={styles.hintText}>Patient: demo_patient</Text>
+        <Text style={styles.hintSub}>Passwords end with 2026! — see ops docs</Text>
       </View>
     </ScreenShell>
   );
@@ -114,4 +122,5 @@ const styles = StyleSheet.create({
   },
   hintTitle: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 11, marginBottom: 6 },
   hintText: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 12 },
+  hintSub: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 10, marginTop: 6 },
 });

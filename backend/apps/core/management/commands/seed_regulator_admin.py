@@ -91,8 +91,7 @@ class Command(BaseCommand):
             user.is_superuser = True
             user.is_active = True
 
-        if created or options["reset_password"]:
-            user.set_password(password)
+        user.set_password(password)
         sync_regulator_flag(user)
         user.save()
 

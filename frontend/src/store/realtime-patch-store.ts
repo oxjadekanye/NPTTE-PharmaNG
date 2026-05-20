@@ -18,7 +18,9 @@ export const useRealtimePatchStore = create<PatchState>((set, get) => ({
   metrics: {},
   applyPatch: (patch) => {
     set((s) => {
-      const patches = [patch, ...s.patches].slice(0, 200);
+      const key = `${patch.scope}:${patch.target}`;
+      const dup = s.patches[0] && `${s.patches[0].scope}:${s.patches[0].target}` === key;
+      const patches = dup ? s.patches : [patch, ...s.patches].slice(0, 200);
       let metrics = s.metrics;
       if (patch.scope === "metric") {
         metrics = {

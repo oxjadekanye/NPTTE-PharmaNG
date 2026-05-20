@@ -6,12 +6,18 @@ export type MobileRole =
   | "warehouse"
   | "executive";
 
-const EXECUTIVE_CODES = new Set([
+/** Ministerial / national command roles → executive mobile home */
+const EXECUTIVE_CODES = new Set(["FMOH_ADMIN", "NATIONAL_REGULATOR"]);
+
+/** Field regulator & agency admin roles → regulator mobile home */
+const REGULATOR_CODES = new Set([
   "SUPER_ADMIN",
-  "FMOH_ADMIN",
-  "NATIONAL_REGULATOR",
   "NAFDAC_ADMIN",
   "NDLEA_ADMIN",
+  "PCN_ADMIN",
+  "NHIA_ADMIN",
+  "STATE_REGULATOR",
+  "AUDITOR",
 ]);
 
 const CUSTOMS_CODES = new Set(["CUSTOMS_ADMIN"]);
@@ -39,10 +45,10 @@ export function resolveMobileRole(
   const code = roleCode.toUpperCase();
   if (code === "PATIENT") return "citizen";
   if (EXECUTIVE_CODES.has(code)) return "executive";
+  if (REGULATOR_CODES.has(code) || isRegulator) return "regulator";
   if (CUSTOMS_CODES.has(code)) return "customs";
   if (WAREHOUSE_CODES.has(code)) return "warehouse";
   if (PHARMACY_CODES.has(code)) return "pharmacy";
-  if (isRegulator) return "regulator";
   return null;
 }
 

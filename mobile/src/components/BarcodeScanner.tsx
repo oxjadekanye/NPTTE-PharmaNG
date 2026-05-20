@@ -1,8 +1,11 @@
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { endTimer, startTimer } from "@/services/performance-monitor";
 import { PERMISSION_COPY } from "@/services/permissions";
 import { NPTTEBrand } from "@/theme/branding";
+
+const DEBOUNCE_MS = 900;
 
 type Props = {
   onScan: (value: string) => void;
@@ -12,6 +15,31 @@ type Props = {
 export function BarcodeScanner({ onScan, active = true }: Props) {
   const [permission, requestPermission] = useCameraPermissions();
   const [last, setLast] = useState("");
+  const [torch, setTorch] = useState(false);
+  const lastAtRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const handleBarcode = useCallback(
+    (data: string) => {
+      if (!data || !mountedRef.current) return;
+      const now = Date.now();
+      if (data === last && now - lastAtRef.current < DEBOUNCE_MS) return;
+      if (now - lastAtRef.current < DEBOUNCE_MS) return;
+      lastAtRef.current = now;
+      setLast(data);
+      startTimer("scan.process");
+      onScan(data);
+      endTimer("scan", "scan.process", { codeLength: data.length });
+    },
+    [last, onScan]
+  );
 
   if (!permission) {
     return <Text style={styles.muted}>Checking camera permission…</Text>;
@@ -25,6 +53,9 @@ export function BarcodeScanner({ onScan, active = true }: Props) {
         <Pressable style={styles.btn} onPress={() => void requestPermission()}>
           <Text style={styles.btnText}>Grant permission</Text>
         </Pressable>
+        <Pressable style={styles.btnSecondary} onPress={() => void requestPermission()}>
+          <Text style={styles.btnText}>Try again</Text>
+        </Pressable>
       </View>
     );
   }
@@ -36,15 +67,17 @@ export function BarcodeScanner({ onScan, active = true }: Props) {
       <CameraView
         style={styles.camera}
         facing="back"
+        enableTorch={torch}
         barcodeScannerSettings={{
           barcodeTypes: ["qr", "ean13", "ean8", "code128", "code39"],
         }}
         onBarcodeScanned={({ data }) => {
-          if (!data || data === last) return;
-          setLast(data);
-          onScan(data);
+          if (data) handleBarcode(data);
         }}
       />
+      <Pressable style={styles.torchBtn} onPress={() => setTorch((t) => !t)}>
+        <Text style={styles.torchText}>{torch ? "Torch on" : "Torch off"}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -61,6 +94,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
   },
+  btnSecondary: {
+    marginTop: 8,
+    backgroundColor: "#334155",
+    padding: 10,
+    borderRadius: 8,
+    alignItems: "center",
+  },
   btnText: { color: "#fff", fontWeight: "600" },
   rationale: {
     color: NPTTEBrand.colors.sovereign.muted,
@@ -68,4 +108,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 16,
   },
+  torchBtn: {
+    position: "absolute",
+    right: 8,
+    bottom: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  torchText: { color: "#fff", fontSize: 11, fontWeight: "600" },
 });

@@ -18,6 +18,14 @@ describe("resolveMobileRole", () => {
     expect(resolveMobileRole("FMOH_ADMIN")).toBe("executive");
   });
 
+  it("maps NAFDAC admin to regulator mobile home", () => {
+    expect(resolveMobileRole("NAFDAC_ADMIN", true)).toBe("regulator");
+  });
+
+  it("maps nptte super admin to regulator mobile home", () => {
+    expect(resolveMobileRole("SUPER_ADMIN", true)).toBe("regulator");
+  });
+
   it("maps regulator when flag set", () => {
     expect(resolveMobileRole("STATE_REGULATOR", true)).toBe("regulator");
   });

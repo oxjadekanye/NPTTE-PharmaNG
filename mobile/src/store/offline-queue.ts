@@ -86,6 +86,23 @@ export const useOfflineQueue = create<OfflineQueueState>()(
     {
       name: "nptte-mobile-offline-queue",
       storage: createJSONStorage(() => AsyncStorage),
+      onRehydrateStorage: () => (state) => {
+        if (!state?.queue) return;
+        const valid = state.queue.filter(
+          (r) => r && typeof r.id === "string" && typeof r.serial_number === "string"
+        );
+        if (valid.length !== state.queue.length) {
+          useOfflineQueue.setState({ queue: valid });
+        }
+      },
     }
   )
 );
+
+/** Repair corrupted queue entries after bad persist. */
+export function validateOfflineQueue() {
+  const q = useOfflineQueue.getState().queue;
+  const valid = q.filter((r) => r?.id && r.serial_number);
+  if (valid.length !== q.length) useOfflineQueue.setState({ queue: valid });
+  return valid.length;
+}

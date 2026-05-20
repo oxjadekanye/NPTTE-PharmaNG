@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useRealtimePatchStore, type RealtimePatch } from "@/store/realtime-patch-store";
 
 export function useRealtimePatches(enabled = true, channel?: string) {
   const applyPatch = useRealtimePatchStore((s) => s.applyPatch);
   const patches = useRealtimePatchStore((s) => s.patches);
   const metrics = useRealtimePatchStore((s) => s.metrics);
+  const batchRef = useRef<RealtimePatch[]>([]);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!enabled || typeof window === "undefined") return;
@@ -25,14 +27,24 @@ export function useRealtimePatches(enabled = true, channel?: string) {
       try {
         const data = JSON.parse(ev.data) as { type: string; payload: unknown };
         if (data.type === "patch" && data.payload && typeof data.payload === "object") {
-          applyPatch(data.payload as RealtimePatch);
+          batchRef.current.push(data.payload as RealtimePatch);
+          if (rafRef.current == null) {
+            rafRef.current = requestAnimationFrame(() => {
+              const batch = batchRef.current.splice(0);
+              rafRef.current = null;
+              for (const p of batch) applyPatch(p);
+            });
+          }
         }
       } catch {
         /* ignore */
       }
     };
 
-    return () => es.close();
+    return () => {
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      es.close();
+    };
   }, [enabled, channel, applyPatch]);
 
   return { patches, metrics };

@@ -31,8 +31,8 @@ export function EvidenceCapture({ evidenceType, serialNumber = "" }: Props) {
     if (shot.canceled || !shot.assets[0]?.base64) return;
     const manipulated = await ImageManipulator.manipulateAsync(
       shot.assets[0].uri,
-      [{ resize: { width: 1024 } }],
-      { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+      [{ resize: { width: 1280 } }],
+      { compress: 0.42, format: ImageManipulator.SaveFormat.JPEG, base64: true }
     );
     setPhotos((p) => [
       ...p,
@@ -74,7 +74,14 @@ export function EvidenceCapture({ evidenceType, serialNumber = "" }: Props) {
       longitude: lng,
       photos,
     });
-    setStatus(res.success ? "Evidence uploaded" : res.message);
+    if (res.success) {
+      setStatus("Evidence uploaded");
+      setPhotos([]);
+      setNotes("");
+    } else {
+      enqueue({ evidence_type: evidenceType, notes, serial_number: serialNumber, photos });
+      setStatus(`Upload failed — queued for retry: ${res.message}`);
+    }
   };
 
   return (
