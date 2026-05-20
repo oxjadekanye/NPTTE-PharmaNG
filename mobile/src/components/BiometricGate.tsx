@@ -1,29 +1,79 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import { authenticateWithBiometrics, getBiometricEnabled } from "@/services/biometric";
 import { getAccessToken } from "@/services/auth-storage";
+import { bootLog, BOOT_HARD_TIMEOUT_MS } from "@/services/boot-diagnostics";
+
+function isPublicRoute(pathname: string) {
+  return pathname === "/" || pathname === "" || pathname === "/login";
+}
 
 export function BiometricGate({ children }: { children: React.ReactNode }) {
-  const [checking, setChecking] = useState(true);
-  const [unlocked, setUnlocked] = useState(false);
+  const pathname = usePathname();
+  const [checking, setChecking] = useState(false);
+  const [unlocked, setUnlocked] = useState(true);
   const [failed, setFailed] = useState(false);
+  const checkedPath = useRef<string | null>(null);
 
   useEffect(() => {
-    (async () => {
-      const token = await getAccessToken();
-      const enabled = await getBiometricEnabled();
-      if (!token || !enabled) {
-        setUnlocked(true);
-        setChecking(false);
-        return;
-      }
-      const ok = await authenticateWithBiometrics();
-      setUnlocked(ok);
-      setFailed(!ok);
+    if (isPublicRoute(pathname)) {
+      bootLog("biometric", "skipped on public route");
+      setUnlocked(true);
       setChecking(false);
+      return;
+    }
+
+    if (checkedPath.current === pathname) return;
+    checkedPath.current = pathname;
+
+    let cancelled = false;
+    setChecking(true);
+    bootLog("biometric", "check start");
+
+    const bypass = setTimeout(() => {
+      if (cancelled) return;
+      bootLog("biometric", "timeout — bypass gate");
+      setUnlocked(true);
+      setChecking(false);
+    }, BOOT_HARD_TIMEOUT_MS);
+
+    (async () => {
+      try {
+        const token = await getAccessToken();
+        const enabled = await getBiometricEnabled();
+        if (!token || !enabled) {
+          if (!cancelled) {
+            setUnlocked(true);
+            setChecking(false);
+            bootLog("biometric", "not required");
+          }
+          return;
+        }
+        const ok = await authenticateWithBiometrics();
+        if (cancelled) return;
+        setUnlocked(ok);
+        setFailed(!ok);
+        setChecking(false);
+        bootLog("biometric", ok ? "unlocked" : "failed");
+      } catch (err) {
+        if (!cancelled) {
+          setUnlocked(true);
+          setChecking(false);
+          bootLog("biometric", `error bypass ${err instanceof Error ? err.message : ""}`);
+        }
+      } finally {
+        clearTimeout(bypass);
+      }
     })();
-  }, []);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(bypass);
+    };
+  }, [pathname]);
+
+  if (isPublicRoute(pathname)) return <>{children}</>;
 
   if (checking) {
     return (

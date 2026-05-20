@@ -42,7 +42,8 @@ export function useEvidenceSync() {
   }, [online, queue, markSynced, markFailed, markSyncing, nextBackoffMs, setLastSync, ensureDeviceId]);
 
   useEffect(() => {
-    void syncPending();
+    const id = setTimeout(() => void syncPending(), 500);
+    return () => clearTimeout(id);
   }, [syncPending]);
 
   return { syncPending };

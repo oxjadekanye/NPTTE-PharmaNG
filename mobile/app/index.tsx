@@ -1,27 +1,44 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View, StyleSheet } from "react-native";
-import { useSafeNavigation } from "@/hooks/useSafeNavigation";
-import { mobileHomePath } from "@/services/role-routing";
 import { ProductionLandingScreen } from "@/components/landing/ProductionLandingScreen";
 import { LandingBootSplash } from "@/components/landing/LandingBootSplash";
+import { bootLog, BOOT_HARD_TIMEOUT_MS } from "@/services/boot-diagnostics";
+import { mobileHomePath } from "@/services/role-routing";
 import { useAuthStore } from "@/store/auth-store";
 
 export default function LandingRoute() {
-  const { loading, mobileRole, hydrate } = useAuthStore();
-  const { safeReplace } = useSafeNavigation();
+  const loading = useAuthStore((s) => s.loading);
+  const mobileRole = useAuthStore((s) => s.mobileRole);
   const [bootDone, setBootDone] = useState(false);
+  const navigatedRef = useRef(false);
 
   useEffect(() => {
-    void hydrate().then((role) => {
-      if (role) safeReplace(mobileHomePath(role));
+    bootLog("landing", "mount");
+    const forceLanding = setTimeout(() => {
+      bootLog("landing", "timeout — reveal landing");
       setBootDone(true);
-    });
-  }, [hydrate, safeReplace]);
+    }, BOOT_HARD_TIMEOUT_MS);
 
-  if (mobileRole) return null;
+    return () => clearTimeout(forceLanding);
+  }, []);
 
-  const showBoot = loading || !bootDone;
+  useEffect(() => {
+    if (loading) return;
+    bootLog("landing", "auth loading complete");
+    setBootDone(true);
+  }, [loading]);
+
+  useEffect(() => {
+    if (!mobileRole || navigatedRef.current) return;
+    navigatedRef.current = true;
+    const href = mobileHomePath(mobileRole);
+    bootLog("navigation", `redirect to ${href}`);
+    setBootDone(true);
+    router.replace(href as never);
+  }, [mobileRole]);
+
+  const showBoot = !bootDone;
 
   return (
     <View style={styles.root}>
