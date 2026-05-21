@@ -69,6 +69,12 @@ export function AuthNavigationBridge() {
 
     if (!mobileRole) return;
 
+    if (staffLoginIntent && LANDING_AUTO_REDIRECT.has(normalizedPath)) {
+      bootLog("navigation", "skip — staff login intent (landing)");
+      lastHandled.current = null;
+      return;
+    }
+
     if (preferLanding && LANDING_AUTO_REDIRECT.has(normalizedPath)) {
       bootLog("navigation", "skip — user chose landing");
       lastHandled.current = null;

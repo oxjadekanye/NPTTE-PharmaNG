@@ -25,8 +25,11 @@ export function SplashReadinessPulse() {
   }, [scale, opacity]);
 
   return (
-    <View style={styles.wrap}>
-      <Animated.View style={[styles.ring, { transform: [{ scale }], opacity }]} />
+    <View style={styles.wrap} pointerEvents="none">
+      <Animated.View
+        style={[styles.ring, { transform: [{ scale }], opacity }]}
+        pointerEvents="none"
+      />
     </View>
   );
 }

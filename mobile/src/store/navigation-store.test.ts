@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("expo-router", () => ({
-  router: { replace: vi.fn() },
+  router: { replace: vi.fn(), push: vi.fn() },
 }));
 
 import { useNavigationStore } from "@/store/navigation-store";
@@ -31,6 +31,18 @@ describe("navigation-store", () => {
   it("allows replace after clearNavigationDedupe from login path", () => {
     useNavigationStore.setState({ rootMounted: true, currentPath: "/login" });
     useNavigationStore.getState().replaceWhenReady("/pharmacy");
+    expect(useNavigationStore.getState().pendingRoute).toBeNull();
+  });
+
+  it("queues staff login push until root is mounted", () => {
+    useNavigationStore.getState().pushStaffLoginWhenReady("/login");
+    expect(useNavigationStore.getState().pendingRoute).toBeNull();
+    useNavigationStore.getState().setRootMounted();
+  });
+
+  it("clears pending replace before staff login push", () => {
+    useNavigationStore.setState({ rootMounted: true, currentPath: "/", pendingRoute: "/regulator" });
+    useNavigationStore.getState().pushStaffLoginWhenReady("/login");
     expect(useNavigationStore.getState().pendingRoute).toBeNull();
   });
 });

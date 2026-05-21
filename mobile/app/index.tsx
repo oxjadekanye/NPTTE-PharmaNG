@@ -34,7 +34,7 @@ export default function LandingRoute() {
   const showBoot = !bootDone;
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} pointerEvents="box-none">
       <ProductionLandingScreen />
       <LandingBootSplash visible={showBoot} />
     </View>

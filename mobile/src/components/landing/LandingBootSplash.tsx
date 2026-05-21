@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet } from "react-native";
+import { Animated, StyleSheet, View } from "react-native";
 import { NptteLogoMark } from "@/components/landing/NptteLogoMark";
 import { SplashReadinessPulse } from "@/components/landing/SplashReadinessPulse";
 
@@ -22,9 +22,16 @@ export function LandingBootSplash({ visible }: { visible: boolean }) {
   if (!mounted) return null;
 
   return (
-    <Animated.View style={[styles.overlay, { opacity }]} pointerEvents={visible ? "auto" : "none"}>
-      <NptteLogoMark width={280} />
-      <SplashReadinessPulse />
+    <Animated.View
+      style={[styles.overlay, { opacity }]}
+      pointerEvents={visible ? "auto" : "none"}
+      accessibilityElementsHidden={!visible}
+      importantForAccessibility={visible ? "yes" : "no-hide-descendants"}
+    >
+      <View pointerEvents="none" style={styles.logoWrap}>
+        <NptteLogoMark width={280} />
+        <SplashReadinessPulse />
+      </View>
     </Animated.View>
   );
 }
@@ -36,5 +43,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 100,
+  },
+  logoWrap: {
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

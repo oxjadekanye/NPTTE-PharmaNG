@@ -10,6 +10,7 @@ type NavigationState = {
   setCurrentPath: (path: string) => void;
   replaceWhenReady: (href: string) => void;
   pushWhenReady: (href: string) => void;
+  pushStaffLoginWhenReady: (href: string) => void;
   flushPending: () => void;
   clearNavigationDedupe: () => void;
 };
@@ -93,6 +94,18 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
     const state = get();
     if (!state.rootMounted) {
       bootLog("navigation", `queued push → ${target}`);
+      pendingPush = target;
+      return;
+    }
+    pendingPush = null;
+    scheduleNavigation(() => runPush(target));
+  },
+  pushStaffLoginWhenReady: (href) => {
+    const target = normalizePath(href);
+    set({ pendingRoute: null });
+    const state = get();
+    if (!state.rootMounted) {
+      bootLog("navigation", `queued staff login push → ${target}`);
       pendingPush = target;
       return;
     }
