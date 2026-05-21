@@ -54,7 +54,8 @@ export async function apiRequest<T>(
     if (token) headers.set("Authorization", `Bearer ${token}`);
   }
 
-  if (!networkOnline && init.method && init.method !== "GET") {
+  const isAuthPath = path.startsWith("/auth/");
+  if (!networkOnline && init.method && init.method !== "GET" && !isAuthPath) {
     useOperationalToast.getState().show("Offline — request queued or deferred", "warning");
     return { success: false, message: "Device offline", data: undefined as T };
   }

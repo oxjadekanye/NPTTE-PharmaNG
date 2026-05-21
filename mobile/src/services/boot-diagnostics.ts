@@ -1,7 +1,7 @@
 /** Phase 24 hotfix — safe startup diagnostics (dev-visible). */
 export function bootLog(stage: string, detail?: string) {
   const suffix = detail ? ` — ${detail}` : "";
-  if (__DEV__) {
+  if (typeof __DEV__ !== "undefined" ? __DEV__ : process.env.NODE_ENV !== "production") {
     // eslint-disable-next-line no-console
     console.log(`[BOOT] ${stage}${suffix}`);
   }

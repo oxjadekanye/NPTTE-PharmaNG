@@ -52,7 +52,7 @@ export async function login(payload: LoginPayload) {
     const res = await fetch(`${resolveApiBaseUrl()}/auth/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ username: payload.username, password: payload.password }),
       signal: controller.signal,
     });
     const json = await res.json().catch(() => ({}));
@@ -68,6 +68,11 @@ export async function login(payload: LoginPayload) {
     const exp = decodeJwtExpiry(access);
     if (exp) await setTokenExpiry(exp);
     return { access, refresh };
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Login timed out — check network and API URL.");
+    }
+    throw err;
   } finally {
     clearTimeout(timeout);
   }

@@ -1,24 +1,35 @@
-import { useState } from "react";
-import { useSafeNavigation } from "@/hooks/useSafeNavigation";
+import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { PasswordInput } from "@/components/PasswordInput";
 import { ScreenShell } from "@/components/ScreenShell";
-import { login, fetchPermissions, parseLoginError } from "@/services/auth";
+import { login, fetchPermissions, fetchProfile } from "@/services/auth";
 import { registerTrustedDevice, sendDeviceHeartbeat } from "@/services/device-trust";
 import { isBiometricHardwareAvailable } from "@/services/biometric";
 import { initPushOrchestration } from "@/services/push-orchestration";
-import { mobileHomePath, resolveMobileRole } from "@/services/role-routing";
+import { mobileHomePath, resolveMobileRole, type MobileRole } from "@/services/role-routing";
+import { useRootMounted } from "@/hooks/useRootMounted";
 import { useAuthStore } from "@/store/auth-store";
+import { useNavigationStore } from "@/store/navigation-store";
 import { NPTTEBrand } from "@/theme/branding";
 
 export default function LoginScreen() {
-  const { safeReplace } = useSafeNavigation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const hydrate = useAuthStore((s) => s.hydrate);
+  const [pendingRole, setPendingRole] = useState<MobileRole | null>(null);
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
+  const rootMounted = useRootMounted();
+  const replaceWhenReady = useNavigationStore((s) => s.replaceWhenReady);
+  const navigatedRef = useRef(false);
+
+  useEffect(() => {
+    if (!pendingRole || !rootMounted || navigatedRef.current) return;
+    navigatedRef.current = true;
+    const href = mobileHomePath(pendingRole);
+    replaceWhenReady(href);
+    setPendingRole(null);
+  }, [pendingRole, rootMounted, replaceWhenReady]);
 
   const onLogin = async () => {
     const trimmedUser = username.trim();
@@ -28,16 +39,23 @@ export default function LoginScreen() {
     }
     setLoading(true);
     setError(null);
+    navigatedRef.current = false;
     try {
       await login({ username: trimmedUser, password });
-      await hydrate();
-      const perms = await fetchPermissions();
+      const [profile, perms] = await Promise.all([fetchProfile(), fetchPermissions()]);
       const role = resolveMobileRole(perms.role_code, perms.is_regulator);
       if (!role) {
         throw new Error(
           `No mobile role for account (${perms.role_code ?? "unknown"}). Contact your administrator.`
         );
       }
+      useAuthStore.setState({
+        profile,
+        permissions: perms,
+        mobileRole: role,
+        loading: false,
+        sessionExpired: false,
+      });
       const bio = await isBiometricHardwareAvailable();
       const trust = await registerTrustedDevice(bio);
       if (!trust.success) {
@@ -47,9 +65,14 @@ export default function LoginScreen() {
         role === "executive" ? "executive" : role === "regulator" ? "officer_tasks" : "officer_tasks";
       await initPushOrchestration(pushChannel);
       void sendDeviceHeartbeat();
-      safeReplace(mobileHomePath(role));
+      setPendingRole(role);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Login failed");
+      const msg = e instanceof Error ? e.message : "Login failed";
+      if (msg.includes("abort") || msg.includes("network") || msg.includes("Failed to fetch")) {
+        setError("Cannot reach NPTTE API. Check network or try again on Wi‑Fi/LTE.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -82,11 +105,10 @@ export default function LoginScreen() {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Sign in</Text>}
       </Pressable>
       <View style={styles.hint}>
-        <Text style={styles.hintTitle}>Demo accounts</Text>
-        <Text style={styles.hintText}>Admin: nptte_admin</Text>
-        <Text style={styles.hintText}>Pharmacy: demo_pharmacy_admin</Text>
-        <Text style={styles.hintText}>Patient: demo_patient</Text>
-        <Text style={styles.hintSub}>Passwords end with 2026! — see ops docs</Text>
+        <Text style={styles.hintTitle}>Demo accounts (Render demo seed)</Text>
+        <Text style={styles.hintText}>nptte_admin / NptteAdmin2026!</Text>
+        <Text style={styles.hintText}>demo_pharmacy_admin / DemoPharmacy2026!</Text>
+        <Text style={styles.hintText}>demo_patient / DemoPatient2026!</Text>
       </View>
     </ScreenShell>
   );
@@ -122,5 +144,4 @@ const styles = StyleSheet.create({
   },
   hintTitle: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 11, marginBottom: 6 },
   hintText: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 12 },
-  hintSub: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 10, marginTop: 6 },
 });

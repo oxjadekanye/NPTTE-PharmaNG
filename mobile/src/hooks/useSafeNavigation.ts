@@ -1,14 +1,15 @@
-import { router } from "expo-router";
 import { useRef } from "react";
+import { useNavigationStore } from "@/store/navigation-store";
 
-/** Prevent duplicate route pushes during login / hydration races. */
+/** Prevent duplicate route pushes; defer until root layout is mounted. */
 export function useSafeNavigation() {
   const lockRef = useRef(false);
+  const replaceWhenReady = useNavigationStore((s) => s.replaceWhenReady);
 
   const safeReplace = (href: string) => {
     if (lockRef.current) return false;
     lockRef.current = true;
-    router.replace(href as never);
+    replaceWhenReady(href);
     setTimeout(() => {
       lockRef.current = false;
     }, 1500);

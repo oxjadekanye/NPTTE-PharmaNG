@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import { router, usePathname } from "expo-router";
+import { usePathname } from "expo-router";
+import { useNavigationStore } from "@/store/navigation-store";
 import { authenticateWithBiometrics, getBiometricEnabled } from "@/services/biometric";
 import { getAccessToken } from "@/services/auth-storage";
 import { bootLog, BOOT_HARD_TIMEOUT_MS } from "@/services/boot-diagnostics";
 
 function isPublicRoute(pathname: string) {
-  return pathname === "/" || pathname === "" || pathname === "/login";
+  if (!pathname || pathname === "/" || pathname === "/login") return true;
+  return pathname.startsWith("/citizen");
 }
 
 export function BiometricGate({ children }: { children: React.ReactNode }) {
@@ -99,7 +101,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
       >
         <Text style={styles.btnText}>Unlock with biometrics</Text>
       </Pressable>
-      <Pressable onPress={() => router.replace("/login")}>
+      <Pressable onPress={() => useNavigationStore.getState().replaceWhenReady("/login")}>
         <Text style={styles.link}>Use password instead</Text>
       </Pressable>
     </View>

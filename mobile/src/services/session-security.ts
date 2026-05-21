@@ -1,5 +1,5 @@
-import { router } from "expo-router";
 import { API_BASE } from "@/config/api";
+import { useNavigationStore } from "@/store/navigation-store";
 import { API_TIMEOUT_MS } from "@/config/env";
 import {
   clearTokens,
@@ -83,9 +83,18 @@ export async function secureLogout(): Promise<void> {
   useEvidenceQueue.setState({ queue: [], lastSyncAt: null });
 }
 
+let sessionExpiryHandling = false;
+
 export async function handleSessionExpiry(): Promise<void> {
-  await secureLogout();
-  router.replace("/login");
+  if (sessionExpiryHandling) return;
+  sessionExpiryHandling = true;
+  try {
+    await secureLogout();
+    useNavigationStore.getState().resetLastRoute();
+    useNavigationStore.getState().replaceWhenReady("/login");
+  } finally {
+    sessionExpiryHandling = false;
+  }
 }
 
 /** Placeholder — integrate expo-screen-capture when enabling sensitive screens. */

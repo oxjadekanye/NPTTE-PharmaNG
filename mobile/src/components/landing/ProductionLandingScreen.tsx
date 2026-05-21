@@ -1,6 +1,7 @@
 import { Link, router, type Href } from "expo-router";
 import { useEffect, useRef } from "react";
 import { useQaMode } from "@/store/qa-mode-store";
+import { useLandingIntent } from "@/store/landing-intent-store";
 import {
   Animated,
   Dimensions,
@@ -25,9 +26,11 @@ type ActionProps = {
   variant: "primary" | "secondary" | "accent" | "alert";
   delay: number;
   slide: Animated.Value;
+  publicFlow?: boolean;
 };
 
-function LandingAction({ href, label, variant, delay, slide }: ActionProps) {
+function LandingAction({ href, label, variant, delay, slide, publicFlow }: ActionProps) {
+  const setBypassAutoRedirect = useLandingIntent((s) => s.setBypassAutoRedirect);
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -55,7 +58,12 @@ function LandingAction({ href, label, variant, delay, slide }: ActionProps) {
   return (
     <Animated.View style={{ opacity, transform: [{ translateY: slide }] }}>
       <Link href={href} asChild>
-        <Pressable style={({ pressed }) => [variantStyle, pressed && styles.btnPressed]}>
+        <Pressable
+          style={({ pressed }) => [variantStyle, pressed && styles.btnPressed]}
+          onPress={() => {
+            if (publicFlow) setBypassAutoRedirect(true);
+          }}
+        >
           <Text style={textStyle}>{label}</Text>
         </Pressable>
       </Link>
@@ -131,6 +139,7 @@ export function ProductionLandingScreen() {
             variant="primary"
             delay={180}
             slide={actionsSlide}
+            publicFlow
           />
           <LandingAction
             href="/login"
@@ -145,6 +154,7 @@ export function ProductionLandingScreen() {
             variant="accent"
             delay={340}
             slide={actionsSlide}
+            publicFlow
           />
           <LandingAction
             href="/citizen/report"
@@ -152,6 +162,7 @@ export function ProductionLandingScreen() {
             variant="alert"
             delay={420}
             slide={actionsSlide}
+            publicFlow
           />
         </View>
 
