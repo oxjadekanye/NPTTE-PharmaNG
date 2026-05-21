@@ -1,8 +1,10 @@
 import { router } from "expo-router";
 import { CITIZEN_ROUTES, pushCitizenRoute } from "@/services/citizen-navigation";
+import { openStaffLogin } from "@/services/landing-navigation";
 import { useEffect, useRef } from "react";
 import { useQaMode } from "@/store/qa-mode-store";
 import { useLandingIntent } from "@/store/landing-intent-store";
+import { useNavigationStore } from "@/store/navigation-store";
 import {
   Animated,
   Dimensions,
@@ -62,11 +64,15 @@ function LandingAction({ href, label, variant, delay, slide, publicFlow }: Actio
         style={({ pressed }) => [variantStyle, pressed && styles.btnPressed]}
         onPress={() => {
           if (publicFlow) setBypassAutoRedirect(true);
+          if (href === "/login") {
+            openStaffLogin();
+            return;
+          }
           if (href.startsWith("/citizen")) {
             pushCitizenRoute(href as (typeof CITIZEN_ROUTES)[keyof typeof CITIZEN_ROUTES]);
-          } else {
-            router.push(href as never);
+            return;
           }
+          useNavigationStore.getState().pushWhenReady(href);
         }}
       >
         <Text style={textStyle}>{label}</Text>

@@ -7,10 +7,15 @@ import { useAuthStore } from "@/store/auth-store";
 import { useLandingIntent } from "@/store/landing-intent-store";
 import { useNavigationStore } from "@/store/navigation-store";
 
-const ENTRY_ROUTES = new Set(["/", "", "/login", "/index"]);
+/** Only auto-redirect authenticated users from landing — not from /login. */
+const LANDING_AUTO_REDIRECT = new Set(["/", "", "/index"]);
 
 function isCitizenRoute(pathname: string) {
   return pathname === "/citizen" || pathname.startsWith("/citizen/");
+}
+
+function normalizePath(pathname: string) {
+  return pathname.replace(/\/$/, "") || "/";
 }
 
 /**
@@ -23,6 +28,8 @@ export function AuthNavigationBridge() {
   const loading = useAuthStore((s) => s.loading);
   const bypassAutoRedirect = useLandingIntent((s) => s.bypassAutoRedirect);
   const preferLanding = useLandingIntent((s) => s.preferLanding);
+  const staffLoginIntent = useLandingIntent((s) => s.staffLoginIntent);
+  const setStaffLoginIntent = useLandingIntent((s) => s.setStaffLoginIntent);
   const setCurrentPath = useNavigationStore((s) => s.setCurrentPath);
   const replaceWhenReady = useNavigationStore((s) => s.replaceWhenReady);
   const lastHandled = useRef<string | null>(null);
@@ -32,26 +39,48 @@ export function AuthNavigationBridge() {
   }, [pathname, setCurrentPath]);
 
   useEffect(() => {
-    if (!rootMounted || loading || !mobileRole) return;
+    if (!rootMounted || loading) return;
 
-    if (isCitizenRoute(pathname)) {
+    const normalizedPath = normalizePath(pathname);
+
+    if (isCitizenRoute(normalizedPath)) {
       bootLog("navigation", "skip — citizen public route");
       return;
     }
 
-    if (preferLanding && (pathname === "/" || pathname === "")) {
+    if (normalizedPath === "/login") {
+      if (staffLoginIntent) {
+        bootLog("navigation", "stay on login — staff login intent");
+        lastHandled.current = null;
+        return;
+      }
+      if (mobileRole) {
+        const target = mobileHomePath(mobileRole);
+        const key = `login-complete:${target}`;
+        if (lastHandled.current !== key) {
+          lastHandled.current = key;
+          bootLog("navigation", `login screen → ${target}`);
+          useNavigationStore.getState().clearNavigationDedupe();
+          replaceWhenReady(target);
+        }
+      }
+      return;
+    }
+
+    if (!mobileRole) return;
+
+    if (preferLanding && LANDING_AUTO_REDIRECT.has(normalizedPath)) {
       bootLog("navigation", "skip — user chose landing");
       lastHandled.current = null;
       return;
     }
 
-    if (bypassAutoRedirect && (pathname === "/" || pathname === "")) {
+    if (bypassAutoRedirect && LANDING_AUTO_REDIRECT.has(normalizedPath)) {
       bootLog("navigation", "skip — citizen/public landing intent");
       return;
     }
 
-    const normalizedPath = pathname.replace(/\/$/, "") || "/";
-    if (!ENTRY_ROUTES.has(normalizedPath)) {
+    if (!LANDING_AUTO_REDIRECT.has(normalizedPath)) {
       lastHandled.current = null;
       return;
     }
@@ -71,6 +100,7 @@ export function AuthNavigationBridge() {
     pathname,
     bypassAutoRedirect,
     preferLanding,
+    staffLoginIntent,
     replaceWhenReady,
   ]);
 

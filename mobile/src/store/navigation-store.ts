@@ -9,9 +9,12 @@ type NavigationState = {
   setRootMounted: () => void;
   setCurrentPath: (path: string) => void;
   replaceWhenReady: (href: string) => void;
+  pushWhenReady: (href: string) => void;
   flushPending: () => void;
   clearNavigationDedupe: () => void;
 };
+
+let pendingPush: string | null = null;
 
 function normalizePath(path: string) {
   const base = path.split("?")[0] || "/";
@@ -24,6 +27,16 @@ function scheduleNavigation(fn: () => void) {
     requestAnimationFrame(fn);
   } else {
     setTimeout(fn, 0);
+  }
+}
+
+function runPush(href: string) {
+  try {
+    router.push(href as never);
+    bootLog("navigation", `push → ${href}`);
+  } catch (err) {
+    bootLog("navigation", `push failed, trying replace → ${href}`);
+    runReplace(href);
   }
 }
 
@@ -75,8 +88,26 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
     set({ pendingRoute: null });
     scheduleNavigation(() => runReplace(target));
   },
+  pushWhenReady: (href) => {
+    const target = normalizePath(href);
+    const state = get();
+    if (!state.rootMounted) {
+      bootLog("navigation", `queued push → ${target}`);
+      pendingPush = target;
+      return;
+    }
+    pendingPush = null;
+    scheduleNavigation(() => runPush(target));
+  },
   flushPending: () => {
     const { pendingRoute, rootMounted, currentPath } = get();
+    if (rootMounted && pendingPush) {
+      const target = normalizePath(pendingPush);
+      pendingPush = null;
+      if (currentPath !== target) {
+        scheduleNavigation(() => runPush(target));
+      }
+    }
     if (!rootMounted || !pendingRoute) return;
     const target = normalizePath(pendingRoute);
     if (currentPath === target) {

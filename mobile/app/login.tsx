@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { PasswordInput } from "@/components/PasswordInput";
 import { ScreenShell } from "@/components/ScreenShell";
@@ -11,7 +11,7 @@ import {
 import { registerTrustedDevice, sendDeviceHeartbeat } from "@/services/device-trust";
 import { isBiometricHardwareAvailable } from "@/services/biometric";
 import { initPushOrchestration } from "@/services/push-orchestration";
-import { resolveMobileRole } from "@/services/role-routing";
+import { mobileHomePath, resolveMobileRole } from "@/services/role-routing";
 import { useAuthStore } from "@/store/auth-store";
 import { useLandingIntent } from "@/store/landing-intent-store";
 import { useNavigationStore } from "@/store/navigation-store";
@@ -24,6 +24,12 @@ const DEMO_ACCOUNTS = [
 ] as const;
 
 export default function LoginScreen() {
+  const setStaffLoginIntent = useLandingIntent((s) => s.setStaffLoginIntent);
+
+  useEffect(() => {
+    return () => setStaffLoginIntent(false);
+  }, [setStaffLoginIntent]);
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +55,7 @@ export default function LoginScreen() {
         );
       }
       useLandingIntent.getState().clearPublicFlow();
+      useLandingIntent.getState().setStaffLoginIntent(false);
       useNavigationStore.getState().clearNavigationDedupe();
       useAuthStore.setState({
         profile,
@@ -57,6 +64,7 @@ export default function LoginScreen() {
         loading: false,
         sessionExpired: false,
       });
+      useNavigationStore.getState().replaceWhenReady(mobileHomePath(role));
       const bio = await isBiometricHardwareAvailable();
       const trust = await registerTrustedDevice(bio);
       if (!trust.success) {
