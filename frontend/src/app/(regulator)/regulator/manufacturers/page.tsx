@@ -14,7 +14,8 @@ export default function ManufacturerIntelligencePage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="Manufacturer intelligence" subtitle="National manufacturing risk indicators">
+      <CommandShell title="Manufacturer intelligence">
+        <p className="mb-4 text-sm text-slate-400">National manufacturing risk indicators</p>
         <ul className="space-y-2">
           {(rows as { id: string; name: string; compliance_score: number; suspicious_manufacturer_indicator: boolean }[]).map(
             (m) => (

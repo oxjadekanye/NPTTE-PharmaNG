@@ -14,7 +14,8 @@ export default function OverdueTasksPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="Overdue tasks" subtitle="Requires immediate field action">
+      <CommandShell title="Overdue tasks">
+        <p className="mb-4 text-sm text-slate-400">Requires immediate field action</p>
         <ul className="space-y-2">
           {(tasks as { id: string; title: string; due_at?: string }[]).map((t) => (
             <li

@@ -16,10 +16,10 @@ export default function RecallOrchestrationPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell
-        title="Recall orchestration"
-        subtitle="Coordinated national recall campaigns — live API"
-      >
+      <CommandShell title="Recall orchestration">
+        <p className="mb-4 text-sm text-slate-400">
+          Coordinated national recall campaigns — live API
+        </p>
         <p className="mb-4 text-sm text-slate-400">{data?.active_count ?? 0} active campaigns</p>
         <ul className="space-y-2">
           {(data?.campaigns as { campaign_code: string; status: string; pharmacies_acknowledged: number; pharmacies_targeted: number }[] ?? []).map(

@@ -1,5 +1,17 @@
 import { apiRequest } from "./api-client";
 
+export type NationalOperationsSummary = {
+  national_threat_index: number;
+  verifications_24h_roll: number;
+  customs_holds_open: number;
+  shortage_watch_states: string[];
+  generated_at: string;
+};
+
+export async function fetchNationalOperationsSummary() {
+  return apiRequest<NationalOperationsSummary>("/events/national-summary/");
+}
+
 export async function fetchNationalOperationsMetrics() {
   return apiRequest<Record<string, unknown>>("/intelligence/national-operations/");
 }

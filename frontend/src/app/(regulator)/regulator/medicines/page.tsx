@@ -19,7 +19,8 @@ export default function MedicineIntelligencePage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="Medicine intelligence" subtitle="National pharmaceutical risk profiles">
+      <CommandShell title="Medicine intelligence">
+        <p className="mb-4 text-sm text-slate-400">National pharmaceutical risk profiles</p>
         <Link href="/regulator/medicines/risk" className="mb-4 inline-block text-xs text-sky-400 hover:underline">
           National risk dashboard →
         </Link>

@@ -34,7 +34,8 @@ function TasksDashboardInner() {
   }, [feed?.polled_at]);
 
   return (
-    <CommandShell title="Operational tasks" subtitle="National field assignment queue">
+    <CommandShell title="Operational tasks">
+      <p className="mb-4 text-sm text-slate-400">National field assignment queue</p>
       <div className="mb-4 flex flex-wrap gap-2">
         <Link
           href="/regulator/tasks/overdue"

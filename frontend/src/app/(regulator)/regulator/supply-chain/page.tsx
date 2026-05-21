@@ -18,7 +18,8 @@ export default function SupplyChainPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="Supply chain intelligence" subtitle="Shipment lifecycle & custody explorer">
+      <CommandShell title="Supply chain intelligence">
+        <p className="mb-4 text-sm text-slate-400">Shipment lifecycle & custody explorer</p>
         <h3 className="mb-2 text-sm font-semibold text-slate-300">Active shipments</h3>
         <ul className="mb-6 space-y-2">
           {(shipments as { tracking_number: string; lifecycle_status: string; route_anomaly_score: number }[]).map(

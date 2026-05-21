@@ -18,7 +18,8 @@ export default function MedicineRiskDashboardPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="National medicine risk" subtitle="Shortage & counterfeit intelligence">
+      <CommandShell title="National medicine risk">
+        <p className="mb-4 text-sm text-slate-400">Shortage & counterfeit intelligence</p>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
             <p className="text-xs uppercase text-amber-200/80">Shortage index</p>

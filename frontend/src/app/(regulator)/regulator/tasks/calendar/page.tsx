@@ -14,7 +14,8 @@ export default function TaskCalendarPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="Operational calendar" subtitle="30-day field operations horizon">
+      <CommandShell title="Operational calendar">
+        <p className="mb-4 text-sm text-slate-400">30-day field operations horizon</p>
         <ul className="space-y-2">
           {(entries as { id: string; title: string; due_at?: string; priority: string }[]).map(
             (e) => (

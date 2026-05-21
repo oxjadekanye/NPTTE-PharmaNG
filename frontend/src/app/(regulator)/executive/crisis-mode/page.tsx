@@ -33,7 +33,8 @@ export default function CrisisModePage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="Executive crisis mode" subtitle="Sovereign emergency command activation">
+      <CommandShell title="Executive crisis mode">
+        <p className="mb-4 text-sm text-slate-400">Sovereign emergency command activation</p>
         <div
           className={`mb-6 rounded-xl border px-4 py-3 ${
             status?.active ? "border-rose-500/50 bg-rose-500/10" : "border-sovereign-700"

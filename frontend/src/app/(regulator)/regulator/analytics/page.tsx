@@ -16,7 +16,8 @@ export default function NationalAnalyticsPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="National analytics" subtitle="Export-ready operational intelligence">
+      <CommandShell title="National analytics">
+        <p className="mb-4 text-sm text-slate-400">Export-ready operational intelligence</p>
         {bundle ? (
           <pre className="max-h-[60vh] overflow-auto rounded-xl border border-sovereign-800 bg-sovereign-950 p-4 text-xs text-slate-400">
             {JSON.stringify(bundle, null, 2)}

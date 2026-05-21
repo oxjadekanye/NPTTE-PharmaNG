@@ -20,7 +20,8 @@ export default function MedicineDetailPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell title="Medicine profile" subtitle={String(profile?.name ?? id)}>
+      <CommandShell title="Medicine profile">
+        <p className="mb-4 text-sm text-slate-400">{String(profile?.name ?? id)}</p>
         {!profile ? (
           <OperationalSkeleton rows={6} />
         ) : (

@@ -28,10 +28,8 @@ export default function ExecutiveNationalOpsPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell
-        title="National operations intelligence"
-        subtitle="Executive drilldown · export-ready cards"
-      >
+      <CommandShell title="National operations intelligence">
+        <p className="mb-4 text-sm text-slate-400">Executive drilldown · export-ready cards</p>
         {!metrics ? (
           <OperationalSkeleton rows={6} />
         ) : (

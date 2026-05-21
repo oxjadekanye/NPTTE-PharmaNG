@@ -24,10 +24,8 @@ export default function AlertCenterPage() {
 
   return (
     <RegulatorGuard>
-      <CommandShell
-        title="National alert center"
-        subtitle="Realtime polling · grouped operational alerts"
-      >
+      <CommandShell title="National alert center">
+        <p className="mb-4 text-sm text-slate-400">Realtime polling · grouped operational alerts</p>
         <div className="mb-4 flex gap-2">
           {["", "recall", "enforcement", "shortage"].map((f) => (
             <button
