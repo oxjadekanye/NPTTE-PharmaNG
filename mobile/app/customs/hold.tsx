@@ -3,10 +3,12 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { ScreenShell } from "@/components/ScreenShell";
 import { EvidenceCapture } from "@/components/EvidenceCapture";
 import { mobileCopilot } from "@/services/mobile-ai";
+import { apiRequest } from "@/services/api-client";
 
 export default function CustomsHold() {
   const [manifest, setManifest] = useState("");
   const [recommendation, setRecommendation] = useState<string | null>(null);
+  const [holdStatus, setHoldStatus] = useState<string | null>(null);
 
   const recommend = async () => {
     const res = await mobileCopilot({
@@ -30,6 +32,19 @@ export default function CustomsHold() {
       <Pressable style={styles.btn} onPress={() => void recommend()}>
         <Text style={styles.btnText}>Hold / release recommendation (AI)</Text>
       </Pressable>
+      <Pressable
+        style={[styles.btn, styles.hold]}
+        onPress={async () => {
+          const res = await apiRequest("/mobile/field/customs-hold/", {
+            method: "POST",
+            body: JSON.stringify({ tracking_number: manifest, reason: "Suspicious manifest" }),
+          });
+          setHoldStatus(res.success ? "Shipment hold recorded" : res.message);
+        }}
+      >
+        <Text style={styles.btnText}>Record shipment hold</Text>
+      </Pressable>
+      {holdStatus ? <Text style={styles.rec}>{holdStatus}</Text> : null}
       {recommendation && <Text style={styles.rec}>{recommendation}</Text>}
       <View style={styles.gap} />
       <EvidenceCapture evidenceType="customs_seizure" serialNumber={manifest} />
@@ -46,7 +61,8 @@ const styles = StyleSheet.create({
     color: "#f1f5f9",
     marginBottom: 12,
   },
-  btn: { backgroundColor: "#b45309", padding: 12, borderRadius: 8 },
+  btn: { backgroundColor: "#b45309", padding: 12, borderRadius: 8, marginBottom: 8 },
+  hold: { backgroundColor: "#7f1d1d" },
   btnText: { color: "#fff", textAlign: "center", fontWeight: "600" },
   rec: { color: "#fcd34d", marginTop: 12, fontSize: 12 },
   gap: { height: 16 },

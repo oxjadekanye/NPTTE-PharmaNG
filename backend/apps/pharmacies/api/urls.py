@@ -1,6 +1,10 @@
 from django.urls import path
 
 from apps.pharmacies.api.inventory_ops_views import PharmacyInventorySyncView, PharmacyStockMovementView
+from apps.pharmacies.api.pharmacy_intelligence_views import (
+    NearestVerifiedPharmaciesView,
+    PharmacyNetworkRankingView,
+)
 from apps.pharmacies.api.views import (
     PharmacyAvailabilityView,
     PharmacyInventoryDetailView,
@@ -23,4 +27,6 @@ urlpatterns = [
     path("inventory/sync/", PharmacyInventorySyncView.as_view(), name="pharmacy-inventory-sync"),
     path("traceability/receive-batch/", PharmacyTraceabilityReceiveView.as_view(), name="pharmacy-trace-receive"),
     path("traceability/dispense-serial/", PharmacyTraceabilityDispenseView.as_view(), name="pharmacy-trace-dispense"),
+    path("network/ranking/", PharmacyNetworkRankingView.as_view(), name="pharmacy-network-ranking"),
+    path("network/verified/", NearestVerifiedPharmaciesView.as_view(), name="pharmacy-verified-nearby"),
 ]

@@ -8,6 +8,11 @@ from apps.traceability.api.custody_views import (
     RecallPharmacyAcknowledgeView,
     RecallWarehouseAcknowledgeView,
 )
+from apps.traceability.api.phase12_views import (
+    RecallOrchestrationCenterView,
+    SupplyChainCustodyExplorerView,
+    SupplyChainShipmentTimelineView,
+)
 from apps.traceability.api.views import (
     BatchRecallListView,
     SupplyChainTransactionCreateView,
@@ -38,4 +43,7 @@ urlpatterns = [
         RecallWarehouseAcknowledgeView.as_view(),
         name="recall-warehouse-ack",
     ),
+    path("supply-chain/shipments/", SupplyChainShipmentTimelineView.as_view(), name="supply-chain-shipments"),
+    path("supply-chain/custody/", SupplyChainCustodyExplorerView.as_view(), name="supply-chain-custody"),
+    path("recall-orchestration/", RecallOrchestrationCenterView.as_view(), name="recall-orchestration"),
 ]

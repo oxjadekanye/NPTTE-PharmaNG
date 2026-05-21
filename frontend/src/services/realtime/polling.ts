@@ -11,10 +11,13 @@ export type OperationalFeedPayload = {
   polled_at: string;
 };
 
+const FEED_BATCH_LIMIT = 40;
+
 export async function fetchOperationalFeed(params?: {
   since_sequence?: number;
   channels?: string;
   force?: boolean;
+  limit?: number;
 }) {
   const since = params?.since_sequence ?? 0;
   const cacheKey = `operational-feed:${since}:${params?.channels ?? "all"}`;
@@ -25,6 +28,7 @@ export async function fetchOperationalFeed(params?: {
   const q = new URLSearchParams();
   q.set("since_sequence", String(since));
   if (params?.channels) q.set("channels", params.channels);
+  q.set("limit", String(params?.limit ?? FEED_BATCH_LIMIT));
   const res = await apiRequest<OperationalFeedPayload>(`/realtime/operational-feed/?${q}`);
   if (res.success && res.data) {
     cacheSet(cacheKey, res.data);

@@ -7,6 +7,11 @@ from apps.analytics.api.views import (
     TransactionVolumeView,
 )
 
+from apps.national_analytics.api.phase12_views import (
+    AnalyticsExportBundleView,
+    NationalScanAnalyticsView,
+    RegionalTrendsView,
+)
 from apps.national_analytics.api.views import (
     HeatmapsView,
     MedicineFlowView,
@@ -26,4 +31,7 @@ urlpatterns = [
     path("medicine-flow/", MedicineFlowView.as_view(), name="analytics-medicine-flow"),
     path("risk-analysis/", RiskAnalysisView.as_view(), name="analytics-risk-analysis"),
     path("state-comparison/", StateComparisonView.as_view(), name="analytics-state-comparison"),
+    path("scan-analytics/", NationalScanAnalyticsView.as_view(), name="analytics-scan-analytics"),
+    path("regional-trends/", RegionalTrendsView.as_view(), name="analytics-regional-trends"),
+    path("export-bundle/", AnalyticsExportBundleView.as_view(), name="analytics-export-bundle"),
 ]

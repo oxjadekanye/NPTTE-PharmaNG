@@ -11,6 +11,7 @@ export default function RegulatorHome() {
       <MenuButton href="/regulator/inspect" label="Field inspection scan" />
       <MenuButton href="/regulator/checklist" label="Inspection checklist" />
       <MenuButton href="/regulator/inspection-mode" label="Guided inspection mode" />
+      <MenuButton href="/regulator/seizure" label="Seizure workflow" />
       <MenuButton href="/regulator/evidence" label="Upload evidence (placeholder)" />
       <MenuButton href="/regulator/note" label="Draft enforcement note" />
       <MenuButton href="/regulator/case" label="Open / create case" />

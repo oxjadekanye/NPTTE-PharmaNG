@@ -1,6 +1,13 @@
 from django.urls import path
 
 from apps.ai_engine.api.views import NationalIntelligenceView, SerialRiskScoreView
+from apps.intelligence.api.medicine_views import (
+    CounterfeitRiskView,
+    ManufacturerIntelligenceListView,
+    MedicineIntelligenceDetailView,
+    MedicineIntelligenceListView,
+    ShortageRiskView,
+)
 from apps.intelligence.api.views import (
     CounterfeitClustersView,
     ExecutiveBriefingView,
@@ -29,6 +36,11 @@ urlpatterns = [
         NationalOperationsMetricsView.as_view(),
         name="intelligence-national-operations",
     ),
+    path("medicines/", MedicineIntelligenceListView.as_view(), name="intelligence-medicines"),
+    path("medicines/<uuid:pk>/", MedicineIntelligenceDetailView.as_view(), name="intelligence-medicine-detail"),
+    path("manufacturers/", ManufacturerIntelligenceListView.as_view(), name="intelligence-manufacturers"),
+    path("shortage-risk/", ShortageRiskView.as_view(), name="intelligence-shortage-risk"),
+    path("counterfeit-risk/", CounterfeitRiskView.as_view(), name="intelligence-counterfeit-risk"),
     # Phase 10 legacy routes (preserved)
     path("national/", NationalIntelligenceView.as_view(), name="intelligence-national-legacy"),
     path("serial-risk/", SerialRiskScoreView.as_view(), name="intelligence-serial-risk-legacy"),
