@@ -83,6 +83,7 @@ export default function RootLayout() {
             <Stack.Screen name="warehouse" options={{ headerShown: false }} />
             <Stack.Screen name="customs" options={{ headerShown: false }} />
             <Stack.Screen name="executive" options={{ headerShown: false }} />
+            <Stack.Screen name="alert-center" options={{ title: "Alert center" }} />
             <Stack.Screen name="offline-queue" options={{ title: "Offline queue" }} />
             <Stack.Screen name="sync-health" options={{ title: "Sync health" }} />
             <Stack.Screen name="field-activity" options={{ title: "Field activity" }} />

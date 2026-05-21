@@ -35,3 +35,25 @@ export async function fetchTrustedPharmacies(state?: string) {
     auth: false,
   });
 }
+
+export async function fetchVerificationHistory(deviceId?: string) {
+  const q = deviceId ? `?device_id=${encodeURIComponent(deviceId)}` : "";
+  return apiRequest<{ history: unknown[] }>(`/public/verification-history/${q}`, { auth: false });
+}
+
+export async function searchMedication(query: string, state?: string) {
+  const q = new URLSearchParams({ q: query });
+  if (state) q.set("state", state);
+  return apiRequest<Record<string, unknown>>(`/public/medication-search/?${q}`, { auth: false });
+}
+
+export async function fetchSafetyGuidance(product?: string, outcome?: string) {
+  const q = new URLSearchParams();
+  if (product) q.set("product", product);
+  if (outcome) q.set("outcome", outcome);
+  return apiRequest<Record<string, unknown>>(`/public/safety-guidance/?${q}`, { auth: false });
+}
+
+export async function fetchPublicNotices() {
+  return apiRequest<{ notices: unknown[] }>("/public/public-notices/", { auth: false });
+}

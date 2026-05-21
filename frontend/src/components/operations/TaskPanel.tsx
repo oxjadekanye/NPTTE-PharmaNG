@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
+import Link from "next/link";
 import { fetchOperationalTasks } from "@/services/operations";
 
 type TaskRow = {
@@ -12,11 +13,11 @@ type TaskRow = {
   due_at: string | null;
 };
 
-export function TaskPanel() {
+function TaskPanelInner() {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
 
   useEffect(() => {
-    fetchOperationalTasks("open")
+    fetchOperationalTasks()
       .then((res) => setTasks((res.data?.tasks as TaskRow[]) ?? []))
       .catch(() => setTasks([]));
   }, []);
@@ -25,7 +26,12 @@ export function TaskPanel() {
 
   return (
     <div className="rounded-xl border border-sovereign-800 bg-sovereign-900/50 p-4">
-      <h3 className="text-sm font-semibold text-white">Operational tasks</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">Operational tasks</h3>
+        <Link href="/regulator/tasks" className="text-xs text-sky-400 hover:underline">
+          View all
+        </Link>
+      </div>
       <ul className="mt-3 space-y-2">
         {tasks.slice(0, 5).map((t) => (
           <li key={t.id} className="rounded-lg border border-sovereign-700/60 px-3 py-2 text-xs">
@@ -40,3 +46,5 @@ export function TaskPanel() {
     </div>
   );
 }
+
+export const TaskPanel = memo(TaskPanelInner);

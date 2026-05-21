@@ -24,6 +24,8 @@ export const COMMAND_NAV_SECTIONS: NavSection[] = [
   {
     title: "Operations",
     items: [
+      { href: "/regulator/tasks", label: "Operational tasks" },
+      { href: "/regulator/alert-center", label: "Alert center" },
       { href: "/regulator/traceability", label: "Traceability" },
       { href: "/regulator/live-demo", label: "Live Demo" },
       { href: "/regulator/serialization", label: "Serialization" },
@@ -39,6 +41,7 @@ export const COMMAND_NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/manufacturer", label: "Manufacturer" },
       { href: "/pharmacy", label: "Pharmacy" },
+      { href: "/pharmacy/inventory", label: "Pharmacy inventory" },
       { href: "/warehouse", label: "Warehouse" },
       { href: "/customs", label: "Customs" },
       { href: "/distributor", label: "Distributor" },

@@ -14,7 +14,8 @@ from apps.operations.models import (
     WorkflowTimelineEntry,
 )
 from apps.operations.services.documents import save_operational_document
-from apps.operations.services.tasks import complete_task, create_operational_task
+from apps.operations.services.task_engine import finish_task, serialize_task
+from apps.operations.services.tasks import create_operational_task
 from apps.tenancy.services.tenant import (
     filter_queryset_for_tenant,
     get_active_organisation_id,
@@ -151,8 +152,8 @@ class OperationalTaskCompleteView(APIView):
         task = OperationalTask.objects.get(pk=pk)
         if task.organisation_id and not user_can_access_organisation(request.user, task.organisation_id):
             return api_response(message="Access denied", status_code=403)
-        complete_task(task=task, actor=request.user)
-        return api_response(data={"id": str(task.id)}, message="Task completed")
+        finish_task(task=task, actor=request.user)
+        return api_response(data=serialize_task(task), message="Task completed")
 
 
 class DocumentUploadView(APIView):

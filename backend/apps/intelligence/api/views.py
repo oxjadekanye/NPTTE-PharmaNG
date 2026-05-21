@@ -183,3 +183,17 @@ class ExecutiveBriefingView(APIView):
 
     def get(self, request):
         return api_response(data=generate_executive_briefing(), message="Executive briefing")
+
+
+class NationalOperationsMetricsView(APIView):
+    """Phase 11 — executive national operational readiness metrics."""
+
+    permission_classes = [IsAuthenticated, IsRegulatorUser]
+
+    def get(self, request):
+        from apps.intelligence.services.national_operations import build_national_operations_metrics
+
+        return api_response(
+            data=build_national_operations_metrics(),
+            message="National operations metrics",
+        )

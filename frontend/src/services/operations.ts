@@ -13,6 +13,38 @@ export async function fetchOperationalTasks(status?: string) {
   return apiRequest<{ tasks: unknown[]; count: number }>(`/operations/tasks/${q}`);
 }
 
+export async function fetchOverdueTasks() {
+  return apiRequest<{ tasks: unknown[]; count: number }>("/operations/tasks/overdue/");
+}
+
+export async function fetchTaskCalendar(days = 30) {
+  return apiRequest<{ calendar: unknown[]; count: number }>(
+    `/operations/tasks/calendar/?days=${days}`
+  );
+}
+
+export async function fetchFieldOperationsFeed() {
+  return apiRequest<{ feed: unknown[]; count: number }>("/operations/field-operations/feed/");
+}
+
+export async function createOperationalTask(body: Record<string, unknown>) {
+  return apiRequest("/operations/tasks/create/", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function escalateTask(id: string, reason: string) {
+  return apiRequest(`/operations/tasks/${id}/escalate/`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function completeTaskWorkflow(id: string) {
+  return apiRequest(`/operations/tasks/${id}/complete/`, { method: "POST" });
+}
+
 export async function fetchRegulatorHistory() {
   return apiRequest<{ history: unknown[]; count: number }>("/operations/regulator/history/");
 }

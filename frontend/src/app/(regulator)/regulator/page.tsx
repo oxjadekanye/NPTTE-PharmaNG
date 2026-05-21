@@ -11,6 +11,8 @@ import { ActivityLog } from "@/components/dashboard/ActivityLog";
 import { MinisterialOverview } from "@/components/dashboard/MinisterialOverview";
 import { DemoEnvironmentPanel } from "@/components/dashboard/DemoEnvironmentPanel";
 import { IntelligenceHighlights } from "@/components/dashboard/IntelligenceHighlights";
+import { TaskPanel } from "@/components/operations/TaskPanel";
+import { useRoutePrefetch } from "@/hooks/useRoutePrefetch";
 import { useRealtime } from "@/hooks/useRealtime";
 import { useSimulatedRealtime } from "@/hooks/useSimulatedRealtime";
 import { useCommandStore } from "@/store/command-store";
@@ -75,6 +77,7 @@ export default function RegulatorOverviewPage() {
   const [refreshing, setRefreshing] = useState(false);
   const mode = useCommandStore((s) => s.mode);
   const { connected } = useRealtime(true);
+  useRoutePrefetch(true);
   useSimulatedRealtime(true);
 
   useEffect(() => {
@@ -110,6 +113,7 @@ export default function RegulatorOverviewPage() {
               <p className="text-[10px] text-slate-600">Refreshing national metrics…</p>
             )}
             <IntelligenceHighlights />
+            <TaskPanel />
             <div className="grid gap-6 xl:grid-cols-3">
               <div className="xl:col-span-2">
                 <IntelligenceFeed />

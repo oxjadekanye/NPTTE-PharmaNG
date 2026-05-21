@@ -1,17 +1,17 @@
 import { apiRequest } from "./api-client";
 
-export type NationalOperationsSummary = {
-  national_threat_index: number;
-  verifications_24h_roll: number;
-  active_recalls: number;
-  customs_holds_open: number;
-  warehouse_inspections_scheduled: number;
-  shortage_watch_states: string[];
-  recent_event_sample: unknown[];
-  generated_at: string;
-  note?: string;
-};
+export async function fetchNationalOperationsMetrics() {
+  return apiRequest<Record<string, unknown>>("/intelligence/national-operations/");
+}
 
-export async function fetchNationalOperationsSummary() {
-  return apiRequest<NationalOperationsSummary>("/events/national-summary/", { method: "GET" });
+export async function fetchAlertCenter(params?: { priority?: string; alert_type?: string }) {
+  const q = new URLSearchParams();
+  if (params?.priority) q.set("priority", params.priority);
+  if (params?.alert_type) q.set("alert_type", params.alert_type);
+  const suffix = q.toString() ? `?${q}` : "";
+  return apiRequest<{
+    alerts: unknown[];
+    grouped: Record<string, unknown[]>;
+    unread_count: number;
+  }>(`/alerts/center/${suffix}`);
 }

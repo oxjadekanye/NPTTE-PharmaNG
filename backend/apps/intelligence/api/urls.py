@@ -6,6 +6,7 @@ from apps.intelligence.api.views import (
     ExecutiveBriefingView,
     IntelligenceSignalsView,
     NarrativesView,
+    NationalOperationsMetricsView,
     NationalRiskView,
     OrganisationRiskView,
     ProductRiskView,
@@ -23,6 +24,11 @@ urlpatterns = [
     path("run-correlation/", RunCorrelationView.as_view(), name="intelligence-run-correlation"),
     path("narratives/", NarrativesView.as_view(), name="intelligence-narratives"),
     path("executive-briefing/", ExecutiveBriefingView.as_view(), name="intelligence-executive-briefing"),
+    path(
+        "national-operations/",
+        NationalOperationsMetricsView.as_view(),
+        name="intelligence-national-operations",
+    ),
     # Phase 10 legacy routes (preserved)
     path("national/", NationalIntelligenceView.as_view(), name="intelligence-national-legacy"),
     path("serial-risk/", SerialRiskScoreView.as_view(), name="intelligence-serial-risk-legacy"),

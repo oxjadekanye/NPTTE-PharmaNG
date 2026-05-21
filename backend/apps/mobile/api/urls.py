@@ -1,5 +1,6 @@
 from django.urls import path
 
+from apps.mobile.api.phase11_views import MobileEvidenceTimelineView, MobileInspectionWorkflowView
 from apps.mobile.api.views import (
     DeviceHeartbeatView,
     DeviceListView,
@@ -23,6 +24,8 @@ urlpatterns = [
     path("scans/sync-offline/", OfflineSyncView.as_view(), name="mobile-offline-sync"),
     path("evidence/", FieldEvidenceView.as_view(), name="mobile-field-evidence"),
     path("evidence/sync/", EvidenceSyncView.as_view(), name="mobile-evidence-sync"),
+    path("evidence/timeline/", MobileEvidenceTimelineView.as_view(), name="mobile-evidence-timeline"),
+    path("inspection/workflow/", MobileInspectionWorkflowView.as_view(), name="mobile-inspection-workflow"),
     path("audit/timeline/", MobileAuditTimelineView.as_view(), name="mobile-audit-timeline"),
     path("realtime/feed/", MobileRealtimeFeedView.as_view(), name="mobile-realtime-feed"),
     path("copilot/", MobileCopilotView.as_view(), name="mobile-copilot"),

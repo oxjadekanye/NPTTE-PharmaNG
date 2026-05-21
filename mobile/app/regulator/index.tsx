@@ -10,9 +10,11 @@ export default function RegulatorHome() {
     <ScreenShell title="Field regulator" subtitle="Inspections, enforcement, tasks">
       <MenuButton href="/regulator/inspect" label="Field inspection scan" />
       <MenuButton href="/regulator/checklist" label="Inspection checklist" />
+      <MenuButton href="/regulator/inspection-mode" label="Guided inspection mode" />
       <MenuButton href="/regulator/evidence" label="Upload evidence (placeholder)" />
       <MenuButton href="/regulator/note" label="Draft enforcement note" />
       <MenuButton href="/regulator/case" label="Open / create case" />
+      <MenuButton href="/alert-center" label="National alert center" />
       <MenuButton href="/offline-queue" label="Offline queue" />
       <MenuButton href="/sync-health" label="Sync health" />
       <MenuButton href="/field-activity" label="Field activity log" />

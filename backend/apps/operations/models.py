@@ -149,6 +149,9 @@ class OperationalTask(NPTTEBaseModel):
     task_status = models.CharField(max_length=32, default=STATUS_OPEN, db_index=True)
     related_entity_type = models.CharField(max_length=128, blank=True)
     related_entity_id = models.UUIDField(null=True, blank=True)
+    operational_notes = models.JSONField(default=list, blank=True)
+    evidence_refs = models.JSONField(default=list, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["due_at", "-created_at"]
