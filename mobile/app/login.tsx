@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, TextInput, View } from "react-native";
 import { PasswordInput } from "@/components/PasswordInput";
+import { LoginSection } from "@/components/login/LoginSection";
+import { loginFieldStyles as styles } from "@/components/login/login-styles";
 import { ScreenShell } from "@/components/ScreenShell";
 import {
   login,
@@ -18,9 +20,9 @@ import { useNavigationStore } from "@/store/navigation-store";
 import { NPTTEBrand } from "@/theme/branding";
 
 const DEMO_ACCOUNTS = [
-  { user: "nptte_admin", password: "NptteAdmin2026!" },
-  { user: "demo_pharmacy_admin", password: "DemoPharmacy2026!" },
-  { user: "demo_patient", password: "DemoPatient2026!" },
+  { user: "nptte_admin", password: "NptteAdmin2026!", role: "Regulator / executive" },
+  { user: "demo_pharmacy_admin", password: "DemoPharmacy2026!", role: "Pharmacy" },
+  { user: "demo_patient", password: "DemoPatient2026!", role: "Citizen" },
 ] as const;
 
 export default function LoginScreen() {
@@ -90,75 +92,87 @@ export default function LoginScreen() {
 
   return (
     <ScreenShell title="Staff login" subtitle="National field & pharmacy access">
-      <TextInput
-        style={styles.input}
-        placeholder="Username"
-        placeholderTextColor={NPTTEBrand.colors.sovereign.muted}
-        autoCapitalize="none"
-        autoCorrect={false}
-        value={username}
-        onChangeText={setUsername}
-        editable={!loading}
-      />
-      <PasswordInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        editable={!loading}
-        onSubmitEditing={() => void onLogin()}
-      />
       {sessionExpired && (
-        <Text style={styles.warn}>Your session expired. Please sign in again.</Text>
+        <LoginSection
+          variant="warning"
+          title="Session expired"
+          subtitle="Your previous session ended. Sign in again to continue."
+        >
+          <Text style={[styles.message, { color: NPTTEBrand.colors.alert.warning }]}>
+            For your security, field officer sessions require re-authentication after timeout.
+          </Text>
+        </LoginSection>
       )}
-      {error && <Text style={styles.error}>{error}</Text>}
-      <Pressable style={styles.btn} onPress={() => void onLogin()} disabled={loading}>
-        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Sign in</Text>}
-      </Pressable>
-      <View style={styles.hint}>
-        <Text style={styles.hintTitle}>Demo accounts (exact — case sensitive)</Text>
+
+      <LoginSection
+        variant="credentials"
+        title="1. Enter credentials"
+        subtitle="Staff username and password (case sensitive)"
+      >
+        <View>
+          <Text style={styles.label}>Username</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g. nptte_admin"
+            placeholderTextColor={NPTTEBrand.colors.sovereign.muted}
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={username}
+            onChangeText={setUsername}
+            editable={!loading}
+            accessibilityLabel="Username"
+          />
+        </View>
+        <View>
+          <Text style={styles.label}>Password</Text>
+          <PasswordInput
+            placeholder="Enter password"
+            value={password}
+            onChangeText={setPassword}
+            editable={!loading}
+            onSubmitEditing={() => void onLogin()}
+            style={styles.input}
+            containerStyle={{ marginBottom: 0 }}
+          />
+        </View>
+      </LoginSection>
+
+      {error ? (
+        <LoginSection variant="error" title="Sign-in issue" subtitle="Correct the details below and try again">
+          <Text style={[styles.message, { color: "#fca5a5" }]}>{error}</Text>
+        </LoginSection>
+      ) : null}
+
+      <LoginSection variant="action" title="2. Sign in" subtitle="Opens your role home after successful authentication">
+        <Pressable
+          style={styles.btn}
+          onPress={() => void onLogin()}
+          disabled={loading}
+          accessibilityRole="button"
+          accessibilityLabel="Sign in"
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.btnText}>Sign in to NPTTE</Text>
+          )}
+        </Pressable>
+      </LoginSection>
+
+      <LoginSection
+        variant="info"
+        title="3. Demo accounts"
+        subtitle="Exact credentials — copy carefully (case sensitive)"
+      >
         {DEMO_ACCOUNTS.map((row) => (
           <View key={row.user} style={styles.demoRow}>
+            <Text style={styles.hintUser}>{row.role}</Text>
             <Text style={styles.hintUser}>Username: {row.user}</Text>
             <Text style={styles.hintPass}>Password: {row.password}</Text>
           </View>
         ))}
         <Text style={styles.hintSub}>Seed on Render: python manage.py seed_demo_data</Text>
-      </View>
+      </LoginSection>
     </ScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  input: {
-    borderWidth: 1,
-    borderColor: NPTTEBrand.colors.sovereign.border,
-    borderRadius: NPTTEBrand.radius.sm,
-    padding: 12,
-    color: NPTTEBrand.colors.sovereign.text,
-    marginBottom: NPTTEBrand.spacing.md,
-    backgroundColor: NPTTEBrand.colors.sovereign.surface,
-  },
-  btn: {
-    backgroundColor: NPTTEBrand.colors.sovereign.accentStrong,
-    padding: 14,
-    borderRadius: NPTTEBrand.radius.sm,
-    alignItems: "center",
-    marginTop: NPTTEBrand.spacing.sm,
-  },
-  btnText: { color: "#fff", fontWeight: "600" },
-  error: { color: "#fca5a5", marginBottom: 8, lineHeight: 18 },
-  warn: { color: "#fbbf24", marginBottom: 8, fontSize: 13 },
-  hint: {
-    marginTop: NPTTEBrand.spacing.xl,
-    padding: NPTTEBrand.spacing.md,
-    backgroundColor: NPTTEBrand.colors.sovereign.surface,
-    borderRadius: NPTTEBrand.radius.sm,
-    borderWidth: 1,
-    borderColor: NPTTEBrand.colors.sovereign.border,
-  },
-  hintTitle: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 11, marginBottom: 8 },
-  demoRow: { marginBottom: 8 },
-  hintUser: { color: "#e2e8f0", fontSize: 12, fontWeight: "600" },
-  hintPass: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 12, marginTop: 2 },
-  hintSub: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 10, marginTop: 8 },
-});
