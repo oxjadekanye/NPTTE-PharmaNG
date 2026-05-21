@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { ScreenShell } from "@/components/ScreenShell";
 import { reportCounterfeit } from "@/services/citizen";
 
@@ -7,13 +7,30 @@ export default function CitizenReport() {
   const [description, setDescription] = useState("");
   const [serial, setSerial] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const submit = async () => {
+    const trimmedDesc = description.trim();
+    if (!trimmedDesc) {
+      setError("Enter a description of what you found.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setMsg(null);
     const res = await reportCounterfeit({
-      description,
-      serial_number: serial || undefined,
+      description: trimmedDesc,
+      serial_number: serial.trim() || undefined,
     });
-    setMsg(res.success ? "Report submitted — thank you" : res.message);
+    setLoading(false);
+    if (!res.success) {
+      setError(res.message || "Report failed. Check network and try again.");
+      return;
+    }
+    setMsg("Report submitted — thank you");
+    setDescription("");
+    setSerial("");
   };
 
   return (
@@ -25,6 +42,7 @@ export default function CitizenReport() {
         multiline
         value={description}
         onChangeText={setDescription}
+        editable={!loading}
       />
       <TextInput
         style={styles.input}
@@ -32,10 +50,16 @@ export default function CitizenReport() {
         placeholderTextColor="#64748b"
         value={serial}
         onChangeText={setSerial}
+        editable={!loading}
       />
-      <Pressable style={styles.btn} onPress={() => void submit()}>
-        <Text style={styles.btnText}>Submit report</Text>
+      <Pressable style={styles.btn} onPress={() => void submit()} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Submit report</Text>}
       </Pressable>
+      {error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.error}>{error}</Text>
+        </View>
+      )}
       {msg && <Text style={styles.msg}>{msg}</Text>}
     </ScreenShell>
   );
@@ -59,5 +83,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   btnText: { color: "#fff", fontWeight: "600" },
+  errorBox: { marginTop: 12, padding: 12, backgroundColor: "#450a0a", borderRadius: 8 },
+  error: { color: "#fca5a5" },
   msg: { color: "#86efac", marginTop: 12 },
 });

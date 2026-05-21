@@ -2,14 +2,26 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { PasswordInput } from "@/components/PasswordInput";
 import { ScreenShell } from "@/components/ScreenShell";
-import { login, fetchPermissions, fetchProfile } from "@/services/auth";
+import {
+  login,
+  fetchPermissions,
+  fetchProfile,
+  LOGIN_VALIDATION_HINT,
+} from "@/services/auth";
 import { registerTrustedDevice, sendDeviceHeartbeat } from "@/services/device-trust";
 import { isBiometricHardwareAvailable } from "@/services/biometric";
 import { initPushOrchestration } from "@/services/push-orchestration";
 import { resolveMobileRole } from "@/services/role-routing";
 import { useAuthStore } from "@/store/auth-store";
+import { useLandingIntent } from "@/store/landing-intent-store";
 import { useNavigationStore } from "@/store/navigation-store";
 import { NPTTEBrand } from "@/theme/branding";
+
+const DEMO_ACCOUNTS = [
+  { user: "nptte_admin", password: "NptteAdmin2026!" },
+  { user: "demo_pharmacy_admin", password: "DemoPharmacy2026!" },
+  { user: "demo_patient", password: "DemoPatient2026!" },
+] as const;
 
 export default function LoginScreen() {
   const [username, setUsername] = useState("");
@@ -20,14 +32,15 @@ export default function LoginScreen() {
 
   const onLogin = async () => {
     const trimmedUser = username.trim();
-    if (!trimmedUser || !password) {
+    const trimmedPassword = password.trim();
+    if (!trimmedUser || !trimmedPassword) {
       setError("Enter username and password");
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      await login({ username: trimmedUser, password });
+      await login({ username: trimmedUser, password: trimmedPassword });
       const [profile, perms] = await Promise.all([fetchProfile(), fetchPermissions()]);
       const role = resolveMobileRole(perms.role_code, perms.is_regulator);
       if (!role) {
@@ -35,6 +48,7 @@ export default function LoginScreen() {
           `No mobile role for account (${perms.role_code ?? "unknown"}). Contact your administrator.`
         );
       }
+      useLandingIntent.getState().clearPublicFlow();
       useNavigationStore.getState().clearNavigationDedupe();
       useAuthStore.setState({
         profile,
@@ -56,6 +70,8 @@ export default function LoginScreen() {
       const msg = e instanceof Error ? e.message : "Login failed";
       if (msg.includes("abort") || msg.includes("network") || msg.includes("Failed to fetch")) {
         setError("Cannot reach NPTTE API. Check network or try again on Wi‑Fi/LTE.");
+      } else if (/no active account|inactive|invalid|password|credentials|401|403/i.test(msg)) {
+        setError(LOGIN_VALIDATION_HINT);
       } else {
         setError(msg);
       }
@@ -91,10 +107,14 @@ export default function LoginScreen() {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Sign in</Text>}
       </Pressable>
       <View style={styles.hint}>
-        <Text style={styles.hintTitle}>Demo accounts (Render demo seed)</Text>
-        <Text style={styles.hintText}>nptte_admin / NptteAdmin2026!</Text>
-        <Text style={styles.hintText}>demo_pharmacy_admin / DemoPharmacy2026!</Text>
-        <Text style={styles.hintText}>demo_patient / DemoPatient2026!</Text>
+        <Text style={styles.hintTitle}>Demo accounts (exact — case sensitive)</Text>
+        {DEMO_ACCOUNTS.map((row) => (
+          <View key={row.user} style={styles.demoRow}>
+            <Text style={styles.hintUser}>Username: {row.user}</Text>
+            <Text style={styles.hintPass}>Password: {row.password}</Text>
+          </View>
+        ))}
+        <Text style={styles.hintSub}>Seed on Render: python manage.py seed_demo_data</Text>
       </View>
     </ScreenShell>
   );
@@ -118,7 +138,7 @@ const styles = StyleSheet.create({
     marginTop: NPTTEBrand.spacing.sm,
   },
   btnText: { color: "#fff", fontWeight: "600" },
-  error: { color: "#fca5a5", marginBottom: 8 },
+  error: { color: "#fca5a5", marginBottom: 8, lineHeight: 18 },
   warn: { color: "#fbbf24", marginBottom: 8, fontSize: 13 },
   hint: {
     marginTop: NPTTEBrand.spacing.xl,
@@ -128,6 +148,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: NPTTEBrand.colors.sovereign.border,
   },
-  hintTitle: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 11, marginBottom: 6 },
-  hintText: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 12 },
+  hintTitle: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 11, marginBottom: 8 },
+  demoRow: { marginBottom: 8 },
+  hintUser: { color: "#e2e8f0", fontSize: 12, fontWeight: "600" },
+  hintPass: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 12, marginTop: 2 },
+  hintSub: { color: NPTTEBrand.colors.sovereign.muted, fontSize: 10, marginTop: 8 },
 });

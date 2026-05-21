@@ -5,12 +5,20 @@ import { decodeJwtExpiry, secureLogout } from "@/services/session-security";
 
 export type LoginPayload = { username: string; password: string };
 
+export const LOGIN_VALIDATION_HINT =
+  "Login failed. Check username/password or confirm demo user is seeded on Render.";
+
 /** Normalize Django/JWT login error payloads for display. */
 export function parseLoginError(json: unknown, status: number): string {
   if (json && typeof json === "object") {
     const body = json as Record<string, unknown>;
     const detail = body.detail;
-    if (typeof detail === "string") return detail;
+    if (typeof detail === "string") {
+      if (/no active account|inactive|disabled/i.test(detail)) {
+        return LOGIN_VALIDATION_HINT;
+      }
+      return detail;
+    }
     if (Array.isArray(detail)) {
       return detail
         .map((item) =>
@@ -24,10 +32,10 @@ export function parseLoginError(json: unknown, status: number): string {
       return String(nonField[0]);
     }
   }
-  if (status === 401) {
-    return "Invalid username or password. Try nptte_admin / NptteAdmin2026! on demo environments.";
+  if (status === 401 || status === 403) {
+    return LOGIN_VALIDATION_HINT;
   }
-  return "Login failed";
+  return LOGIN_VALIDATION_HINT;
 }
 export type UserProfile = {
   id: string;

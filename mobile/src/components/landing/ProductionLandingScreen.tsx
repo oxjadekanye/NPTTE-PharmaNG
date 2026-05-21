@@ -1,4 +1,5 @@
 import { router } from "expo-router";
+import { CITIZEN_ROUTES, pushCitizenRoute } from "@/services/citizen-navigation";
 import { useEffect, useRef } from "react";
 import { useQaMode } from "@/store/qa-mode-store";
 import { useLandingIntent } from "@/store/landing-intent-store";
@@ -61,7 +62,11 @@ function LandingAction({ href, label, variant, delay, slide, publicFlow }: Actio
         style={({ pressed }) => [variantStyle, pressed && styles.btnPressed]}
         onPress={() => {
           if (publicFlow) setBypassAutoRedirect(true);
-          router.push(href as never);
+          if (href.startsWith("/citizen")) {
+            pushCitizenRoute(href as (typeof CITIZEN_ROUTES)[keyof typeof CITIZEN_ROUTES]);
+          } else {
+            router.push(href as never);
+          }
         }}
       >
         <Text style={textStyle}>{label}</Text>
