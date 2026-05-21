@@ -1,8 +1,8 @@
-import { router } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { MenuButton } from "@/components/MenuButton";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/store/auth-store";
+import { useNavigationStore } from "@/store/navigation-store";
 
 export default function PharmacyHome() {
   const signOut = useAuthStore((s) => s.signOut);
@@ -14,7 +14,7 @@ export default function PharmacyHome() {
       <MenuButton href="/offline-queue" label="Offline queue" />
       <Pressable
         onPress={() => {
-          void signOut().then(() => router.replace("/"));
+          void signOut().then(() => useNavigationStore.getState().replaceWhenReady("/"));
         }}
       >
         <Text style={styles.out}>Sign out</Text>

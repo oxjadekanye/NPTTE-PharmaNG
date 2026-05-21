@@ -1,13 +1,25 @@
-import { Link, type Href } from "expo-router";
+import { router } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
+import { bootLog } from "@/services/boot-diagnostics";
 
-export function MenuButton({ href, label }: { href: Href; label: string }) {
+type Props = {
+  href: string;
+  label: string;
+};
+
+/** Imperative navigation — Link/asChild is unreliable on Android production builds. */
+export function MenuButton({ href, label }: Props) {
   return (
-    <Link href={href} asChild>
-      <Pressable style={styles.btn}>
-        <Text style={styles.text}>{label}</Text>
-      </Pressable>
-    </Link>
+    <Pressable
+      style={({ pressed }) => [styles.btn, pressed && styles.pressed]}
+      accessibilityRole="button"
+      onPress={() => {
+        bootLog("navigation", `menu push → ${href}`);
+        router.push(href as never);
+      }}
+    >
+      <Text style={styles.text}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -20,5 +32,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
   },
+  pressed: { opacity: 0.85, backgroundColor: "#334155" },
   text: { color: "#e2e8f0", fontSize: 15 },
 });

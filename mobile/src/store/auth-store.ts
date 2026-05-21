@@ -4,6 +4,7 @@ import { fetchPermissions, fetchProfile, logout as apiLogout } from "@/services/
 import { getAccessToken } from "@/services/auth-storage";
 import { isSessionExpired, refreshAccessToken } from "@/services/session-security";
 import { bootLog, BOOT_HARD_TIMEOUT_MS } from "@/services/boot-diagnostics";
+import { resetBiometricSessionGate } from "@/services/biometric-session";
 import { useNavigationStore } from "@/store/navigation-store";
 import { mobileHomePath, resolveMobileRole, type MobileRole } from "@/services/role-routing";
 
@@ -66,6 +67,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   signOut: async () => {
     await apiLogout();
+    resetBiometricSessionGate();
     useNavigationStore.getState().clearNavigationDedupe();
     set({ profile: null, permissions: null, mobileRole: null, sessionExpired: false, loading: false });
   },

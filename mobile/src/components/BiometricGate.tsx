@@ -1,10 +1,15 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { usePathname } from "expo-router";
-import { useNavigationStore } from "@/store/navigation-store";
 import { authenticateWithBiometrics, getBiometricEnabled } from "@/services/biometric";
+import {
+  isBiometricSessionGatePassed,
+  markBiometricSessionGatePassed,
+  resetBiometricSessionGate,
+} from "@/services/biometric-session";
 import { getAccessToken } from "@/services/auth-storage";
 import { bootLog, BOOT_HARD_TIMEOUT_MS } from "@/services/boot-diagnostics";
+import { useNavigationStore } from "@/store/navigation-store";
 
 function isPublicRoute(pathname: string) {
   if (!pathname || pathname === "/" || pathname === "/login") return true;
@@ -16,26 +21,28 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
   const [checking, setChecking] = useState(false);
   const [unlocked, setUnlocked] = useState(true);
   const [failed, setFailed] = useState(false);
-  const checkedPath = useRef<string | null>(null);
 
   useEffect(() => {
     if (isPublicRoute(pathname)) {
-      bootLog("biometric", "skipped on public route");
       setUnlocked(true);
       setChecking(false);
       return;
     }
 
-    if (checkedPath.current === pathname) return;
-    checkedPath.current = pathname;
+    if (isBiometricSessionGatePassed()) {
+      setUnlocked(true);
+      setChecking(false);
+      return;
+    }
 
     let cancelled = false;
     setChecking(true);
-    bootLog("biometric", "check start");
+    bootLog("biometric", "session check start");
 
     const bypass = setTimeout(() => {
       if (cancelled) return;
       bootLog("biometric", "timeout — bypass gate");
+      markBiometricSessionGatePassed();
       setUnlocked(true);
       setChecking(false);
     }, BOOT_HARD_TIMEOUT_MS);
@@ -46,6 +53,7 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
         const enabled = await getBiometricEnabled();
         if (!token || !enabled) {
           if (!cancelled) {
+            markBiometricSessionGatePassed();
             setUnlocked(true);
             setChecking(false);
             bootLog("biometric", "not required");
@@ -54,12 +62,14 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
         }
         const ok = await authenticateWithBiometrics();
         if (cancelled) return;
+        if (ok) markBiometricSessionGatePassed();
         setUnlocked(ok);
         setFailed(!ok);
         setChecking(false);
-        bootLog("biometric", ok ? "unlocked" : "failed");
+        bootLog("biometric", ok ? "session unlocked" : "failed");
       } catch (err) {
         if (!cancelled) {
+          markBiometricSessionGatePassed();
           setUnlocked(true);
           setChecking(false);
           bootLog("biometric", `error bypass ${err instanceof Error ? err.message : ""}`);
@@ -95,13 +105,22 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
         style={styles.btn}
         onPress={async () => {
           const ok = await authenticateWithBiometrics();
-          if (ok) setUnlocked(true);
-          else setFailed(true);
+          if (ok) {
+            markBiometricSessionGatePassed();
+            setUnlocked(true);
+          } else {
+            setFailed(true);
+          }
         }}
       >
         <Text style={styles.btnText}>Unlock with biometrics</Text>
       </Pressable>
-      <Pressable onPress={() => useNavigationStore.getState().replaceWhenReady("/login")}>
+      <Pressable
+        onPress={() => {
+          resetBiometricSessionGate();
+          useNavigationStore.getState().replaceWhenReady("/login");
+        }}
+      >
         <Text style={styles.link}>Use password instead</Text>
       </Pressable>
     </View>

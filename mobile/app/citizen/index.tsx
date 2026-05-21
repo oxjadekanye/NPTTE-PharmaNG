@@ -1,7 +1,7 @@
-import { router } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { MenuButton } from "@/components/MenuButton";
 import { ScreenShell } from "@/components/ScreenShell";
+import { useNavigationStore } from "@/store/navigation-store";
 
 export default function CitizenHome() {
   return (
@@ -10,7 +10,7 @@ export default function CitizenHome() {
       <MenuButton href="/citizen/manual" label="Manual serial lookup" />
       <MenuButton href="/citizen/recalls" label="Recall alerts" />
       <MenuButton href="/citizen/report" label="Report counterfeit" />
-      <Pressable onPress={() => router.replace("/")}>
+      <Pressable onPress={() => useNavigationStore.getState().replaceWhenReady("/")}>
         <Text style={styles.link}>← Back to home</Text>
       </Pressable>
     </ScreenShell>

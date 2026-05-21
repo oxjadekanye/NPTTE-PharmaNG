@@ -1,8 +1,8 @@
-import { router } from "expo-router";
 import { Pressable, StyleSheet, Text } from "react-native";
 import { MenuButton } from "@/components/MenuButton";
 import { ScreenShell } from "@/components/ScreenShell";
 import { useAuthStore } from "@/store/auth-store";
+import { useNavigationStore } from "@/store/navigation-store";
 
 export default function RegulatorHome() {
   const signOut = useAuthStore((s) => s.signOut);
@@ -17,7 +17,11 @@ export default function RegulatorHome() {
       <MenuButton href="/sync-health" label="Sync health" />
       <MenuButton href="/field-activity" label="Field activity log" />
       <MenuButton href="/settings" label="Settings & biometrics" />
-      <Pressable onPress={() => void signOut().then(() => router.replace("/"))}>
+      <Pressable
+        onPress={() =>
+          void signOut().then(() => useNavigationStore.getState().replaceWhenReady("/"))
+        }
+      >
         <Text style={styles.out}>Sign out</Text>
       </Pressable>
     </ScreenShell>

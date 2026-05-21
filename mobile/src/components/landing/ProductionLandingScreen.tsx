@@ -1,4 +1,4 @@
-import { Link, router, type Href } from "expo-router";
+import { router } from "expo-router";
 import { useEffect, useRef } from "react";
 import { useQaMode } from "@/store/qa-mode-store";
 import { useLandingIntent } from "@/store/landing-intent-store";
@@ -21,7 +21,7 @@ const { height: SCREEN_H } = Dimensions.get("window");
 const isCompact = SCREEN_H < 740;
 
 type ActionProps = {
-  href: Href;
+  href: string;
   label: string;
   variant: "primary" | "secondary" | "accent" | "alert";
   delay: number;
@@ -57,16 +57,15 @@ function LandingAction({ href, label, variant, delay, slide, publicFlow }: Actio
 
   return (
     <Animated.View style={{ opacity, transform: [{ translateY: slide }] }}>
-      <Link href={href} asChild>
-        <Pressable
-          style={({ pressed }) => [variantStyle, pressed && styles.btnPressed]}
-          onPress={() => {
-            if (publicFlow) setBypassAutoRedirect(true);
-          }}
-        >
-          <Text style={textStyle}>{label}</Text>
-        </Pressable>
-      </Link>
+      <Pressable
+        style={({ pressed }) => [variantStyle, pressed && styles.btnPressed]}
+        onPress={() => {
+          if (publicFlow) setBypassAutoRedirect(true);
+          router.push(href as never);
+        }}
+      >
+        <Text style={textStyle}>{label}</Text>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -117,7 +116,7 @@ export function ProductionLandingScreen() {
           <Pressable
             onLongPress={() => {
               unlockQa();
-              router.push("/qa-dashboard" as Href);
+              router.push("/qa-dashboard" as never);
             }}
             delayLongPress={2800}
           >

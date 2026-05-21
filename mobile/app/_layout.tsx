@@ -19,6 +19,14 @@ import { NPTTEBrand } from "@/theme/branding";
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 markAppStart();
 
+const STACK_OPTIONS = {
+  headerStyle: { backgroundColor: NPTTEBrand.colors.sovereign.bg },
+  headerTintColor: NPTTEBrand.colors.sovereign.accent,
+  contentStyle: { backgroundColor: NPTTEBrand.colors.sovereign.bg },
+  headerShadowVisible: false,
+  animation: "fade" as const,
+};
+
 export default function RootLayout() {
   const pathname = usePathname();
   const bootStarted = useRef(false);
@@ -66,17 +74,19 @@ export default function RootLayout() {
       <ErrorBoundary screenLabel="root">
         <StatusBar style="light" />
         <BiometricGate>
-          <Stack
-            screenOptions={{
-              headerStyle: { backgroundColor: NPTTEBrand.colors.sovereign.bg },
-              headerTintColor: NPTTEBrand.colors.sovereign.accent,
-              contentStyle: { backgroundColor: NPTTEBrand.colors.sovereign.bg },
-              headerShadowVisible: false,
-              animation: "fade",
-            }}
-          >
+          <Stack screenOptions={STACK_OPTIONS}>
             <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ title: "Staff login" }} />
+            <Stack.Screen name="regulator" options={{ headerShown: false }} />
+            <Stack.Screen name="pharmacy" options={{ headerShown: false }} />
+            <Stack.Screen name="citizen" options={{ headerShown: false }} />
+            <Stack.Screen name="warehouse" options={{ headerShown: false }} />
+            <Stack.Screen name="customs" options={{ headerShown: false }} />
+            <Stack.Screen name="executive" options={{ headerShown: false }} />
+            <Stack.Screen name="offline-queue" options={{ title: "Offline queue" }} />
+            <Stack.Screen name="sync-health" options={{ title: "Sync health" }} />
+            <Stack.Screen name="field-activity" options={{ title: "Field activity" }} />
+            <Stack.Screen name="settings" options={{ title: "Settings" }} />
             <Stack.Screen name="qa-dashboard" options={{ title: "Device QA" }} />
           </Stack>
         </BiometricGate>
