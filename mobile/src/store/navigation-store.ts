@@ -4,13 +4,20 @@ import { bootLog } from "@/services/boot-diagnostics";
 
 type NavigationState = {
   rootMounted: boolean;
+  currentPath: string;
   pendingRoute: string | null;
-  lastRoute: string | null;
   setRootMounted: () => void;
+  setCurrentPath: (path: string) => void;
   replaceWhenReady: (href: string) => void;
   flushPending: () => void;
-  resetLastRoute: () => void;
+  clearNavigationDedupe: () => void;
 };
+
+function normalizePath(path: string) {
+  const base = path.split("?")[0] || "/";
+  if (base.length > 1 && base.endsWith("/")) return base.slice(0, -1);
+  return base || "/";
+}
 
 function scheduleNavigation(fn: () => void) {
   if (typeof requestAnimationFrame === "function") {
@@ -25,15 +32,23 @@ function runReplace(href: string) {
     router.replace(href as never);
     bootLog("navigation", `replace → ${href}`);
   } catch (err) {
-    bootLog("navigation", `replace failed ${err instanceof Error ? err.message : "unknown"}`);
-    useNavigationStore.setState({ pendingRoute: href });
+    bootLog("navigation", `replace failed, trying push → ${href}`);
+    try {
+      router.push(href as never);
+    } catch (pushErr) {
+      bootLog(
+        "navigation",
+        `push failed ${pushErr instanceof Error ? pushErr.message : "unknown"}`
+      );
+      useNavigationStore.setState({ pendingRoute: href });
+    }
   }
 }
 
 export const useNavigationStore = create<NavigationState>((set, get) => ({
   rootMounted: false,
+  currentPath: "/",
   pendingRoute: null,
-  lastRoute: null,
   setRootMounted: () => {
     if (get().rootMounted) {
       get().flushPending();
@@ -43,27 +58,34 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
     bootLog("navigation", "root layout mounted — ready");
     get().flushPending();
   },
+  setCurrentPath: (path) => set({ currentPath: normalizePath(path) }),
+  clearNavigationDedupe: () => set({ pendingRoute: null }),
   replaceWhenReady: (href) => {
+    const target = normalizePath(href);
     const state = get();
-    if (state.lastRoute === href) {
-      bootLog("navigation", `skip duplicate → ${href}`);
+    if (state.currentPath === target) {
+      bootLog("navigation", `already on ${target}`);
       return;
     }
     if (!state.rootMounted) {
-      bootLog("navigation", `queued → ${href}`);
-      set({ pendingRoute: href });
+      bootLog("navigation", `queued → ${target}`);
+      set({ pendingRoute: target });
       return;
     }
-    set({ lastRoute: href, pendingRoute: null });
-    scheduleNavigation(() => runReplace(href));
+    set({ pendingRoute: null });
+    scheduleNavigation(() => runReplace(target));
   },
   flushPending: () => {
-    const { pendingRoute, rootMounted, lastRoute } = get();
-    if (!rootMounted || !pendingRoute || pendingRoute === lastRoute) return;
-    set({ lastRoute: pendingRoute, pendingRoute: null });
-    scheduleNavigation(() => runReplace(pendingRoute));
+    const { pendingRoute, rootMounted, currentPath } = get();
+    if (!rootMounted || !pendingRoute) return;
+    const target = normalizePath(pendingRoute);
+    if (currentPath === target) {
+      set({ pendingRoute: null });
+      return;
+    }
+    set({ pendingRoute: null });
+    scheduleNavigation(() => runReplace(target));
   },
-  resetLastRoute: () => set({ lastRoute: null }),
 }));
 
 export function isNavigationReady() {

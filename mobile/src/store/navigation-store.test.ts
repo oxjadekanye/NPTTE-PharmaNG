@@ -10,8 +10,8 @@ describe("navigation-store", () => {
   beforeEach(() => {
     useNavigationStore.setState({
       rootMounted: false,
+      currentPath: "/",
       pendingRoute: null,
-      lastRoute: null,
     });
   });
 
@@ -22,9 +22,15 @@ describe("navigation-store", () => {
     expect(useNavigationStore.getState().pendingRoute).toBeNull();
   });
 
-  it("skips duplicate replace to same href", () => {
-    useNavigationStore.setState({ rootMounted: true, lastRoute: "/regulator" });
+  it("skips replace when already on target path", () => {
+    useNavigationStore.setState({ rootMounted: true, currentPath: "/regulator" });
     useNavigationStore.getState().replaceWhenReady("/regulator");
+    expect(useNavigationStore.getState().pendingRoute).toBeNull();
+  });
+
+  it("allows replace after clearNavigationDedupe from login path", () => {
+    useNavigationStore.setState({ rootMounted: true, currentPath: "/login" });
+    useNavigationStore.getState().replaceWhenReady("/pharmacy");
     expect(useNavigationStore.getState().pendingRoute).toBeNull();
   });
 });

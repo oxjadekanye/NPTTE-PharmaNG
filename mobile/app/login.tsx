@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { PasswordInput } from "@/components/PasswordInput";
 import { ScreenShell } from "@/components/ScreenShell";
@@ -6,8 +6,7 @@ import { login, fetchPermissions, fetchProfile } from "@/services/auth";
 import { registerTrustedDevice, sendDeviceHeartbeat } from "@/services/device-trust";
 import { isBiometricHardwareAvailable } from "@/services/biometric";
 import { initPushOrchestration } from "@/services/push-orchestration";
-import { mobileHomePath, resolveMobileRole, type MobileRole } from "@/services/role-routing";
-import { useRootMounted } from "@/hooks/useRootMounted";
+import { resolveMobileRole } from "@/services/role-routing";
 import { useAuthStore } from "@/store/auth-store";
 import { useNavigationStore } from "@/store/navigation-store";
 import { NPTTEBrand } from "@/theme/branding";
@@ -17,19 +16,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [pendingRole, setPendingRole] = useState<MobileRole | null>(null);
   const sessionExpired = useAuthStore((s) => s.sessionExpired);
-  const rootMounted = useRootMounted();
-  const replaceWhenReady = useNavigationStore((s) => s.replaceWhenReady);
-  const navigatedRef = useRef(false);
-
-  useEffect(() => {
-    if (!pendingRole || !rootMounted || navigatedRef.current) return;
-    navigatedRef.current = true;
-    const href = mobileHomePath(pendingRole);
-    replaceWhenReady(href);
-    setPendingRole(null);
-  }, [pendingRole, rootMounted, replaceWhenReady]);
 
   const onLogin = async () => {
     const trimmedUser = username.trim();
@@ -39,7 +26,6 @@ export default function LoginScreen() {
     }
     setLoading(true);
     setError(null);
-    navigatedRef.current = false;
     try {
       await login({ username: trimmedUser, password });
       const [profile, perms] = await Promise.all([fetchProfile(), fetchPermissions()]);
@@ -49,6 +35,7 @@ export default function LoginScreen() {
           `No mobile role for account (${perms.role_code ?? "unknown"}). Contact your administrator.`
         );
       }
+      useNavigationStore.getState().clearNavigationDedupe();
       useAuthStore.setState({
         profile,
         permissions: perms,
@@ -65,7 +52,6 @@ export default function LoginScreen() {
         role === "executive" ? "executive" : role === "regulator" ? "officer_tasks" : "officer_tasks";
       await initPushOrchestration(pushChannel);
       void sendDeviceHeartbeat();
-      setPendingRole(role);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Login failed";
       if (msg.includes("abort") || msg.includes("network") || msg.includes("Failed to fetch")) {

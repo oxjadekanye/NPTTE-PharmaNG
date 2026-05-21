@@ -3,6 +3,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { AuthNavigationBridge } from "@/components/AuthNavigationBridge";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BiometricGate } from "@/components/BiometricGate";
 import { OperationalToast } from "@/components/OperationalToast";
@@ -80,6 +81,7 @@ export default function RootLayout() {
           </Stack>
         </BiometricGate>
         <OperationalToast />
+        <AuthNavigationBridge />
         <DeferredOps />
       </ErrorBoundary>
     </SafeAreaProvider>

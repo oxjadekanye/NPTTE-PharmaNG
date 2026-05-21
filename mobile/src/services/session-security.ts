@@ -90,7 +90,7 @@ export async function handleSessionExpiry(): Promise<void> {
   sessionExpiryHandling = true;
   try {
     await secureLogout();
-    useNavigationStore.getState().resetLastRoute();
+    useNavigationStore.getState().clearNavigationDedupe();
     useNavigationStore.getState().replaceWhenReady("/login");
   } finally {
     sessionExpiryHandling = false;

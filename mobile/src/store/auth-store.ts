@@ -66,7 +66,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   signOut: async () => {
     await apiLogout();
-    useNavigationStore.getState().resetLastRoute();
+    useNavigationStore.getState().clearNavigationDedupe();
     set({ profile: null, permissions: null, mobileRole: null, sessionExpired: false, loading: false });
   },
 }));
