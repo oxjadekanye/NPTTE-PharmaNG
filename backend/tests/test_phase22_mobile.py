@@ -102,3 +102,25 @@ class Phase22MobileTests(APITestCase):
             format="json",
         )
         self.assertIn(res.status_code, (200, 403))
+
+    def test_mobile_inspection_copilot_context(self):
+        res = self.client.post(
+            "/api/v1/mobile/copilot/",
+            {
+                "prompt_mode": "operational_recommendations",
+                "inspection_context": {
+                    "compliance_score": 30,
+                    "site_passed": False,
+                    "product_passed": False,
+                    "compliance_passed": False,
+                    "failed_items": ["Compliance: Cold-chain logs"],
+                    "evidence_count": 0,
+                },
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200)
+        data = res.json()["data"]
+        self.assertIn("risk_rating", data)
+        self.assertIn("immediate_concerns", data)
+        self.assertTrue(data.get("escalation_required"))

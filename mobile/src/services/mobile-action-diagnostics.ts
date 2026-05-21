@@ -2,6 +2,11 @@
 export type MobileAction =
   | "capture_photo_pressed"
   | "ai_recommendation_pressed"
+  | "ai_inspection_recommendation_requested"
+  | "inspection_tab_product_pressed"
+  | "inspection_tab_compliance_pressed"
+  | "alert_detail_opened"
+  | "activity_detail_opened"
   | "retry_sync_all_pressed"
   | "retry_scan_sync_pressed";
 

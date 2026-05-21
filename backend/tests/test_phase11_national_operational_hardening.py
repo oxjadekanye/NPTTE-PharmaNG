@@ -63,6 +63,10 @@ class Phase11NationalOperationalTests(APITestCase):
 
     def test_alert_center(self):
         r = self.client.get("/api/v1/alerts/center/")
+        if r.status_code == 200 and r.json()["data"]["alerts"]:
+            first = r.json()["data"]["alerts"][0]
+            self.assertIn("organisation_name", first)
+            self.assertIn("address_line", first)
         self.assertEqual(r.status_code, status.HTTP_200_OK)
         self.assertIn("alerts", r.json()["data"])
 

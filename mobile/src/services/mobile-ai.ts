@@ -19,6 +19,7 @@ export async function mobileCopilot(body: {
   context_key?: string;
   user_question?: string;
   serial_number?: string;
+  inspection_context?: Record<string, unknown>;
 }) {
   const question =
     body.user_question ??
@@ -26,5 +27,15 @@ export async function mobileCopilot(body: {
   return apiRequest<Record<string, unknown>>("/mobile/copilot/", {
     method: "POST",
     body: JSON.stringify({ ...body, user_question: question }),
+  });
+}
+
+export async function mobileInspectionCopilot(inspectionContext: Record<string, unknown>) {
+  const score = inspectionContext.compliance_score ?? 0;
+  return mobileCopilot({
+    prompt_mode: "operational_recommendations",
+    context_key: "field_inspection",
+    user_question: `Field inspection recommendation for score ${score}% with failed items: ${JSON.stringify(inspectionContext.failed_items ?? [])}`,
+    inspection_context: inspectionContext,
   });
 }

@@ -1,73 +1,68 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  checklistFallbackRecommendation,
-  mobileCopilot,
-  parseCopilotText,
-} from "@/services/mobile-ai";
+  formatInspectionRecommendation,
+  inspectionRecommendationFallback,
+  parseInspectionRecommendation,
+} from "@/services/mobile-ai-helpers";
+import { mobileInspectionCopilot } from "@/services/mobile-ai";
+import {
+  buildInspectionContext,
+  computeInspectionScore,
+  type InspectionSectionId,
+  INSPECTION_SECTIONS,
+  inspectionItemKey,
+} from "@/services/mobile-inspection";
 import { mobileActionLog } from "@/services/mobile-action-diagnostics";
 
-type Section = { id: string; title: string; items: string[] };
+type Props = {
+  activeSection: InspectionSectionId;
+  checks: Record<string, boolean>;
+  onToggle: (key: string) => void;
+  evidenceCount?: number;
+  organisationHint?: string;
+};
 
-const SECTIONS: Section[] = [
-  {
-    id: "site",
-    title: "Site verification",
-    items: ["Registration displayed", "Storage conditions", "Staff interviewed"],
-  },
-  {
-    id: "product",
-    title: "Product verification",
-    items: ["Serial samples scanned", "Batch records reviewed", "Expiry checks"],
-  },
-  {
-    id: "compliance",
-    title: "Compliance",
-    items: ["Cold-chain logs", "Custody documentation", "Recall acknowledgement"],
-  },
-];
-
-export function InspectionChecklistEngine() {
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
+export function InspectionChecklistEngine({
+  activeSection,
+  checks,
+  onToggle,
+  evidenceCount = 0,
+  organisationHint,
+}: Props) {
   const [aiRec, setAiRec] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiSource, setAiSource] = useState<"api" | "fallback" | null>(null);
 
-  const score = useMemo(() => {
-    const total = SECTIONS.reduce((n, s) => n + s.items.length, 0);
-    const done = Object.values(checks).filter(Boolean).length;
-    return total ? Math.round((done / total) * 100) : 0;
-  }, [checks]);
-
-  const toggle = (key: string) => setChecks((c) => ({ ...c, [key]: !c[key] }));
+  const score = computeInspectionScore(checks);
+  const section = INSPECTION_SECTIONS.find((s) => s.id === activeSection);
 
   const aiRecommend = async () => {
-    mobileActionLog("ai_recommendation_pressed", `score=${score}`);
+    mobileActionLog("ai_inspection_recommendation_requested", `score=${score}`);
     if (aiLoading) return;
     setAiLoading(true);
     setAiError(null);
     setAiRec(null);
     setAiSource(null);
+    const context = buildInspectionContext(checks, evidenceCount, organisationHint);
     try {
-      const res = await mobileCopilot({
-        prompt_mode: "operational_recommendations",
-        context_key: "open_alerts",
-        user_question: `Field inspection checklist score ${score}%. Recommend enforcement actions.`,
-      });
-      const text = parseCopilotText(res.data);
-      if (res.success && text) {
-        setAiRec(text);
+      const res = await mobileInspectionCopilot(context);
+      const parsed = parseInspectionRecommendation(res.data);
+      if (res.success && parsed) {
+        setAiRec(formatInspectionRecommendation({ ...parsed, source: "api" }));
         setAiSource("api");
         return;
       }
-      const fallback = checklistFallbackRecommendation(score);
-      setAiRec(fallback);
+      const fallback = inspectionRecommendationFallback(context);
+      setAiRec(formatInspectionRecommendation(fallback));
       setAiSource("fallback");
-      setAiError(res.message ? `API: ${res.message} — showing offline guidance` : "Using offline guidance");
+      setAiError(res.message ? `API: ${res.message} — offline guidance` : "Using checklist-based guidance");
     } catch (err) {
-      const fallback = checklistFallbackRecommendation(score);
-      setAiRec(fallback);
+      const fallback = inspectionRecommendationFallback(
+        buildInspectionContext(checks, evidenceCount, organisationHint)
+      );
+      setAiRec(formatInspectionRecommendation(fallback));
       setAiSource("fallback");
       setAiError(err instanceof Error ? err.message : "AI request failed");
     } finally {
@@ -75,28 +70,43 @@ export function InspectionChecklistEngine() {
     }
   };
 
+  if (!section) {
+    return <Text style={styles.empty}>Unknown inspection section</Text>;
+  }
+
+  const sectionDone = section.items.filter((item) => checks[inspectionItemKey(activeSection, item)]).length;
+  const sectionTotal = section.items.length;
+
   return (
     <View>
-      <Text style={styles.score}>Compliance score: {score}%</Text>
-      {SECTIONS.map((sec) => (
-        <View key={sec.id} style={styles.section}>
-          <Text style={styles.sectionTitle}>{sec.title}</Text>
-          {sec.items.map((item) => {
-            const key = `${sec.id}:${item}`;
-            return (
-              <Pressable key={key} style={styles.row} onPress={() => toggle(key)}>
-                <Text style={styles.item}>
-                  {checks[key] ? "✓ " : "○ "}
-                  {item}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
+      <Text style={styles.score}>Overall compliance: {score}%</Text>
+      <Text style={styles.sectionHint}>
+        {section.title} — {sectionDone}/{sectionTotal} checks complete
+      </Text>
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{section.title}</Text>
+        {section.items.map((item) => {
+          const key = inspectionItemKey(activeSection, item);
+          return (
+            <Pressable
+              key={key}
+              style={styles.row}
+              onPress={() => onToggle(key)}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: Boolean(checks[key]) }}
+              accessibilityLabel={item}
+            >
+              <Text style={styles.item}>
+                {checks[key] ? "✓ " : "○ "}
+                {item}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
       <Pressable
         style={[styles.btn, aiLoading && styles.btnDisabled]}
-        onPress={aiRecommend}
+        onPress={() => void aiRecommend()}
         disabled={aiLoading}
         accessibilityRole="button"
         accessibilityLabel="AI inspection recommendation"
@@ -113,7 +123,7 @@ export function InspectionChecklistEngine() {
       {aiRec ? (
         <View style={styles.aiBox}>
           <Text style={styles.aiLabel}>
-            {aiSource === "fallback" ? "Guidance (offline fallback)" : "AI recommendation"}
+            {aiSource === "fallback" ? "Guidance (checklist fallback)" : "AI recommendation"}
           </Text>
           <Text style={styles.ai}>{aiRec}</Text>
         </View>
@@ -125,11 +135,12 @@ export function InspectionChecklistEngine() {
 }
 
 const styles = StyleSheet.create({
-  score: { color: "#4ade80", fontWeight: "700", marginBottom: 12 },
+  score: { color: "#4ade80", fontWeight: "700", marginBottom: 4 },
+  sectionHint: { color: "#94a3b8", fontSize: 12, marginBottom: 12 },
   section: { marginBottom: 12 },
-  sectionTitle: { color: "#38bdf8", fontSize: 13, marginBottom: 6 },
-  row: { paddingVertical: 6 },
-  item: { color: "#e2e8f0", fontSize: 13 },
+  sectionTitle: { color: "#38bdf8", fontSize: 15, fontWeight: "700", marginBottom: 8 },
+  row: { paddingVertical: 8 },
+  item: { color: "#f8fafc", fontSize: 14 },
   btn: {
     backgroundColor: "#0284c7",
     padding: 12,
@@ -140,10 +151,11 @@ const styles = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.6 },
   btnRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  btnText: { color: "#fff", textAlign: "center" },
-  aiBox: { marginTop: 10, padding: 10, backgroundColor: "#1e293b", borderRadius: 8 },
-  aiLabel: { color: "#38bdf8", fontSize: 11, marginBottom: 4 },
-  ai: { color: "#cbd5e1", fontSize: 12, lineHeight: 18 },
+  btnText: { color: "#fff", textAlign: "center", fontWeight: "600" },
+  aiBox: { marginTop: 10, padding: 12, backgroundColor: "#1e293b", borderRadius: 8, borderWidth: 1, borderColor: "#334155" },
+  aiLabel: { color: "#38bdf8", fontSize: 11, marginBottom: 6, fontWeight: "600" },
+  ai: { color: "#e2e8f0", fontSize: 13, lineHeight: 20 },
   aiErr: { color: "#fbbf24", marginTop: 6, fontSize: 11 },
   sign: { color: "#64748b", fontSize: 11, marginTop: 12 },
+  empty: { color: "#94a3b8" },
 });

@@ -17,7 +17,7 @@ class NationalAlertCenterView(APIView):
             return api_response(message="Regulator access required", status_code=403)
         priority = request.GET.get("priority")
         alert_type = request.GET.get("alert_type")
-        qs = NationalAlert.objects.all().order_by("-created_at")
+        qs = NationalAlert.objects.select_related("organisation", "product").order_by("-created_at")
         if priority:
             from django.db.models import Q
 
@@ -29,6 +29,9 @@ class NationalAlertCenterView(APIView):
         alerts = []
         for a in rows:
             key = a.alert_type or "general"
+            org = a.organisation
+            ev = a.evidence_payload if isinstance(a.evidence_payload, dict) else {}
+            city = (org.city if org else "") or str(ev.get("city") or "")
             entry = {
                 "id": str(a.id),
                 "alert_type": a.alert_type,
@@ -36,9 +39,23 @@ class NationalAlertCenterView(APIView):
                 "description": a.description,
                 "severity": a.severity,
                 "priority": a.risk_level,
-                "state": a.state,
+                "state": a.state or str(ev.get("state") or ""),
                 "unread": True,
                 "created_at": a.created_at.isoformat(),
+                "detected_at": str(ev.get("detected_at") or a.created_at.isoformat()),
+                "organisation_name": (org.legal_name if org else "") or str(ev.get("organisation_name") or ""),
+                "address_line": (org.address_line_1 if org else "") or str(ev.get("address") or ""),
+                "address_line_2": org.address_line_2 if org else "",
+                "city": city,
+                "lga": str(ev.get("lga") or (f"{city} LGA" if city else "")),
+                "product_name": (a.product.name if a.product else "") or str(ev.get("product") or ""),
+                "batch": str(ev.get("batch") or ""),
+                "serial": str(ev.get("serial") or ""),
+                "risk_explanation": a.description or "",
+                "recommended_action": str(ev.get("recommended_action") or ""),
+                "linked_task_id": str(ev.get("task_id") or ""),
+                "linked_investigation_id": str(ev.get("investigation_id") or ""),
+                "evidence_payload": ev,
                 "actions": [{"label": "Open in explorer", "action": "open_explorer", "entity_type": "alert"}],
             }
             alerts.append(entry)

@@ -175,18 +175,33 @@ class MobileAuditTimelineView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        qs = MobileOperationalAudit.objects.filter(actor=request.user).select_related("device")[:80]
-        rows = [
-            {
-                "id": str(a.id),
-                "action_type": a.action_type,
-                "payload": a.payload,
-                "sync_status": a.sync_status,
-                "device_id": a.device.device_id if a.device_id else None,
-                "created_at": a.created_at.isoformat(),
-            }
-            for a in qs
-        ]
+        qs = MobileOperationalAudit.objects.filter(actor=request.user).select_related(
+            "device", "actor", "evidence"
+        )[:80]
+        rows = []
+        for a in qs:
+            payload = a.payload if isinstance(a.payload, dict) else {}
+            rows.append(
+                {
+                    "id": str(a.id),
+                    "action_type": a.action_type,
+                    "payload": payload,
+                    "sync_status": a.sync_status,
+                    "device_id": a.device.device_id if a.device_id else None,
+                    "created_at": a.created_at.isoformat(),
+                    "officer_name": a.actor.get_full_name() if a.actor else str(payload.get("officer") or ""),
+                    "organisation_name": str(payload.get("organisation_name") or ""),
+                    "address": str(payload.get("address") or ""),
+                    "city": str(payload.get("city") or ""),
+                    "state": str(payload.get("state") or ""),
+                    "linked_scan_id": str(payload.get("serial") or payload.get("scan_id") or ""),
+                    "linked_evidence_id": str(a.evidence_id) if a.evidence_id else "",
+                    "linked_task_id": str(payload.get("task_id") or ""),
+                    "linked_case_id": str(payload.get("case_id") or ""),
+                    "outcome_status": str(payload.get("action_status") or payload.get("status") or "recorded"),
+                    "audit_note": str(payload.get("signature_note") or payload.get("note") or ""),
+                }
+            )
         return api_response(data={"timeline": rows}, message="Mobile audit timeline")
 
 
@@ -221,6 +236,19 @@ class MobileCopilotView(APIView):
     def post(self, request):
         if not (is_regulator_user(request.user) or request.user.is_superuser):
             return api_response(message="regulator_only", status_code=403)
+        inspection_ctx = request.data.get("inspection_context")
+        if isinstance(inspection_ctx, dict) and inspection_ctx:
+            from apps.mobile.services.inspection_copilot import deterministic_inspection_recommendation
+
+            record_mobile_audit(
+                request=request,
+                action_type="mobile.ai.inspection",
+                payload={"score": inspection_ctx.get("compliance_score")},
+            )
+            return api_response(
+                data=deterministic_inspection_recommendation(inspection_ctx),
+                message="Inspection AI recommendation",
+            )
         mode = request.data.get("prompt_mode", "explain_risk")
         payload, reason = run_copilot_reasoning(
             request=request,

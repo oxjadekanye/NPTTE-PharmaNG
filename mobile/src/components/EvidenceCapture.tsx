@@ -21,9 +21,10 @@ import { useNetwork } from "@/hooks/useNetwork";
 type Props = {
   evidenceType: string;
   serialNumber?: string;
+  onCaptured?: () => void;
 };
 
-export function EvidenceCapture({ evidenceType, serialNumber = "" }: Props) {
+export function EvidenceCapture({ evidenceType, serialNumber = "", onCaptured }: Props) {
   const [notes, setNotes] = useState("");
   const [photos, setPhotos] = useState<EvidencePhoto[]>([]);
   const [status, setStatus] = useState<string | null>(null);
@@ -139,6 +140,7 @@ export function EvidenceCapture({ evidenceType, serialNumber = "" }: Props) {
       if (!online) {
         enqueue({ evidence_type: evidenceType, notes, serial_number: serialNumber, photos });
         setMessage("Queued offline — will sync when online", "success");
+        onCaptured?.();
         return;
       }
 
@@ -155,6 +157,7 @@ export function EvidenceCapture({ evidenceType, serialNumber = "" }: Props) {
         setMessage("Evidence uploaded successfully", "success");
         setPhotos([]);
         setNotes("");
+        onCaptured?.();
       } else {
         enqueue({ evidence_type: evidenceType, notes, serial_number: serialNumber, photos });
         setMessage(`Upload failed — queued for retry: ${res.message}`, "error");
