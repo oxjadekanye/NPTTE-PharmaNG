@@ -4,6 +4,8 @@ export type EvidencePhoto = {
   id: string;
   mime: string;
   base64: string;
+  /** Local file URI for preview on Android (base64 Image sources can fail). */
+  uri?: string;
   upload_status: "pending" | "synced" | "failed";
 };
 

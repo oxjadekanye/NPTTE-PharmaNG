@@ -16,7 +16,12 @@ export function ScreenShell({
   return (
     <SafeAreaView style={styles.safe} edges={["top", "left", "right"]}>
       <OfflineStatusBar />
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+      >
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
         <View style={styles.body}>{children}</View>

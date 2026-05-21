@@ -1,5 +1,10 @@
 import { apiRequest } from "@/services/api-client";
 
+export {
+  checklistFallbackRecommendation,
+  parseCopilotText,
+} from "@/services/mobile-ai-helpers";
+
 export type MobileAiMode =
   | "explain_risk"
   | "recommend_actions"
