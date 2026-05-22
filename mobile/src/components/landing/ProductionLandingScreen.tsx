@@ -1,10 +1,6 @@
 import { router } from "expo-router";
-import { CITIZEN_ROUTES, pushCitizenRoute } from "@/services/citizen-navigation";
-import { landingLog, openStaffLogin } from "@/navigation/staff-login-intent";
 import { useEffect, useRef } from "react";
 import { useQaMode } from "@/store/qa-mode-store";
-import { useLandingIntent } from "@/store/landing-intent-store";
-import { useNavigationStore } from "@/store/navigation-store";
 import {
   Animated,
   Dimensions,
@@ -19,103 +15,18 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NptteLogoMark } from "@/components/landing/NptteLogoMark";
 import { OperationalFooter } from "@/components/landing/OperationalFooter";
+import { LandingCtaButton } from "@/components/landing/LandingCtaButton";
+import { LANDING_COLORS } from "@/components/landing/landing-styles";
 
 const { height: SCREEN_H } = Dimensions.get("window");
 const isCompact = SCREEN_H < 740;
-
-type ActionVariant = "primary" | "staff" | "accent" | "alert";
-
-type ActionProps = {
-  href: string;
-  label: string;
-  variant: ActionVariant;
-  delay: number;
-  slide: Animated.Value;
-  publicFlow?: boolean;
-  accessibilityLabel?: string;
-};
-
-function LandingAction({
-  href,
-  label,
-  variant,
-  delay,
-  slide,
-  publicFlow,
-  accessibilityLabel,
-}: ActionProps) {
-  const setBypassAutoRedirect = useLandingIntent((s) => s.setBypassAutoRedirect);
-  const opacity = useRef(new Animated.Value(0)).current;
-  const pressScale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.sequence([
-      Animated.delay(delay),
-      Animated.parallel([
-        Animated.timing(opacity, { toValue: 1, duration: 380, useNativeDriver: true }),
-        Animated.timing(slide, { toValue: 0, duration: 420, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      ]),
-    ]).start();
-  }, [delay, opacity, slide]);
-
-  const variantStyle =
-    variant === "primary"
-      ? styles.btnPrimary
-      : variant === "staff"
-        ? styles.btnStaff
-        : variant === "accent"
-          ? styles.btnAccent
-          : styles.btnAlert;
-
-  const textStyle =
-    variant === "staff" ? styles.btnTextStaff : styles.btnTextPrimary;
-
-  const animatePressIn = () => {
-    Animated.spring(pressScale, { toValue: 0.97, useNativeDriver: true, speed: 40, bounciness: 0 }).start();
-  };
-
-  const animatePressOut = () => {
-    Animated.spring(pressScale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 4 }).start();
-  };
-
-  return (
-    <Animated.View
-      style={{ opacity, transform: [{ translateY: slide }, { scale: pressScale }] }}
-      pointerEvents="box-none"
-    >
-      <Pressable
-        style={({ pressed }) => [variantStyle, pressed && styles.btnPressed]}
-        pointerEvents="auto"
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel ?? label}
-        onPressIn={animatePressIn}
-        onPressOut={animatePressOut}
-        onPress={() => {
-          if (href === "/login") {
-            landingLog("staff_login_pressed");
-            openStaffLogin();
-            return;
-          }
-          if (publicFlow) setBypassAutoRedirect(true);
-          if (href.startsWith("/citizen")) {
-            pushCitizenRoute(href as (typeof CITIZEN_ROUTES)[keyof typeof CITIZEN_ROUTES]);
-            return;
-          }
-          useNavigationStore.getState().pushWhenReady(href);
-        }}
-      >
-        <Text style={textStyle}>{label}</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
 
 export function ProductionLandingScreen() {
   const unlockQa = useQaMode((s) => s.unlock);
   const insets = useSafeAreaInsets();
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(24)).current;
-  const actionsSlide = useRef(new Animated.Value(28)).current;
+  const actionsSlide = useRef(new Animated.Value(32)).current;
 
   useEffect(() => {
     Animated.parallel([
@@ -129,30 +40,31 @@ export function ProductionLandingScreen() {
     ]).start();
   }, [headerFade, headerSlide]);
 
-  const bottomPad = Math.max(insets.bottom, Platform.OS === "android" ? 20 : 12);
+  const bottomPad = Math.max(insets.bottom, Platform.OS === "android" ? 24 : 16);
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + (isCompact ? 8 : 16) }]}>
+    <View style={[styles.root, { paddingTop: insets.top + (isCompact ? 10 : 18) }]}>
       <View style={styles.gridBg} pointerEvents="none">
+        <View style={styles.bgGradientTop} pointerEvents="none" />
+        <View style={styles.bgGradientBottom} pointerEvents="none" />
         <View style={styles.gridLineH} pointerEvents="none" />
+        <View style={styles.gridLineH2} pointerEvents="none" />
         <View style={styles.gridLineV} pointerEvents="none" />
-        <View style={styles.glowOrb} pointerEvents="none" />
+        <View style={styles.glowOrbCyan} pointerEvents="none" />
+        <View style={styles.glowOrbViolet} pointerEvents="none" />
       </View>
+
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: bottomPad + 12, paddingHorizontal: isCompact ? 20 : 24 },
+          { paddingBottom: bottomPad + 16, paddingHorizontal: isCompact ? 18 : 22 },
         ]}
         showsVerticalScrollIndicator={false}
         bounces={false}
         keyboardShouldPersistTaps="handled"
       >
         <Animated.View
-          style={{
-            opacity: headerFade,
-            transform: [{ translateY: headerSlide }],
-            alignItems: "center",
-          }}
+          style={[styles.header, { opacity: headerFade, transform: [{ translateY: headerSlide }] }]}
           pointerEvents="box-none"
         >
           <Pressable
@@ -164,7 +76,7 @@ export function ProductionLandingScreen() {
             accessibilityRole="imagebutton"
             accessibilityLabel="NPTTE logo"
           >
-            <NptteLogoMark width={isCompact ? 220 : 260} />
+            <NptteLogoMark width={isCompact ? 228 : 268} />
           </Pressable>
           <Text style={styles.subtitle}>
             National Pharmaceutical Traceability &{"\n"}Enforcement Platform
@@ -176,7 +88,7 @@ export function ProductionLandingScreen() {
         </Animated.View>
 
         <View style={[styles.actions, isCompact && styles.actionsCompact]} pointerEvents="box-none">
-          <LandingAction
+          <LandingCtaButton
             href="/citizen"
             label="Citizen Verification"
             variant="primary"
@@ -185,7 +97,7 @@ export function ProductionLandingScreen() {
             publicFlow
             accessibilityLabel="Open citizen verification"
           />
-          <LandingAction
+          <LandingCtaButton
             href="/login"
             label="Staff Login"
             variant="staff"
@@ -193,7 +105,7 @@ export function ProductionLandingScreen() {
             slide={actionsSlide}
             accessibilityLabel="Open staff login"
           />
-          <LandingAction
+          <LandingCtaButton
             href="/citizen/recalls"
             label="Emergency Recall Alerts"
             variant="accent"
@@ -202,7 +114,7 @@ export function ProductionLandingScreen() {
             publicFlow
             accessibilityLabel="View emergency recall alerts"
           />
-          <LandingAction
+          <LandingCtaButton
             href="/citizen/report"
             label="Report Suspicious Medicine"
             variant="alert"
@@ -220,19 +132,48 @@ export function ProductionLandingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#020617" },
+  root: {
+    flex: 1,
+    backgroundColor: LANDING_COLORS.bg,
+  },
   gridBg: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "#020617",
+    backgroundColor: LANDING_COLORS.bg,
     zIndex: 0,
+  },
+  bgGradientTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: "45%",
+    backgroundColor: LANDING_COLORS.bgMid,
+    opacity: 0.85,
+  },
+  bgGradientBottom: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "35%",
+    backgroundColor: "#030712",
+    opacity: 0.9,
   },
   gridLineH: {
     position: "absolute",
-    top: "22%",
+    top: "18%",
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: "#1e293b44",
+    backgroundColor: LANDING_COLORS.gridBright,
+  },
+  gridLineH2: {
+    position: "absolute",
+    top: "62%",
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: LANDING_COLORS.grid,
   },
   gridLineV: {
     position: "absolute",
@@ -240,126 +181,81 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: "50%",
     width: 1,
-    backgroundColor: "#1e293b33",
+    backgroundColor: LANDING_COLORS.grid,
   },
-  glowOrb: {
+  glowOrbCyan: {
     position: "absolute",
-    top: -80,
+    top: -100,
     alignSelf: "center",
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: "#0284c733",
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: "#0284c728",
   },
-  scroll: { flexGrow: 1, justifyContent: "space-between", zIndex: 1 },
+  glowOrbViolet: {
+    position: "absolute",
+    bottom: 80,
+    right: -40,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: "#6366f122",
+  },
+  scroll: {
+    flexGrow: 1,
+    justifyContent: "space-between",
+    zIndex: 2,
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: isCompact ? 8 : 12,
+  },
   subtitle: {
-    fontSize: 14,
-    color: "#94a3b8",
+    fontSize: isCompact ? 13 : 14,
+    color: LANDING_COLORS.subtitle,
     textAlign: "center",
-    marginTop: 12,
+    marginTop: 14,
     lineHeight: 22,
     maxWidth: 340,
     paddingHorizontal: 8,
+    fontWeight: "500",
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    marginTop: isCompact ? 16 : 22,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 999,
-    backgroundColor: "#14532d55",
-    borderWidth: 1,
-    borderColor: "#22c55e66",
+    backgroundColor: LANDING_COLORS.badgeBg,
+    borderWidth: 1.5,
+    borderColor: LANDING_COLORS.badgeBorder,
   },
   badgeDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#4ade80",
-    marginRight: 8,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: LANDING_COLORS.badgeGreen,
+    marginRight: 9,
+    shadowColor: LANDING_COLORS.badgeGreen,
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 4,
   },
   badgeText: {
-    color: "#86efac",
-    fontSize: 11,
-    fontWeight: "700",
-    letterSpacing: 0.6,
+    color: LANDING_COLORS.badgeGreen,
+    fontSize: 12,
+    fontWeight: "800",
+    letterSpacing: 0.8,
   },
   actions: {
-    marginTop: 36,
-    gap: 14,
+    marginTop: isCompact ? 28 : 40,
+    gap: 16,
     zIndex: 10,
     position: "relative",
-    elevation: 10,
   },
-  actionsCompact: { marginTop: 24, gap: 12 },
-  btnPrimary: {
-    backgroundColor: "#0284c7",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#38bdf8",
-    shadowColor: "#0284c7",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  btnStaff: {
-    backgroundColor: "#0369a1",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#7dd3fc",
-    shadowColor: "#0ea5e9",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  btnAccent: {
-    backgroundColor: "#1e3a5f",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#38bdf8aa",
-    shadowColor: "#38bdf8",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  btnAlert: {
-    backgroundColor: "#991b1b",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#fca5a5aa",
-    shadowColor: "#ef4444",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.32,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  btnPressed: { opacity: 0.9 },
-  btnTextPrimary: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 16,
-    letterSpacing: 0.2,
-  },
-  btnTextStaff: {
-    color: "#f8fafc",
-    fontWeight: "700",
-    fontSize: 16,
-    letterSpacing: 0.2,
+  actionsCompact: {
+    marginTop: 22,
+    gap: 14,
   },
 });

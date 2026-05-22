@@ -77,6 +77,15 @@ export const NPTTEBrand = {
     lg: 16,
     pill: 999,
   },
+  landing: {
+    ctaMinHeight: 86,
+    ctaFontSize: 21,
+    ctaFontWeight: "800" as const,
+    glowPrimary: "#22d3ee",
+    glowStaff: "#7dd3fc",
+    glowAccent: "#a78bfa",
+    glowAlert: "#fb923c",
+  },
   shadow: {
     card: {
       shadowColor: "#000",

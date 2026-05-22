@@ -3,34 +3,34 @@ import { useEffect, useState } from "react";
 export type OperationalSnapshot = {
   verificationsToday: string;
   activeRecalls: string;
-  counterfeitAlerts: string;
-  enforcementReadiness: string;
+  enforcementActions: string;
+  systemUptime: string;
 };
 
 export const SNAPSHOTS: OperationalSnapshot[] = [
   {
     verificationsToday: "128,442",
     activeRecalls: "17",
-    counterfeitAlerts: "42",
-    enforcementReadiness: "94%",
+    enforcementActions: "42",
+    systemUptime: "99.94%",
   },
   {
     verificationsToday: "128,891",
     activeRecalls: "17",
-    counterfeitAlerts: "43",
-    enforcementReadiness: "94%",
+    enforcementActions: "43",
+    systemUptime: "99.95%",
   },
   {
     verificationsToday: "129,204",
     activeRecalls: "18",
-    counterfeitAlerts: "44",
-    enforcementReadiness: "95%",
+    enforcementActions: "44",
+    systemUptime: "99.96%",
   },
   {
     verificationsToday: "129,558",
     activeRecalls: "18",
-    counterfeitAlerts: "41",
-    enforcementReadiness: "95%",
+    enforcementActions: "41",
+    systemUptime: "99.97%",
   },
 ];
 
